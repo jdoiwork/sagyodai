@@ -23,8 +23,9 @@ export function SyncConflicts() {
                       ? `${item.command.col + 1}列の削除（表示を確認して削除し直してください）`
                       : item.command.type === "renameColumn"
                         ? `${item.command.col + 1}列の名前: ${item.command.name}`
-                        : item.command.type === "moveColumns"
-                          ? `選択した${item.command.indices.length}列の移動（表示を確認して選択し直してください）`
+                        : item.command.type === "moveColumns" ||
+                            item.command.type === "moveRows"
+                          ? `選択した${item.command.indices.length}${item.command.type === "moveRows" ? "行" : "列"}の移動（表示を確認して選択し直してください）`
                           : item.command.type === "moveColumn"
                             ? `列${item.command.from + 1}を列${item.command.to + 1}の位置へ移動`
                             : JSON.stringify(item.command)}

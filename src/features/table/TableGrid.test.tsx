@@ -474,3 +474,80 @@ it.each([
       expect.any(Function),
     );
 });
+
+it.each([
+  { indices: [0, 2], target: 3, y: 330, to: 2 },
+  { indices: [1, 3], target: 0, y: 302, to: 0 },
+  { indices: [1, 2], target: 2, y: 330, to: null },
+])(
+  "選択行 $indices をドラッグし、移動後も選択を維持する",
+  ({ indices, target, y, to }) => {
+    const t = { ...table, rows: [["a"], ["b"], ["c"], ["d"]] };
+    const { container, rerender } = render(<TableGrid table={t} />);
+    const row = (n: number) => container.querySelector(`[data-row="${n}"]`)!;
+    const header = (n: number) => row(n).querySelector("th")!;
+    fireEvent.click(header(indices[0]));
+    fireEvent.click(header(indices[1]), { metaKey: true });
+    expect(header(indices[0]).draggable).toBe(true);
+    vi.spyOn(row(target), "getBoundingClientRect").mockReturnValue({
+      top: 300,
+      height: 36,
+    } as DOMRect);
+    const dataTransfer = {
+      setData: vi.fn(),
+      effectAllowed: "",
+      dropEffect: "",
+    };
+    fireEvent.dragStart(header(indices[0]), { dataTransfer });
+    for (const type of ["dragover", "drop"]) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.assign(event, { clientY: y, dataTransfer });
+      fireEvent(row(target), event);
+    }
+    if (to === null) {
+      expect(dispatch).not.toHaveBeenCalled();
+      return;
+    }
+    expect(dispatch).toHaveBeenCalledWith(
+      {
+        type: "moveRows",
+        id: t.id,
+        indices,
+        to,
+        expectedColumns: t.columns,
+        expectedRows: t.rows,
+      },
+      expect.any(Function),
+    );
+    act(() => dispatch.mock.calls[0][1](true));
+    const order = [0, 1, 2, 3].filter((i) => !indices.includes(i));
+    order.splice(to, 0, ...indices);
+    rerender(<TableGrid table={{ ...t, rows: order.map((i) => t.rows[i]) }} />);
+    expect(header(to).getAttribute("aria-selected")).toBe("true");
+    expect(header(to + 1).getAttribute("aria-selected")).toBe("true");
+    // 選択をやり直さず、次のドラッグも同じ2行を対象にする。
+    dispatch.mockClear();
+    const nextTarget = to === 0 ? 3 : 0;
+    vi.spyOn(row(nextTarget), "getBoundingClientRect").mockReturnValue({
+      top: 300,
+      height: 36,
+    } as DOMRect);
+    fireEvent.dragStart(header(to), { dataTransfer });
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.assign(drop, { clientY: to === 0 ? 330 : 302, dataTransfer });
+    fireEvent(row(nextTarget), drop);
+    expect(dispatch.mock.calls[0][0].indices).toEqual([to, to + 1]);
+  },
+);
+
+it("画面外へ移動してもドラッグ元の行ヘッダーを維持する", () => {
+  const { container } = render(<TableGrid table={table} />);
+  const header = container.querySelector('[data-row="0"] th')!;
+  fireEvent.dragStart(header, { dataTransfer: { setData: vi.fn() } });
+  fireEvent.scroll(container.querySelector(".grid-scroll")!, {
+    target: { scrollTop: 18000 },
+  });
+  expect(container.querySelector('[data-row="0"] th')).toBe(header);
+  fireEvent.dragEnd(header);
+  expect(container.querySelector('[data-row="0"]')).toBeNull();
+});

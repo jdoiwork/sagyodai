@@ -105,7 +105,7 @@ export type Command =
       expectedColumns: string[];
     }
   | {
-      type: "moveColumns";
+      type: "moveColumns" | "moveRows";
       id: string;
       indices: number[];
       to: number;

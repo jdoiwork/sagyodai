@@ -1,3 +1,4 @@
+import { useRowReorder } from "./useRowReorder";
 import { useHeaderSelection } from "./useHeaderSelection";
 import { useTableWheel } from "./useTableWheel";
 import { useColumnReorder } from "./useColumnReorder";
@@ -32,6 +33,13 @@ export function TableGrid({
     dispatch,
     headers.selection?.kind === "column" ? headers.selection.indices : [],
     headers.moving,
+  );
+  const rowReorder = useRowReorder(
+    table,
+    viewport,
+    dispatch,
+    headers.selection?.kind === "row" ? headers.selection.indices : [],
+    (indices, to, source) => headers.moving(indices, to, source, "row"),
   );
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -90,6 +98,10 @@ export function TableGrid({
   const renderedRows = Array.from(
     new Set([
       ...Array.from({ length: last - first }, (_, i) => first + i),
+      ...(rowReorder.draggedRow !== null &&
+      rowReorder.draggedRow < table.rows.length
+        ? [rowReorder.draggedRow]
+        : []),
       ...(focusedRow !== null && focusedRow < table.rows.length
         ? [focusedRow]
         : []),
@@ -392,6 +404,12 @@ export function TableGrid({
                   <tr
                     key={r}
                     data-row={r}
+                    {...(!readOnly ? rowReorder.targetProps(r) : {})}
+                    className={
+                      !readOnly && rowReorder.marker?.row === r
+                        ? `row-drop-${rowReorder.marker.side}`
+                        : undefined
+                    }
                     onContextMenu={(e) => {
                       if (readOnly) return;
                       e.preventDefault();
@@ -410,6 +428,7 @@ export function TableGrid({
                     }}
                   >
                     <th
+                      {...(!readOnly ? rowReorder.sourceProps(r) : {})}
                       tabIndex={readOnly ? undefined : -1}
                       aria-selected={headers.contains("row", r)}
                       onClick={(e) => {

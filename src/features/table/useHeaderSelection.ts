@@ -39,24 +39,31 @@ export function useHeaderSelection(table: TableData) {
     setPending(null);
     setStored(null);
   }
-  function moving(indices: number[], to: number, source: TableData) {
+  function moving(
+    indices: number[],
+    to: number,
+    source: TableData,
+    kind: Axis = "column",
+  ) {
     const token = ++generation.current;
-    const order = source.columns
+    const order = (kind === "row" ? source.rows : source.columns)
       .map((_, i) => i)
       .filter((i) => !indices.includes(i));
     order.splice(to, 0, ...indices);
     const next = {
       confirmed: false,
       sourceSignature: JSON.stringify([source.columns, source.rows]),
-      kind: "column" as const,
+      kind,
       indices: indices.map((_, i) => to + i),
       anchor: to,
       signature: JSON.stringify([
-        order.map((i) => source.columns[i]),
-        source.rows.map((row) => order.map((i) => row[i])),
+        kind === "row" ? source.columns : order.map((i) => source.columns[i]),
+        kind === "row"
+          ? order.map((i) => source.rows[i])
+          : source.rows.map((row) => order.map((i) => row[i])),
       ]),
     };
-    // 応答とキャンバスへの反映の順序に依存せず、実際の列順が一致した時点で選択を移す。
+    // 応答とキャンバスへの反映の順序に依存せず、実際の行・列順が一致した時点で選択を移す。
     setPending(next);
     return (succeeded: boolean) => {
       if (generation.current !== token) return;

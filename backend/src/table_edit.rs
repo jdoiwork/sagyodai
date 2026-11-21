@@ -224,3 +224,33 @@ pub fn remove_selection(
     }
     Ok(())
 }
+
+pub fn move_rows(
+    tables: &mut [Table],
+    id: &str,
+    indices: &[usize],
+    to: usize,
+    columns: &[String],
+    rows: &[Vec<String>],
+) -> Result<(), String> {
+    let i = input_index(tables, id)?;
+    if tables[i].columns != columns || tables[i].rows != rows {
+        return Err(
+            "表の内容が変更されています。表示を確認して行を並べ替え直してください。".into(),
+        );
+    }
+    let mut selected = indices.to_vec();
+    selected.sort_unstable();
+    selected.dedup();
+    if selected.is_empty()
+        || selected.len() != indices.len()
+        || selected.iter().any(|n| *n >= rows.len())
+        || to > rows.len() - selected.len()
+    {
+        return Err("移動する行または移動先が不正です。".into());
+    }
+    let mut order: Vec<usize> = (0..rows.len()).filter(|n| !selected.contains(n)).collect();
+    order.splice(to..to, selected);
+    tables[i].rows = order.iter().map(|old| rows[*old].clone()).collect();
+    Ok(())
+}

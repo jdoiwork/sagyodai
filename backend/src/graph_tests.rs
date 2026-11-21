@@ -921,3 +921,95 @@ fn multiple_columns_move_together_with_references_and_undo() {
         ["数量", "メモ", "品名", "分類"]
     );
 }
+
+#[test]
+fn row_reordering_preserves_values_filter_order_and_undo() {
+    let mut p = flow();
+    let before = p.snapshot();
+    let input = before.tables[0].clone();
+    run(
+        &mut p,
+        Command::MoveRows {
+            id: input.id.clone(),
+            indices: vec![2, 0],
+            to: input.rows.len() - 2,
+            expected_columns: input.columns.clone(),
+            expected_rows: input.rows.clone(),
+        },
+    )
+    .unwrap();
+    let after = p.snapshot();
+    let mut order: Vec<usize> = (0..input.rows.len())
+        .filter(|i| *i != 0 && *i != 2)
+        .collect();
+    order.extend([0, 2]);
+    assert_eq!(
+        after.tables[0].rows,
+        order
+            .iter()
+            .map(|i| input.rows[*i].clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(after.tables[0].columns, input.columns);
+    assert_eq!(after.tables[0].column_widths, input.column_widths);
+    let expected: Vec<_> = after.tables[0]
+        .rows
+        .iter()
+        .filter(|r| before.tables[2].rows.contains(r))
+        .cloned()
+        .collect();
+    assert_eq!(after.tables[2].rows, expected);
+    assert!(
+        run(
+            &mut p,
+            Command::MoveRows {
+                id: input.id.clone(),
+                indices: vec![0],
+                to: 1,
+                expected_columns: input.columns.clone(),
+                expected_rows: input.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, input.rows);
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, after.tables[0].rows);
+    run(&mut p, Command::Undo).unwrap();
+    for (indices, to) in [
+        (vec![], 0),
+        (vec![0, 0], 0),
+        (vec![9999], 0),
+        (vec![0, 1], input.rows.len()),
+    ] {
+        assert!(
+            run(
+                &mut p,
+                Command::MoveRows {
+                    id: input.id.clone(),
+                    indices,
+                    to,
+                    expected_columns: input.columns.clone(),
+                    expected_rows: input.rows.clone()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(p.snapshot().tables[0].rows, input.rows);
+    }
+    let output = before.tables[2].clone();
+    assert!(
+        run(
+            &mut p,
+            Command::MoveRows {
+                id: output.id,
+                indices: vec![0],
+                to: 1,
+                expected_columns: output.columns,
+                expected_rows: output.rows
+            }
+        )
+        .is_err()
+    );
+}

@@ -140,6 +140,13 @@ pub enum Command {
         expected_columns: Vec<String>,
         expected_rows: Vec<Vec<String>>,
     },
+    MoveRows {
+        id: String,
+        indices: Vec<usize>,
+        to: usize,
+        expected_columns: Vec<String>,
+        expected_rows: Vec<Vec<String>>,
+    },
     MoveColumns {
         id: String,
         indices: Vec<usize>,
