@@ -1,8 +1,7 @@
-import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
-import type { TableData } from "../../api/project";
+import { NodeResizer, type NodeProps } from "@xyflow/react";
+import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
-export type TableFlowNode = Node<{ table: TableData }, "table">;
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch } = useProject();
   const table = data.table;
@@ -14,15 +13,9 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         minHeight={240}
         maxWidth={2400}
         maxHeight={1600}
+        onResizeStart={data.onLayoutStart}
         onResizeEnd={(_, p) =>
-          dispatch({
-            type: "place",
-            id: table.id,
-            x: p.x,
-            y: p.y,
-            width: p.width,
-            height: p.height,
-          })
+          data.onLayoutEnd({ x: p.x, y: p.y, width: p.width, height: p.height })
         }
       />
       <header className="table-drag-handle">

@@ -1,0 +1,52 @@
+import type { Node } from "@xyflow/react";
+import type { TableData } from "../../api/project";
+export type Layout = Pick<TableData, "x" | "y" | "width" | "height">;
+export type TableFlowNode = Node<
+  {
+    table: TableData;
+    onLayoutStart: () => void;
+    onLayoutEnd: (layout: Layout) => void;
+  },
+  "table"
+>;
+export function sameLayout(a: Layout, b: Layout): boolean {
+  return (
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+  );
+}
+export function reconcileNodes(
+  tables: TableData[],
+  previous: TableFlowNode[],
+  active: ReadonlySet<string>,
+  pending: ReadonlyMap<string, Layout>,
+  begin: (id: string) => void,
+  finish: (id: string, layout: Layout) => void,
+): TableFlowNode[] {
+  return tables.map((table) => {
+    const old = previous.find((node) => node.id === table.id);
+    // 全体スナップショットに他の表の古い配置が含まれていても、未反映の操作を保護する。
+    const local =
+      active.has(table.id) && old
+        ? {
+            x: old.position.x,
+            y: old.position.y,
+            width: Number(old.style?.width ?? table.width),
+            height: Number(old.style?.height ?? table.height),
+          }
+        : (pending.get(table.id) ?? table);
+    return {
+      ...old,
+      id: table.id,
+      type: "table",
+      dragHandle: ".table-drag-handle",
+      position: { x: local.x, y: local.y },
+      style: { ...old?.style, width: local.width, height: local.height },
+      selected: old?.selected ?? false,
+      data: {
+        table,
+        onLayoutStart: () => begin(table.id),
+        onLayoutEnd: (layout) => finish(table.id, layout),
+      },
+    };
+  });
+}

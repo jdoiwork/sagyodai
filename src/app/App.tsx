@@ -1,43 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Background,
   BackgroundVariant,
   ReactFlow,
   ReactFlowProvider,
-  useNodesState,
   useReactFlow,
   useViewport,
 } from "@xyflow/react";
 import { useProject } from "./ProjectContext";
-import { TableNode, type TableFlowNode } from "../features/canvas/TableNode";
+import { TableNode } from "../features/canvas/TableNode";
+import { useCanvasNodes } from "../features/canvas/useCanvasNodes";
 const nodeTypes = { table: TableNode };
 function Canvas() {
   const { project, dispatch, error, pending } = useProject();
-  const [nodes, setNodes, onNodesChange] = useNodesState<TableFlowNode>([]);
+  const { nodes, onNodesChange, begin, finish } = useCanvasNodes(
+    project,
+    dispatch,
+  );
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
-  const dragging = useRef(false);
   const { zoomTo, fitView } = useReactFlow();
   const { zoom } = useViewport();
-  useEffect(() => {
-    if (!project) return;
-    setNodes((old) =>
-      project.tables.map((table) => {
-        const previous = old.find((n) => n.id === table.id);
-        return {
-          id: table.id,
-          type: "table",
-          dragHandle: ".table-drag-handle",
-          position:
-            dragging.current && previous
-              ? previous.position
-              : { x: table.x, y: table.y },
-          style: { width: table.width, height: table.height },
-          selected: previous?.selected ?? false,
-          data: { table },
-        };
-      }),
-    );
-  }, [project]);
   return (
     <div className="workspace">
       <header className="app-header">
@@ -72,20 +54,17 @@ function Canvas() {
           panOnDrag
           selectionOnDrag={false}
           autoPanOnNodeFocus={false}
-          onNodeDragStart={() => {
-            dragging.current = true;
-          }}
-          onNodeDragStop={(_, node) => {
-            dragging.current = false;
-            dispatch({
-              type: "place",
-              id: node.id,
+          autoPanOnNodeDrag={false}
+          multiSelectionKeyCode={null}
+          onNodeDragStart={(_, node) => begin(node.id)}
+          onNodeDragStop={(_, node) =>
+            finish(node.id, {
               x: node.position.x,
               y: node.position.y,
-              width: node.data.table.width,
-              height: node.data.table.height,
-            });
-          }}
+              width: Number(node.style?.width ?? node.data.table.width),
+              height: Number(node.style?.height ?? node.data.table.height),
+            })
+          }
         >
           <Background
             variant={BackgroundVariant.Dots}
