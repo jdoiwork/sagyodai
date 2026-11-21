@@ -320,14 +320,17 @@ it.each(["名前", "記号", "余白"])(
     const drop = new Event("drop", { bubbles: true, cancelable: true });
     Object.assign(drop, { clientX: 440, dataTransfer });
     fireEvent(target, drop);
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
-      type: "moveColumn",
-      id: "t",
-      from: 0,
-      to: 2,
-      expectedColumns: editable.columns,
-      expectedRows: editable.rows,
-    });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: "moveColumn",
+        id: "t",
+        from: 0,
+        to: 2,
+        expectedColumns: editable.columns,
+        expectedRows: editable.rows,
+      },
+      expect.any(Function),
+    );
     expect(container.querySelectorAll(".column-drop-after")).toHaveLength(0);
   },
 );
@@ -459,12 +462,15 @@ it.each([
   fireEvent(header(target), drop);
   if (to === null) expect(dispatch).not.toHaveBeenCalled();
   else
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
-      type: "moveColumns",
-      id: t.id,
-      indices: selected,
-      to,
-      expectedColumns: t.columns,
-      expectedRows: t.rows,
-    });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: "moveColumns",
+        id: t.id,
+        indices: selected,
+        to,
+        expectedColumns: t.columns,
+        expectedRows: t.rows,
+      },
+      expect.any(Function),
+    );
 });

@@ -10,8 +10,16 @@ import type { Command, TableData } from "../../api/project";
 export function useColumnReorder(
   table: TableData,
   viewport: RefObject<HTMLDivElement | null>,
-  dispatch: (command: Command) => void,
+  dispatch: (
+    command: Command,
+    onSettled?: (succeeded: boolean) => void,
+  ) => void,
   selectedColumns: number[] = [],
+  onMoving?: (
+    indices: number[],
+    to: number,
+    source: TableData,
+  ) => (succeeded: boolean) => void,
 ) {
   const blockedStart = useRef(false);
   const source = useRef<{ indices: number[]; table: TableData } | null>(null);
@@ -91,15 +99,19 @@ export function useColumnReorder(
         const { to, unchanged } = destination(e, col);
         clear();
         if (unchanged) return;
-        dispatch({
-          ...(start.indices.length === 1
-            ? { type: "moveColumn" as const, from: start.indices[0] }
-            : { type: "moveColumns" as const, indices: start.indices }),
-          id: table.id,
-          to,
-          expectedColumns: start.table.columns,
-          expectedRows: start.table.rows,
-        });
+        const settled = onMoving?.(start.indices, to, start.table);
+        dispatch(
+          {
+            ...(start.indices.length === 1
+              ? { type: "moveColumn" as const, from: start.indices[0] }
+              : { type: "moveColumns" as const, indices: start.indices }),
+            id: table.id,
+            to,
+            expectedColumns: start.table.columns,
+            expectedRows: start.table.rows,
+          },
+          settled,
+        );
       },
       onDragLeave: () => setMarker(null),
     }),

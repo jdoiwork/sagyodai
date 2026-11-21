@@ -31,6 +31,7 @@ export function TableGrid({
     viewport,
     dispatch,
     headers.selection?.kind === "column" ? headers.selection.indices : [],
+    headers.moving,
   );
   const [contextMenu, setContextMenu] = useState<{
     x: number;
