@@ -1,3 +1,4 @@
+import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
 import { createsCycle } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
@@ -23,6 +24,13 @@ function Canvas() {
     dispatch,
     pending,
   );
+  const [edgeMenu, setEdgeMenu] = useState<{
+    x: number;
+    y: number;
+    target: string;
+    source: string;
+    revision: number;
+  } | null>(null);
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
   const { zoomTo, fitView, screenToFlowPosition } = useReactFlow();
   const { zoom } = useViewport();
@@ -83,12 +91,39 @@ function Canvas() {
           </button>
         </div>
       </header>
+      {edgeMenu &&
+        project?.revision === edgeMenu.revision &&
+        project.tables.some(
+          (t) => t.id === edgeMenu.target && t.source === edgeMenu.source,
+        ) && (
+          <EdgeContextMenu
+            x={edgeMenu.x}
+            y={edgeMenu.y}
+            onClose={() => setEdgeMenu(null)}
+            onDisconnect={() =>
+              dispatch({ type: "connect", id: edgeMenu.target, source: null })
+            }
+          />
+        )}
       <main ref={canvas} className="canvas-shell">
         <ReactFlow
           nodes={nodes}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           deleteKeyCode={null}
+          onEdgeContextMenu={(event, edge) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (project && !pending)
+              setEdgeMenu({
+                x: event.clientX,
+                y: event.clientY,
+                target: edge.target,
+                source: edge.source,
+                revision: project.revision,
+              });
+          }}
+          onMoveStart={() => setEdgeMenu(null)}
           nodesConnectable
           connectionRadius={28}
           reconnectRadius={16}
