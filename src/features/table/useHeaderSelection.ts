@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
-import type { TableData } from "../../api/project";
+import type { Snapshot, TableData } from "../../api/project";
 
 type Axis = "row" | "column";
 type Selection = {
@@ -72,6 +72,24 @@ export function useHeaderSelection(table: TableData) {
       );
     };
   }
+  function inserting(kind: Axis, at: number, count: number, source: TableData) {
+    const token = ++generation.current;
+    setPending(null);
+    // 列名などの生成規則は Rust に任せ、成功応答の実データと画面が一致してから選択する。
+    return (succeeded: boolean, snapshot?: Snapshot) => {
+      if (generation.current !== token || !succeeded) return;
+      const next = snapshot?.tables.find((t) => t.id === source.id);
+      if (!next) return;
+      setPending({
+        kind,
+        anchor: at,
+        indices: Array.from({ length: count }, (_, i) => at + i),
+        confirmed: true,
+        sourceSignature: JSON.stringify([source.columns, source.rows]),
+        signature: JSON.stringify([next.columns, next.rows]),
+      });
+    };
+  }
   function select(
     kind: Axis,
     index: number,
@@ -106,6 +124,7 @@ export function useHeaderSelection(table: TableData) {
     select,
     clear,
     moving,
+    inserting,
     contains: (kind: Axis, index: number) =>
       selection?.kind === kind && selection.indices.includes(index),
   };

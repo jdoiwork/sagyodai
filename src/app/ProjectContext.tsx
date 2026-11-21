@@ -19,7 +19,7 @@ type ProjectContextValue = {
   project: Snapshot | null;
   dispatch: (
     command: Command,
-    onSettled?: (succeeded: boolean) => void,
+    onSettled?: (succeeded: boolean, snapshot?: Snapshot) => void,
   ) => void;
   error: string;
   pending: number;
@@ -189,10 +189,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }
   function dispatch(
     command: Command,
-    onSettled?: (succeeded: boolean) => void,
+    onSettled?: (succeeded: boolean, snapshot?: Snapshot) => void,
   ) {
     void enqueue(command, true).then(
-      () => onSettled?.(true),
+      (snapshot) => onSettled?.(true, snapshot),
       () => onSettled?.(false),
     );
   }

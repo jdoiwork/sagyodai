@@ -173,18 +173,29 @@ export function TableGrid({
               ? contextMenu.rows.length + contextMenu.indices.length > 5000
               : contextMenu.columns.length + contextMenu.indices.length > 50
           }
-          onInsert={(after) =>
-            dispatch({
-              type: contextMenu.kind === "row" ? "insertRows" : "insertColumns",
-              id: table.id,
-              at: after
-                ? Math.max(...contextMenu.indices) + 1
-                : Math.min(...contextMenu.indices),
-              count: contextMenu.indices.length,
-              expectedColumns: contextMenu.columns,
-              expectedRows: contextMenu.rows,
-            })
-          }
+          onInsert={(after) => {
+            const at = after
+              ? Math.max(...contextMenu.indices) + 1
+              : Math.min(...contextMenu.indices);
+            const count = contextMenu.indices.length;
+            const settled = headers.inserting(contextMenu.kind, at, count, {
+              ...table,
+              columns: contextMenu.columns,
+              rows: contextMenu.rows,
+            });
+            dispatch(
+              {
+                type:
+                  contextMenu.kind === "row" ? "insertRows" : "insertColumns",
+                id: table.id,
+                at,
+                count,
+                expectedColumns: contextMenu.columns,
+                expectedRows: contextMenu.rows,
+              },
+              settled,
+            );
+          }}
           targetLabel={
             contextMenu.indices.length > 1
               ? `選択した${contextMenu.indices.length}${contextMenu.kind === "row" ? "行" : "列"}`

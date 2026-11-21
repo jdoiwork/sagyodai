@@ -67,3 +67,33 @@ it("失敗時は元の選択を保ち、待機中の選択変更を上書きし�
   rerender(moved);
   expect(result.current.selection).toBeNull();
 });
+
+it("挿入応答が画面より後でも選択し、失敗や待機中の選択変更を保護する", () => {
+  const { result, rerender } = renderHook((t) => useHeaderSelection(t), {
+    initialProps: table,
+  });
+  const next = { ...table, rows: [...table.rows, ["", "", "", ""]] };
+  act(() => result.current.select("row", 0));
+  let settled!: ReturnType<typeof result.current.inserting>;
+  act(() => {
+    settled = result.current.inserting("row", 1, 1, table);
+  });
+  act(() => settled(false));
+  expect(result.current.selection?.indices).toEqual([0]);
+  act(() => {
+    settled = result.current.inserting("row", 1, 1, table);
+  });
+  rerender(next);
+  act(() =>
+    settled(true, { tables: [next] } as import("../../api/project").Snapshot),
+  );
+  expect(result.current.selection?.indices).toEqual([1]);
+  act(() => {
+    settled = result.current.inserting("column", 0, 1, next);
+  });
+  act(() => result.current.clear());
+  act(() =>
+    settled(true, { tables: [next] } as import("../../api/project").Snapshot),
+  );
+  expect(result.current.selection).toBeNull();
+});

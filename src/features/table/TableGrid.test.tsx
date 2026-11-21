@@ -567,7 +567,7 @@ it.each([
       ["g", "h", "i"],
     ],
   };
-  const { container, getByRole } = render(<TableGrid table={t} />);
+  const { container, getByRole, rerender } = render(<TableGrid table={t} />);
   const header = (i: number) =>
     container.querySelector(
       kind === "row" ? `[data-row="${i}"] th` : `[data-column="${i}"]`,
@@ -576,14 +576,32 @@ it.each([
   fireEvent.click(header(2), { metaKey: true });
   fireEvent.contextMenu(header(2));
   fireEvent.click(getByRole("menuitem", { name: label }));
-  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
-    type: kind === "row" ? "insertRows" : "insertColumns",
-    id: t.id,
-    at,
-    count: 2,
-    expectedColumns: t.columns,
-    expectedRows: t.rows,
-  });
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+    {
+      type: kind === "row" ? "insertRows" : "insertColumns",
+      id: t.id,
+      at,
+      count: 2,
+      expectedColumns: t.columns,
+      expectedRows: t.rows,
+    },
+    expect.any(Function),
+  );
+  const next = {
+    ...t,
+    columns: [...t.columns],
+    rows: t.rows.map((row) => [...row]),
+  };
+  if (kind === "row") next.rows.splice(at, 0, ["", "", ""], ["", "", ""]);
+  else {
+    next.columns.splice(at, 0, "列 1", "列 2");
+    next.rows.forEach((row) => row.splice(at, 0, "", ""));
+  }
+  act(() => dispatch.mock.calls[0][1](true, { tables: [next] }));
+  rerender(<TableGrid table={next} />);
+  expect(header(at).getAttribute("aria-selected")).toBe("true");
+  expect(header(at + 1).getAttribute("aria-selected")).toBe("true");
+  expect(container.querySelectorAll('[aria-selected="true"]')).toHaveLength(2);
 });
 
 it("最後の1行でも前後に挿入でき、上限の列には挿入できない", () => {
