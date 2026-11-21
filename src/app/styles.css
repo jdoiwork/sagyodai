@@ -535,3 +535,27 @@ button:disabled {
   border-color: #e8bda9;
   color: #9e4630;
 }
+
+.conflict-panel {
+  position: absolute;
+  top: 80px;
+  right: 24px;
+  z-index: 20;
+  width: 340px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 18px;
+  background: #fff9ed;
+  border: 1px solid #cfaa65;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #0002;
+}
+.conflict-panel pre {
+  white-space: pre-wrap;
+  user-select: text;
+  max-height: 140px;
+  overflow: auto;
+}
+.conflict-panel button {
+  margin: 4px;
+}

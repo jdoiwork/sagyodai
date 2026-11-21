@@ -1,3 +1,4 @@
+import { SyncConflicts } from "../features/project/SyncConflicts";
 import { useState } from "react";
 import {
   Background,
@@ -13,10 +14,11 @@ import { useCanvasNodes } from "../features/canvas/useCanvasNodes";
 import { ProjectFiles } from "../features/project/ProjectFiles";
 const nodeTypes = { table: TableNode };
 function Canvas() {
-  const { project, dispatch, error, pending } = useProject();
+  const { project, dispatch, error, pending, connected } = useProject();
   const { nodes, onNodesChange, begin, finish } = useCanvasNodes(
     project,
     dispatch,
+    pending,
   );
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
   const { zoomTo, fitView } = useReactFlow();
@@ -84,6 +86,7 @@ function Canvas() {
           <button
             disabled={!project?.canUndo || pending > 0}
             onClick={() => dispatch({ type: "undo" })}
+            title="全タブ共通の履歴を戻します"
             aria-label="元に戻す"
           >
             ↶
@@ -144,6 +147,7 @@ function Canvas() {
             </div>
           </aside>
         )}
+        <SyncConflicts />
         {error && (
           <div className="error-banner" role="alert">
             {error}
@@ -189,7 +193,9 @@ function Canvas() {
             : pending
               ? "反映中…"
               : project
-                ? "準備完了"
+                ? connected
+                  ? "同期中"
+                  : "再接続中…"
                 : "接続中"}
         </span>
         <span>

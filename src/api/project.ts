@@ -20,7 +20,14 @@ export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
   | { type: "addTable" | "undo" | "redo" }
   | { type: "openProject"; document: unknown }
-  | { type: "paste"; id: string; row: number; col: number; values: string[][] }
+  | {
+      type: "paste";
+      id: string;
+      row: number;
+      col: number;
+      values: string[][];
+      expectedValues?: (string | null)[][];
+    }
   | { type: "addRows"; id: string; count: number }
   | { type: "addColumn"; id: string }
   | {
@@ -31,12 +38,21 @@ export type Command =
       width: number;
       height: number;
     };
+export class CommandError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
 async function read(response: Response): Promise<Snapshot> {
   if (!response.ok) {
     const text = await response.text();
     try {
       const body = JSON.parse(text) as { error?: unknown };
-      if (typeof body.error === "string") throw new Error(body.error);
+      if (typeof body.error === "string")
+        throw new CommandError(body.error, response.status);
     } catch (e) {
       if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
     }
@@ -68,4 +84,17 @@ export async function exportProject(): Promise<{
   )
     throw new Error("保存時の状態を確認できません。");
   return { blob: await response.blob(), revision };
+}
+
+export function subscribeProject(
+  onChange: () => void,
+  onConnection: (connected: boolean) => void,
+) {
+  const events = new EventSource("/api/project/events");
+  events.onmessage = () => {
+    onConnection(true);
+    onChange();
+  };
+  events.onerror = () => onConnection(false);
+  return () => events.close();
 }

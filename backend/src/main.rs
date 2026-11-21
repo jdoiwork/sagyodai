@@ -13,7 +13,11 @@ use axum::{
 use domain::{Request, Snapshot};
 use std::sync::{Arc, Mutex};
 
-type SharedProject = Arc<Mutex<Project>>;
+#[derive(Clone)]
+struct SharedProject {
+    project: Arc<Mutex<Project>>,
+    changes: tokio::sync::watch::Sender<u64>,
+}
 type ApiError = (StatusCode, Json<serde_json::Value>);
 fn error(message: impl ToString) -> ApiError {
     (
@@ -24,6 +28,7 @@ fn error(message: impl ToString) -> ApiError {
 async fn snapshot(State(project): State<SharedProject>) -> Result<Json<Snapshot>, ApiError> {
     Ok(Json(
         project
+            .project
             .lock()
             .map_err(|_| error("内部状態にアクセスできません。"))?
             .snapshot(),
@@ -33,15 +38,25 @@ async fn command(
     State(project): State<SharedProject>,
     Json(request): Json<Request>,
 ) -> Result<Json<Snapshot>, ApiError> {
-    project
+    let mut state = project
+        .project
         .lock()
-        .map_err(|_| error("内部状態にアクセスできません。"))?
-        .apply(request)
-        .map(Json)
-        .map_err(error)
+        .map_err(|_| error("内部状態にアクセスできません。"))?;
+    if request.expected_revision != state.snapshot().revision {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(
+                serde_json::json!({"error": "別の操作で状態が更新されました。入力は保持されています。"}),
+            ),
+        ));
+    }
+    let next = state.apply(request).map_err(error)?;
+    project.changes.send_replace(next.revision);
+    Ok(Json(next))
 }
 async fn export(State(project): State<SharedProject>) -> Result<Response, ApiError> {
     let state = project
+        .project
         .lock()
         .map_err(|_| error("内部状態にアクセスできません。"))?;
     let bytes = state.export().map_err(error)?;
@@ -63,6 +78,23 @@ async fn export(State(project): State<SharedProject>) -> Result<Response, ApiErr
     );
     Ok(response)
 }
+async fn events(State(project): State<SharedProject>) -> impl IntoResponse {
+    use axum::response::sse::{Event, KeepAlive, Sse};
+    let receiver = project.changes.subscribe();
+    // 接続時にも通知し、初期取得との隙間や再接続中の変更を取りこぼさない。
+    let stream =
+        futures_util::stream::unfold((receiver, true), |(mut receiver, first)| async move {
+            if !first && receiver.changed().await.is_err() {
+                return None;
+            }
+            let revision = *receiver.borrow_and_update();
+            Some((
+                Ok::<_, std::convert::Infallible>(Event::default().data(revision.to_string())),
+                (receiver, false),
+            ))
+        });
+    Sse::new(stream).keep_alive(KeepAlive::default())
+}
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut project = Project::default();
@@ -79,10 +111,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let app = Router::new()
         .route("/api/project", get(snapshot))
+        .route("/api/project/events", get(events))
         .route("/api/command", post(command))
         .route("/api/project/export", get(export))
         .layer(DefaultBodyLimit::max(16 * 1024 * 1024))
-        .with_state(Arc::new(Mutex::new(project)));
+        .with_state(SharedProject {
+            changes: tokio::sync::watch::channel(project.snapshot().revision).0,
+            project: Arc::new(Mutex::new(project)),
+        });
     let port: u16 = std::env::var("SAGYODAI_CORE_PORT")
         .unwrap_or_else(|_| "4318".into())
         .parse()?;

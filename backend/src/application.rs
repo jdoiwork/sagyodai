@@ -96,6 +96,7 @@ impl Project {
                 row,
                 col,
                 values,
+                expected_values,
             } => {
                 let width = values.iter().map(Vec::len).max().unwrap_or(0);
                 if values.is_empty() || width == 0 {
@@ -112,6 +113,28 @@ impl Project {
                     return Err("セルの内容が長すぎます。".into());
                 }
                 let table = table_mut(tables, &id)?;
+                if let Some(expected) = expected_values {
+                    if expected.len() != values.len()
+                        || expected
+                            .iter()
+                            .zip(&values)
+                            .any(|(a, b)| a.len() != b.len())
+                    {
+                        return Err("比較対象の範囲が不正です。".into());
+                    }
+                    for (r, cells) in expected.iter().enumerate() {
+                        for (c, value) in cells.iter().enumerate() {
+                            if table.rows.get(row + r).and_then(|row| row.get(col + c))
+                                != value.as_ref()
+                            {
+                                return Err(
+                                    "同じセルが別の操作で変更されました。入力は保持されています。"
+                                        .into(),
+                                );
+                            }
+                        }
+                    }
+                }
                 while table.columns.len() < end_col {
                     table
                         .columns
@@ -199,6 +222,7 @@ mod tests {
                 id: "table-1".into(),
                 row: 5,
                 col: 3,
+                expected_values: None,
                 values: vec![
                     vec!["日本語".into(), "列追加".into()],
                     vec!["改行\nあり".into(), "".into()],
@@ -248,6 +272,7 @@ mod tests {
                     id: "table-1".into(),
                     row: 4999,
                     col: 0,
+                    expected_values: None,
                     values: vec![vec!["x".into()], vec!["y".into()]]
                 }
             )
@@ -270,5 +295,37 @@ mod tests {
             .is_err()
         );
         assert_eq!(p.tables.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod sync_tests {
+    use super::*;
+    #[test]
+    fn guarded_paste_preserves_other_edits_and_rejects_same_cell_conflicts() {
+        let mut project = Project::default();
+        let edit = |revision, col, value: &str, expected: &str| Request {
+            expected_revision: revision,
+            command: Command::Paste {
+                id: "table-1".into(),
+                row: 0,
+                col,
+                values: vec![vec![value.into()]],
+                expected_values: Some(vec![vec![Some(expected.into())]]),
+            },
+        };
+        project.apply(edit(0, 0, "別タブ", "ノート")).unwrap();
+        assert!(project.apply(edit(1, 0, "自分の入力", "ノート")).is_err());
+        assert_eq!(project.snapshot().revision, 1);
+        project.apply(edit(1, 1, "4", "3")).unwrap();
+        assert_eq!(project.snapshot().tables[0].rows[0][0], "別タブ");
+        project
+            .apply(Request {
+                expected_revision: 2,
+                command: Command::Undo,
+            })
+            .unwrap();
+        assert_eq!(project.snapshot().tables[0].rows[0][1], "3");
+        assert_eq!(project.snapshot().tables[0].rows[0][0], "別タブ");
     }
 }

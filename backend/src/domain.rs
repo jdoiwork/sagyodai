@@ -23,7 +23,12 @@ pub struct Snapshot {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
 pub enum Command {
     AddTable,
     OpenProject {
@@ -34,6 +39,8 @@ pub enum Command {
         row: usize,
         col: usize,
         values: Vec<Vec<String>>,
+        #[serde(default)]
+        expected_values: Option<Vec<Vec<Option<String>>>>,
     },
     AddRows {
         id: String,

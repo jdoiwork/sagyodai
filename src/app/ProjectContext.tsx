@@ -10,6 +10,8 @@ import {
   loadProject,
   sendCommand,
   exportProject,
+  subscribeProject,
+  CommandError,
   type Command,
   type Snapshot,
 } from "../api/project";
@@ -22,6 +24,9 @@ type ProjectContextValue = {
   prepareExport: () => Promise<{ blob: Blob; revision: number }>;
   markExported: (revision: number) => void;
   dirty: boolean;
+  connected: boolean;
+  conflicts: { id: number; command: Command; message: string }[];
+  resolveConflict: (id: number, retry: boolean) => void;
 };
 const Context = createContext<ProjectContextValue | null>(null);
 export function ProjectProvider({ children }: { children: ReactNode }) {
@@ -31,19 +36,75 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState(0);
   const [exportedRevision, setExportedRevision] = useState<number | null>(null);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const failed = useRef(false);
+  const [connected, setConnected] = useState(false);
+  const [conflicts, setConflicts] = useState<
+    { id: number; command: Command; message: string }[]
+  >([]);
+  const conflictId = useRef(0);
+  const unresolved = useRef(0);
+  const editing = useRef(false);
+  const alive = useRef(true);
+  function accept(next: Snapshot) {
+    if (
+      !alive.current ||
+      (current.current && next.revision < current.current.revision)
+    )
+      return;
+    current.current = next;
+    if (!editing.current) setProject(next);
+  }
   const dirty = !!project && project.revision !== exportedRevision;
   useEffect(() => {
-    loadProject()
-      .then((p) => {
-        current.current = p;
-        setProject(p);
-      })
-      .catch(() =>
-        setError(
-          "Rust コアに接続できません。npm run dev で起動してから再読み込みしてください。",
-        ),
-      );
+    alive.current = true;
+    let refreshing = false,
+      again = false;
+    async function refresh() {
+      if (refreshing) {
+        again = true;
+        return;
+      }
+      refreshing = true;
+      do {
+        again = false;
+        try {
+          accept(await loadProject());
+          if (alive.current) setError("");
+        } catch {
+          if (alive.current) {
+            setConnected(false);
+            setError(
+              "コアに接続できません。自動的に再接続します。未反映の入力は保存前に確認してください。",
+            );
+          }
+        }
+      } while (again && alive.current);
+      refreshing = false;
+    }
+    void refresh();
+    const unsubscribe = subscribeProject(() => void refresh(), setConnected);
+    const focus = (event: FocusEvent) => {
+      editing.current =
+        event.target instanceof HTMLTextAreaElement &&
+        event.target.classList.contains("cell");
+    };
+    const blur = () => {
+      // React の onBlur が入力を操作キューへ渡した後に、保留した画面更新を反映する。
+      queueMicrotask(() => {
+        editing.current =
+          document.activeElement instanceof HTMLTextAreaElement &&
+          document.activeElement.classList.contains("cell");
+        if (!editing.current && current.current && alive.current)
+          setProject(current.current);
+      });
+    };
+    document.addEventListener("focusin", focus);
+    document.addEventListener("focusout", blur);
+    return () => {
+      alive.current = false;
+      unsubscribe();
+      document.removeEventListener("focusin", focus);
+      document.removeEventListener("focusout", blur);
+    };
   }, []);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -51,37 +112,66 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       const editing =
         input instanceof HTMLTextAreaElement &&
         input.value !== input.dataset.committedValue;
-      if (dirty || editing) {
+      if (
+        current.current?.revision !== exportedRevision ||
+        editing ||
+        unresolved.current > 0
+      ) {
         event.preventDefault();
         event.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [exportedRevision]);
   function enqueue(
     command: Command,
-    haltOnFailure: boolean,
+    retainOnFailure: boolean,
   ): Promise<Snapshot> {
     setPending((n) => n + 1);
     const task = queue.current
       .then(async () => {
-        if (failed.current || !current.current)
+        if (!current.current)
           throw new Error(
             "未反映の操作があります。必要な入力を控えてから再読み込みしてください。",
           );
         try {
-          const next = await sendCommand(current.current.revision, command);
-          current.current = next;
-          setProject(next);
+          let next: Snapshot;
+          try {
+            next = await sendCommand(current.current.revision, command);
+          } catch (e) {
+            // セルの比較条件があれば、無関係な変更との revision 競合だけを安全に再試行できる。
+            if (
+              !(e instanceof CommandError) ||
+              e.status !== 409 ||
+              command.type !== "paste" ||
+              !command.expectedValues
+            )
+              throw e;
+            const latest = await loadProject();
+            accept(latest);
+            next = await sendCommand(latest.revision, command);
+          }
+          accept(next);
           setError("");
           return next;
         } catch (e) {
-          if (haltOnFailure) {
-            failed.current = true;
-            setError(
-              `${e instanceof Error ? e.message : "通信に失敗しました。"} 未反映の操作を止めました。内容を確認して再読み込みしてください。`,
-            );
+          if (retainOnFailure) {
+            unresolved.current++;
+            setConflicts((old) => [
+              ...old,
+              {
+                id: ++conflictId.current,
+                command,
+                message:
+                  e instanceof Error ? e.message : "通信に失敗しました。",
+              },
+            ]);
+            try {
+              accept(await loadProject());
+            } catch {
+              setConnected(false);
+            }
           }
           throw e;
         }
@@ -100,11 +190,32 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }
   async function prepareExport() {
     await queue.current;
-    if (failed.current || !current.current)
+    if (!current.current || unresolved.current)
       throw new Error(
-        "未反映の操作があるため保存できません。エラーを確認してください。",
+        "未反映の操作があります。再適用または破棄してから保存してください。",
       );
     return exportProject();
+  }
+  function resolveConflict(id: number, retry: boolean) {
+    const conflict = conflicts.find((item) => item.id === id);
+    if (!conflict) return;
+    unresolved.current--;
+    setConflicts((old) => old.filter((item) => item.id !== id));
+    if (retry) {
+      const command = conflict.command;
+      // 明示的な再適用でも、確認後に届いた変更を無条件に上書きしない。
+      if (command.type === "paste") {
+        const table = current.current?.tables.find((t) => t.id === command.id);
+        dispatch({
+          ...command,
+          expectedValues: command.values.map((cells, r) =>
+            cells.map(
+              (_, c) => table?.rows[command.row + r]?.[command.col + c] ?? null,
+            ),
+          ),
+        });
+      } else dispatch(command);
+    }
   }
   return (
     <Context.Provider
@@ -117,6 +228,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         prepareExport,
         markExported: setExportedRevision,
         dirty,
+        connected,
+        conflicts,
+        resolveConflict,
       }}
     >
       {children}

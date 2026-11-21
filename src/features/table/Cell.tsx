@@ -4,7 +4,7 @@ type Props = {
   label: string;
   selected: boolean;
   onSelect: (extend: boolean) => void;
-  onCommit: (value: string) => void;
+  onCommit: (value: string, original: string) => void;
   onNavigate: (direction: "next" | "previous" | "down" | "up") => void;
 };
 export const Cell = memo(function Cell({
@@ -49,7 +49,9 @@ export const Cell = memo(function Cell({
       }}
       onBlur={(e) => {
         focused.current = false;
-        if (e.target.value !== original.current) onCommit(e.target.value);
+        if (e.target.value !== original.current)
+          onCommit(e.target.value, original.current);
+        else setDraft(value);
       }}
       onKeyDown={(e) => {
         e.stopPropagation();

@@ -11,6 +11,7 @@ import {
 export function useCanvasNodes(
   project: Snapshot | null,
   dispatch: (command: Command) => void,
+  outstanding: number,
 ) {
   const [nodes, setNodes, onNodesChange] = useNodesState<TableFlowNode>([]);
   const active = useRef(new Set<string>());
@@ -43,6 +44,7 @@ export function useCanvasNodes(
   );
   useEffect(() => {
     if (!project) return;
+    if (outstanding === 0) pending.current.clear();
     for (const table of project.tables) {
       const layout = pending.current.get(table.id);
       if (layout && sameLayout(layout, table)) pending.current.delete(table.id);
@@ -52,6 +54,6 @@ export function useCanvasNodes(
     setNodes((old) =>
       reconcileNodes(project.tables, old, editing, waiting, begin, finish),
     );
-  }, [project, setNodes, begin, finish]);
+  }, [project, outstanding, setNodes, begin, finish]);
   return { nodes, onNodesChange, begin, finish };
 }

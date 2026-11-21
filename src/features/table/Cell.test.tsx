@@ -27,7 +27,7 @@ it("変換中の Enter ではセル移動せず、確定済みの日本語を bl
   fireEvent.keyDown(cell, { key: "Enter" });
   expect(onNavigate).not.toHaveBeenCalled();
   fireEvent.blur(cell);
-  expect(onCommit).toHaveBeenCalledExactlyOnceWith("日本語");
+  expect(onCommit).toHaveBeenCalledExactlyOnceWith("日本語", "");
 });
 it("編集中に他の操作の応答が届いても入力途中の文字を消さない", () => {
   const props = {

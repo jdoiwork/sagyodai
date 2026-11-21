@@ -124,6 +124,11 @@ export function TableGrid({ table }: { table: TableData }) {
               row: minRow,
               col: minCol,
               values,
+              expectedValues: values.map((cells, r) =>
+                cells.map(
+                  (_, c) => table.rows[minRow + r]?.[minCol + c] ?? null,
+                ),
+              ),
             });
             setPasteError("");
           } catch (error) {
@@ -187,13 +192,14 @@ export function TableGrid({ table }: { table: TableData }) {
                               end: { row: r, col: c },
                             }))
                           }
-                          onCommit={(v) =>
+                          onCommit={(v, original) =>
                             dispatch({
                               type: "paste",
                               id: table.id,
                               row: r,
                               col: c,
                               values: [[v]],
+                              expectedValues: [[original]],
                             })
                           }
                           onNavigate={(direction) => navigate(r, c, direction)}
