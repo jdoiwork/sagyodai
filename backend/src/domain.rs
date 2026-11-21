@@ -112,6 +112,17 @@ pub enum Command {
         id: String,
         count: usize,
     },
+    RemoveRows {
+        id: String,
+        indices: Vec<usize>,
+        expected_rows: Vec<Vec<String>>,
+    },
+    RemoveColumns {
+        id: String,
+        indices: Vec<usize>,
+        expected_columns: Vec<String>,
+        expected_rows: Vec<Vec<String>>,
+    },
     RemoveRow {
         id: String,
         row: usize,

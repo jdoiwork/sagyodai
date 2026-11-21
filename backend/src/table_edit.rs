@@ -168,3 +168,41 @@ pub fn move_column(
     }
     Ok(())
 }
+
+// 一括操作は application の作業コピー上で実行し、途中の失敗も全体を破棄する。
+pub fn remove_selection(
+    tables: &mut [Table],
+    id: &str,
+    indices: &[usize],
+    columns: Option<&[String]>,
+    rows: &[Vec<String>],
+) -> Result<(), String> {
+    let i = input_index(tables, id)?;
+    if tables[i].rows != rows || columns.is_some_and(|c| tables[i].columns != c) {
+        return Err("表の内容が変更されています。選択し直してください。".into());
+    }
+    let mut sorted = indices.to_vec();
+    sorted.sort_unstable();
+    sorted.dedup();
+    let len = if columns.is_some() {
+        tables[i].columns.len()
+    } else {
+        tables[i].rows.len()
+    };
+    if sorted.is_empty()
+        || sorted.len() != indices.len()
+        || sorted.len() >= len
+        || sorted.iter().any(|n| *n >= len)
+    {
+        return Err("削除対象が不正です。行と列は少なくとも1つ残してください。".into());
+    }
+    for index in sorted.into_iter().rev() {
+        let current = tables[i].clone();
+        if columns.is_some() {
+            remove_column(tables, id, index, &current.columns, &current.rows)?;
+        } else {
+            remove_row(tables, id, index, &current.rows)?;
+        }
+    }
+    Ok(())
+}

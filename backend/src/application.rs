@@ -280,6 +280,27 @@ impl Project {
                     .rows
                     .extend(vec![vec![String::new(); table.columns.len()]; count]);
             }
+            Command::RemoveRows {
+                id,
+                indices,
+                expected_rows,
+            } => {
+                crate::table_edit::remove_selection(tables, &id, &indices, None, &expected_rows)?;
+            }
+            Command::RemoveColumns {
+                id,
+                indices,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::remove_selection(
+                    tables,
+                    &id,
+                    &indices,
+                    Some(&expected_columns),
+                    &expected_rows,
+                )?;
+            }
             Command::RemoveRow {
                 id,
                 row,

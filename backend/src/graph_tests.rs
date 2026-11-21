@@ -746,3 +746,85 @@ fn column_reordering_preserves_filter_meaning_widths_and_history() {
         .is_err()
     );
 }
+
+#[test]
+fn bulk_deletion_is_atomic_and_one_undo() {
+    let mut p = flow();
+    let before = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::RemoveRows {
+            id: before.id.clone(),
+            indices: vec![2, 0],
+            expected_rows: before.rows.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[0].rows.len(), before.rows.len() - 2);
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    // 大きな添字の削除が済んだ後でも、参照列の削除に失敗したら全体を戻す。
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveColumns {
+                id: before.id.clone(),
+                indices: vec![1, 3],
+                expected_columns: before.columns.clone(),
+                expected_rows: before.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    assert_eq!(p.snapshot().tables[0].columns, before.columns);
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    run(
+        &mut p,
+        Command::RemoveColumns {
+            id: before.id.clone(),
+            indices: vec![0, 2],
+            expected_columns: before.columns.clone(),
+            expected_rows: before.rows.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 0);
+    assert_eq!(
+        p.snapshot().tables[0].columns,
+        vec![before.columns[1].clone(), before.columns[3].clone()]
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    for indices in [
+        vec![],
+        vec![0, 0],
+        vec![99],
+        (0..before.rows.len()).collect(),
+    ] {
+        assert!(
+            run(
+                &mut p,
+                Command::RemoveRows {
+                    id: before.id.clone(),
+                    indices,
+                    expected_rows: before.rows.clone()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    }
+    let mut stale = before.rows.clone();
+    stale[0][0] = "古い値".into();
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveRows {
+                id: before.id,
+                indices: vec![0, 2],
+                expected_rows: stale
+            }
+        )
+        .is_err()
+    );
+}

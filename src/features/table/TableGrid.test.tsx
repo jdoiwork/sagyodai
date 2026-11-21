@@ -377,3 +377,56 @@ it("小さい表のホイールはキャンバスへ渡し、Shift横移動と�
   expect(pinch.defaultPrevented).toBe(false);
   expect(pan).not.toHaveBeenCalled();
 });
+
+it("行ヘッダーを範囲・追加選択し、一括削除の対象を強調する", () => {
+  const { container, getByRole } = render(<TableGrid table={table} />);
+  const header = (n: number) =>
+    container.querySelector(`[data-row="${n}"] th`)!;
+  fireEvent.click(header(1));
+  fireEvent.click(header(3), { shiftKey: true });
+  fireEvent.click(header(5), { metaKey: true });
+  fireEvent.click(header(2), { ctrlKey: true });
+  expect(
+    [1, 3, 5].every((n) => header(n).getAttribute("aria-selected") === "true"),
+  ).toBe(true);
+  expect(header(2).getAttribute("aria-selected")).toBe("false");
+  fireEvent.contextMenu(header(3));
+  const item = getByRole("menuitem", { name: "選択した3行を削除" });
+  fireEvent.mouseEnter(item);
+  expect(container.querySelectorAll("th.delete-preview")).toHaveLength(3);
+  fireEvent.click(item);
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "removeRows",
+    id: table.id,
+    indices: [1, 3, 5],
+    expectedRows: table.rows,
+  });
+});
+
+it("列記号から複数列を選択し、全列削除を防ぐ", () => {
+  const t = { ...table, columns: ["甲", "乙", "丙"], rows: [["1", "2", "3"]] };
+  const { container, getByRole, rerender } = render(<TableGrid table={t} />);
+  const header = (n: number) =>
+    container.querySelector(`[data-column="${n}"]`)!;
+  fireEvent.click(header(0).querySelector(".column-letter")!);
+  fireEvent.click(header(2), { ctrlKey: true });
+  fireEvent.contextMenu(header(0));
+  fireEvent.click(getByRole("menuitem", { name: "選択した2列を削除" }));
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "removeColumns",
+    id: t.id,
+    indices: [0, 2],
+    expectedRows: t.rows,
+    expectedColumns: t.columns,
+  });
+  fireEvent.click(header(0));
+  fireEvent.click(header(2), { shiftKey: true });
+  fireEvent.contextMenu(header(1));
+  expect(
+    (getByRole("menuitem", { name: "選択した3列を削除" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  fireEvent.keyDown(document, { key: "Escape" });
+  rerender(<TableGrid table={{ ...t, columns: ["丙", "乙", "甲"] }} />);
+  expect(container.querySelectorAll('[aria-selected="true"]')).toHaveLength(0);
+});

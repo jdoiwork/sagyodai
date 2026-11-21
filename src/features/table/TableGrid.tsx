@@ -1,3 +1,4 @@
+import { useHeaderSelection } from "./useHeaderSelection";
 import { useTableWheel } from "./useTableWheel";
 import { useColumnReorder } from "./useColumnReorder";
 import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
@@ -24,11 +25,13 @@ export function TableGrid({
   const viewport = useRef<HTMLDivElement>(null);
   useDeletionAnimation(viewport, table);
   useTableWheel(viewport, onCanvasScroll);
+  const headers = useHeaderSelection(table);
   const reorder = useColumnReorder(table, viewport, dispatch);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     index: number;
+    indices: number[];
     kind: "row" | "column";
     preview?: boolean;
     columns: string[];
@@ -147,14 +150,16 @@ export function TableGrid({
         <TableContextMenu
           {...contextMenu}
           targetLabel={
-            contextMenu.kind === "row"
-              ? `行${contextMenu.index + 1} `
-              : `「${contextMenu.columns[contextMenu.index]}」列`
+            contextMenu.indices.length > 1
+              ? `選択した${contextMenu.indices.length}${contextMenu.kind === "row" ? "行" : "列"}`
+              : contextMenu.kind === "row"
+                ? `行${contextMenu.index + 1} `
+                : `「${contextMenu.columns[contextMenu.index]}」列`
           }
           disabled={
             (contextMenu.kind === "row"
               ? contextMenu.rows.length
-              : contextMenu.columns.length) <= 1
+              : contextMenu.columns.length) <= contextMenu.indices.length
           }
           onPreview={(preview) =>
             setContextMenu((menu) => (menu ? { ...menu, preview } : null))
@@ -162,20 +167,35 @@ export function TableGrid({
           onClose={() => setContextMenu(null)}
           onDelete={() =>
             dispatch(
-              contextMenu.kind === "row"
-                ? {
-                    type: "removeRow",
-                    id: table.id,
-                    row: contextMenu.index,
-                    expectedRows: contextMenu.rows,
-                  }
-                : {
-                    type: "removeColumn",
-                    id: table.id,
-                    col: contextMenu.index,
-                    expectedRows: contextMenu.rows,
-                    expectedColumns: contextMenu.columns,
-                  },
+              contextMenu.indices.length > 1
+                ? contextMenu.kind === "row"
+                  ? {
+                      type: "removeRows",
+                      id: table.id,
+                      indices: contextMenu.indices,
+                      expectedRows: contextMenu.rows,
+                    }
+                  : {
+                      type: "removeColumns",
+                      id: table.id,
+                      indices: contextMenu.indices,
+                      expectedRows: contextMenu.rows,
+                      expectedColumns: contextMenu.columns,
+                    }
+                : contextMenu.kind === "row"
+                  ? {
+                      type: "removeRow",
+                      id: table.id,
+                      row: contextMenu.index,
+                      expectedRows: contextMenu.rows,
+                    }
+                  : {
+                      type: "removeColumn",
+                      id: table.id,
+                      col: contextMenu.index,
+                      expectedRows: contextMenu.rows,
+                      expectedColumns: contextMenu.columns,
+                    },
             )
           }
         />
@@ -200,6 +220,9 @@ export function TableGrid({
         }}
         onBlurCapture={() => setFocusedCell(null)}
         onScroll={(e) => setTop(e.currentTarget.scrollTop)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") headers.clear();
+        }}
         onPaste={(e) => {
           if (readOnly || (e.target as HTMLElement).closest("thead")) return;
           const text = e.clipboardData.getData("text/plain");
@@ -232,7 +255,24 @@ export function TableGrid({
           }
         }}
         onCopy={(e) => {
-          if (readOnly || (e.target as HTMLElement).closest("thead")) return;
+          if (
+            readOnly ||
+            (e.target as HTMLElement).closest("thead textarea, thead input")
+          )
+            return;
+          if (headers.selection) {
+            e.preventDefault();
+            const { kind, indices } = headers.selection;
+            e.clipboardData.setData(
+              "text/plain",
+              formatTsv(
+                kind === "row"
+                  ? indices.map((i) => table.rows[i])
+                  : table.rows.map((row) => indices.map((i) => row[i])),
+              ),
+            );
+            return;
+          }
           if (minRow === maxRow && minCol === maxCol) return;
           e.preventDefault();
           e.clipboardData.setData(
@@ -268,19 +308,35 @@ export function TableGrid({
                   {...(!readOnly ? reorder.targetProps(c) : {})}
                   className={
                     [
+                      headers.contains("column", c) ? "selected-header" : "",
                       focusedCell?.col === c ? "editing-header" : "",
                       !readOnly && reorder.marker?.col === c
                         ? `column-drop-${reorder.marker.side}`
                         : "",
                       contextMenu?.preview &&
                       contextMenu.kind === "column" &&
-                      contextMenu.index === c
+                      contextMenu.indices.includes(c)
                         ? "delete-preview"
                         : "",
                     ]
                       .filter(Boolean)
                       .join(" ") || undefined
                   }
+                  tabIndex={readOnly ? undefined : -1}
+                  aria-selected={headers.contains("column", c)}
+                  onClick={(e) => {
+                    if (
+                      readOnly ||
+                      (e.target as HTMLElement).closest(
+                        "textarea, input, [role=separator]",
+                      )
+                    )
+                      return;
+                    e.stopPropagation();
+                    if (!(e.target as HTMLElement).closest(".column-name"))
+                      e.currentTarget.focus();
+                    headers.select("column", c, e);
+                  }}
                   onContextMenu={(e) => {
                     if (readOnly) return;
                     e.preventDefault();
@@ -289,6 +345,9 @@ export function TableGrid({
                       x: e.clientX,
                       y: e.clientY,
                       index: c,
+                      indices: headers.contains("column", c)
+                        ? headers.selection!.indices
+                        : [c],
                       kind: "column",
                       columns: table.columns,
                       rows: table.rows,
@@ -335,6 +394,9 @@ export function TableGrid({
                         x: e.clientX,
                         y: e.clientY,
                         index: r,
+                        indices: headers.contains("row", r)
+                          ? headers.selection!.indices
+                          : [r],
                         kind: "row",
                         columns: table.columns,
                         rows: table.rows,
@@ -342,7 +404,16 @@ export function TableGrid({
                     }}
                   >
                     <th
-                      className={`row-number${focusedRow === r ? " editing-header" : ""}${contextMenu?.preview && contextMenu.kind === "row" && contextMenu.index === r ? " delete-preview" : ""}`}
+                      tabIndex={readOnly ? undefined : -1}
+                      aria-selected={headers.contains("row", r)}
+                      onClick={(e) => {
+                        if (!readOnly) {
+                          e.stopPropagation();
+                          e.currentTarget.focus();
+                          headers.select("row", r, e);
+                        }
+                      }}
+                      className={`row-number${headers.contains("row", r) ? " selected-header" : ""}${focusedRow === r ? " editing-header" : ""}${contextMenu?.preview && contextMenu.kind === "row" && contextMenu.indices.includes(r) ? " delete-preview" : ""}`}
                     >
                       {r + 1}
                     </th>
@@ -353,10 +424,13 @@ export function TableGrid({
                         className={
                           contextMenu?.preview &&
                           (contextMenu.kind === "row"
-                            ? contextMenu.index === r
-                            : contextMenu.index === c)
+                            ? contextMenu.indices.includes(r)
+                            : contextMenu.indices.includes(c))
                             ? "delete-preview"
-                            : undefined
+                            : headers.contains("row", r) ||
+                                headers.contains("column", c)
+                              ? "header-selected-cell"
+                              : undefined
                         }
                       >
                         {readOnly ? (
@@ -366,17 +440,19 @@ export function TableGrid({
                             value={value}
                             label={`${table.title} ${r + 1}行 ${c + 1}列`}
                             selected={
+                              !headers.selection &&
                               r >= minRow &&
                               r <= maxRow &&
                               c >= minCol &&
                               c <= maxCol
                             }
-                            onSelect={(extend) =>
+                            onSelect={(extend) => {
+                              headers.clear();
                               setSelection((s) => ({
                                 start: extend ? s.start : { row: r, col: c },
                                 end: { row: r, col: c },
-                              }))
-                            }
+                              }));
+                            }}
                             onCommit={(v, original) =>
                               dispatch({
                                 type: "paste",

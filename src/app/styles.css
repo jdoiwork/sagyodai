@@ -919,3 +919,19 @@ button.action-danger:hover {
 .data-grid th.column-drop-after::after {
   right: 0;
 }
+
+.data-grid th.selected-header:not(.delete-preview) {
+  background: #c5e4d9;
+  color: #154f40;
+  box-shadow: inset 0 0 0 1px #4b927c;
+}
+.data-grid th.selected-header .column-letter {
+  color: #286452;
+}
+.data-grid .header-selected-cell,
+.data-grid .header-selected-cell .cell {
+  background: #e3f1eb;
+}
+.data-grid .row-number {
+  user-select: none;
+}

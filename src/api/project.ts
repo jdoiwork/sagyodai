@@ -68,6 +68,19 @@ export type Command =
       expectedValues?: (string | null)[][];
     }
   | { type: "addRows"; id: string; count: number }
+  | {
+      type: "removeRows";
+      id: string;
+      indices: number[];
+      expectedRows: string[][];
+    }
+  | {
+      type: "removeColumns";
+      id: string;
+      indices: number[];
+      expectedRows: string[][];
+      expectedColumns: string[];
+    }
   | { type: "removeRow"; id: string; row: number; expectedRows: string[][] }
   | {
       type: "renameColumn";
