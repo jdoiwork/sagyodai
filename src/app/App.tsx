@@ -90,6 +90,15 @@ function Canvas() {
           onNodesChange={onNodesChange}
           deleteKeyCode={null}
           nodesConnectable
+          connectionRadius={28}
+          reconnectRadius={16}
+          onReconnect={(edge, connection) =>
+            dispatch({
+              type: "connect",
+              id: edge.target,
+              source: connection.source,
+            })
+          }
           edges={(project?.tables ?? [])
             .filter((t) => t.source)
             .map((t) => ({
@@ -99,6 +108,7 @@ function Canvas() {
               sourceHandle: "out",
               targetHandle: "in",
               type: "smoothstep",
+              reconnectable: "source" as const,
               style: {
                 stroke: t.stale ? "#bd9147" : "#386e61",
                 strokeWidth: 2.5,
@@ -106,6 +116,12 @@ function Canvas() {
             }))}
           isValidConnection={(connection) =>
             !!project &&
+            project.tables.some(
+              (t) => t.id === connection.source && t.kind !== "display",
+            ) &&
+            project.tables.some(
+              (t) => t.id === connection.target && t.kind !== "input",
+            ) &&
             !createsCycle(project.tables, connection.target, connection.source)
           }
           onConnect={(connection) =>
@@ -301,7 +317,7 @@ function Canvas() {
           </button>
         </div>
         <div className="canvas-hint">
-          余白をドラッグして移動 · ピンチでズーム
+          出力 → 入力へドラッグで接続 · 余白で移動 · ピンチでズーム
         </div>
       </main>
       <footer className="statusbar">
