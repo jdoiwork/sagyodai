@@ -949,3 +949,14 @@ button.action-danger:hover {
   font-size: 11px;
   white-space: normal;
 }
+
+.node-title-editor {
+  min-width: 0;
+  flex: 1;
+}
+.node-title-error {
+  display: block;
+  color: #a33333;
+  font-size: 12px;
+  white-space: normal;
+}

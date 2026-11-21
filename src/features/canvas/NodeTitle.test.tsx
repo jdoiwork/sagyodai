@@ -57,3 +57,39 @@ it("Escape で取り消し、別タブの更新でも入力途中の文字を保
   expect(dispatch).not.toHaveBeenCalled();
   expect(ui.getByRole("heading").textContent).toBe("他タブの変更");
 });
+
+it.each(["", "　 ", "あ".repeat(342)])(
+  "無効なタイトルは送信せず、修正して確定できる",
+  (invalid) => {
+    const ui = render(<NodeTitle table={table} />);
+    fireEvent.click(ui.getByRole("button"));
+    const input = ui.getByRole("textbox");
+    fireEvent.change(input, { target: { value: invalid } });
+    fireEvent.blur(input);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(ui.getByRole("alert").textContent).toMatch(/タイトル/);
+    expect(ui.getByRole("textbox")).toBe(input);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "修正したタイトル" } });
+    fireEvent.blur(input);
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+      type: "rename",
+      id: "t",
+      title: "修正したタイトル",
+      expectedTitle: "元の表",
+    });
+    expect(ui.queryByRole("alert")).toBeNull();
+  },
+);
+it("無効なタイトルも Escape で取り消せる", () => {
+  const ui = render(<NodeTitle table={table} />);
+  fireEvent.click(ui.getByRole("button"));
+  const input = ui.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(ui.getByRole("alert")).toBeTruthy();
+  input.focus();
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(dispatch).not.toHaveBeenCalled();
+  expect(ui.queryByRole("textbox")).toBeNull();
+});

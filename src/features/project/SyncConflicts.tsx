@@ -1,3 +1,4 @@
+import { nodeTitleError } from "../canvas/nodeTitleValidation";
 import { columnNameError } from "../table/columnName";
 import { Icon } from "../../components/Icon";
 import { useProject } from "../../app/ProjectContext";
@@ -40,10 +41,18 @@ export function SyncConflicts() {
                 この入力は再適用できません。操作を破棄して列名を入力し直してください。
               </p>
             )}
+          {item.command.type === "rename" &&
+            nodeTitleError(item.command.title) && (
+              <p>
+                この入力は再適用できません。操作を破棄してタイトルを入力し直してください。
+              </p>
+            )}
           <button
             disabled={
-              item.command.type === "renameColumn" &&
-              !!columnNameError(item.command.name)
+              (item.command.type === "renameColumn" &&
+                !!columnNameError(item.command.name)) ||
+              (item.command.type === "rename" &&
+                !!nodeTitleError(item.command.title))
             }
             onClick={() => resolveConflict(item.id, true)}
           >
