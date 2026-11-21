@@ -1,3 +1,4 @@
+import { Icon } from "../../components/Icon";
 import { useEffect, useRef, useState } from "react";
 import type { FilterConfig, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -99,7 +100,10 @@ export function NodeSettings({ table }: { table: TableData }) {
             value={draft.value}
             onChange={(e) => setDraft({ ...draft, value: e.target.value })}
           />
-          <button type="submit">条件を適用</button>
+          <button type="submit" className="action-accent">
+            <Icon name="check" />
+            条件を適用
+          </button>
         </form>
       )}
       <div className="execution-controls">
@@ -119,12 +123,15 @@ export function NodeSettings({ table }: { table: TableData }) {
           手動更新
         </label>
         <button onClick={() => dispatch({ type: "run", id: table.id })}>
+          <Icon name="refresh" />
           今すぐ更新
         </button>
         <button
+          className="action-danger"
           title="このノードを削除（Undo で戻せます）"
           onClick={() => dispatch({ type: "removeNode", id: table.id })}
         >
+          <Icon name="trash" />
           削除
         </button>
       </div>

@@ -1,3 +1,4 @@
+import { Icon } from "../../components/Icon";
 import { useRef, useState } from "react";
 import { useProject } from "../../app/ProjectContext";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -90,6 +91,7 @@ export function ProjectFiles() {
         disabled={!project || busy || pending > 0}
         onClick={() => input.current?.click()}
       >
+        <Icon name="folder" />
         開く
       </button>
       <button
@@ -97,6 +99,7 @@ export function ProjectFiles() {
         disabled={!project || busy}
         onClick={() => void save()}
       >
+        <Icon name="save" />
         {busy ? "処理中…" : "保存"}
       </button>
       {message && (
@@ -109,7 +112,7 @@ export function ProjectFiles() {
             aria-label="ファイル通知を閉じる"
             onClick={() => setMessage("")}
           >
-            ×
+            <Icon name="close" />
           </button>
         </div>
       )}

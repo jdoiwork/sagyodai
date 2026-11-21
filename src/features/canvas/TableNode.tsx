@@ -1,3 +1,4 @@
+import { Icon } from "../../components/Icon";
 import { NodeSettings } from "../filter/NodeSettings";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import type { TableFlowNode } from "./layout";
@@ -63,12 +64,12 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 dispatch({ type: "addRows", id: table.id, count: 1 })
               }
             >
-              ＋ 行
+              <Icon name="plus" />行
             </button>
             <button
               onClick={() => dispatch({ type: "addColumn", id: table.id })}
             >
-              ＋ 列
+              <Icon name="plus" />列
             </button>
             <button
               title="スクロール確認用に空の行を追加"
@@ -76,7 +77,8 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 dispatch({ type: "addRows", id: table.id, count: 100 })
               }
             >
-              ＋ 100 行
+              <Icon name="plus" />
+              100 行
             </button>
           </div>
           <TableGrid table={table} />

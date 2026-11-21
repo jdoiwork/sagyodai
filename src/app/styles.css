@@ -14,9 +14,16 @@ body {
 button {
   font: inherit;
   cursor: pointer;
-  border: 0;
+  border: 1px solid #cbd8d0;
   border-radius: 6px;
-  background: transparent;
+  background: #f8faf8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  box-shadow: 0 1px 2px #203d2910;
   color: inherit;
   white-space: nowrap;
 }
@@ -647,4 +654,67 @@ button:disabled {
 }
 .table-drag-handle {
   border-radius: 11px 11px 0 0;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+button:active:not(:disabled) {
+  background: #dfeae3;
+  box-shadow: inset 0 1px 2px #203d2920;
+}
+button:disabled {
+  box-shadow: none;
+}
+button.action-accent {
+  color: #235a45;
+  background: #e9f4ed;
+  border-color: #a5cbb5;
+}
+button.action-accent:hover {
+  background: #dceee2;
+}
+button.action-danger {
+  color: #a13c32;
+  background: #fff5f2;
+  border-color: #e4bbb3;
+}
+button.action-danger:hover {
+  background: #fbe6e0;
+}
+.table-actions {
+  height: 44px;
+}
+.table-actions button {
+  min-height: 28px;
+  padding: 4px 7px;
+}
+.node-settings form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.condition-fields {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+.node-settings form > input {
+  width: 100%;
+  margin-right: 0;
+}
+.execution-controls {
+  flex-wrap: wrap;
+}
+.execution-controls > label {
+  margin-right: auto;
+}
+.execution-controls button {
+  font-size: 11px;
+  padding: 6px 8px;
+}
+.project-files .save-button:hover,
+.canvas-toolbar .primary:hover {
+  background: #204f40;
 }

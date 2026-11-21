@@ -1,3 +1,4 @@
+import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
 import { useState } from "react";
 import {
@@ -36,6 +37,7 @@ function Canvas() {
         <div className="header-right">
           <ProjectFiles />
           <button className="help-button" onClick={() => setHelp((v) => !v)}>
+            <Icon name="help" />
             操作ガイド
           </button>
         </div>
@@ -101,19 +103,22 @@ function Canvas() {
             disabled={!project}
             onClick={() => dispatch({ type: "addTable" })}
           >
-            ＋ 表を追加
+            <Icon name="plus" />
+            表を追加
           </button>
           <button
             disabled={!project}
             onClick={() => dispatch({ type: "addNode", kind: "filter" })}
           >
-            ＋ フィルタ
+            <Icon name="filter" />
+            フィルタ
           </button>
           <button
             disabled={!project}
             onClick={() => dispatch({ type: "addNode", kind: "display" })}
           >
-            ＋ 結果表
+            <Icon name="table" />
+            結果表
           </button>
           <div className="toolbar-separator" />
           <button
@@ -122,14 +127,14 @@ function Canvas() {
             title="全タブ共通の履歴を戻します"
             aria-label="元に戻す"
           >
-            ↶
+            <Icon name="undo" />
           </button>
           <button
             disabled={!project?.canRedo || pending > 0}
             onClick={() => dispatch({ type: "redo" })}
             aria-label="やり直す"
           >
-            ↷
+            <Icon name="redo" />
           </button>
         </div>
         {help && (
@@ -194,7 +199,7 @@ function Canvas() {
             aria-label="縮小"
             onClick={() => zoomTo(Math.max(0.4, zoom - 0.1))}
           >
-            −
+            <Icon name="minus" />
           </button>
           <button
             className="zoom-value"
@@ -207,10 +212,11 @@ function Canvas() {
             aria-label="拡大"
             onClick={() => zoomTo(Math.min(2, zoom + 0.1))}
           >
-            ＋
+            <Icon name="plus" />
           </button>
           <div className="toolbar-separator" />
           <button onClick={() => fitView({ padding: 0.2, maxZoom: 1 })}>
+            <Icon name="fit" />
             全体表示
           </button>
         </div>

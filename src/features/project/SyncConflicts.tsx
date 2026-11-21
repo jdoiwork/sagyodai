@@ -1,3 +1,4 @@
+import { Icon } from "../../components/Icon";
 import { useProject } from "../../app/ProjectContext";
 export function SyncConflicts() {
   const { conflicts, resolveConflict } = useProject();
@@ -14,9 +15,11 @@ export function SyncConflicts() {
               : JSON.stringify(item.command)}
           </pre>
           <button onClick={() => resolveConflict(item.id, true)}>
+            <Icon name="refresh" />
             現在の状態に再適用
           </button>
           <button onClick={() => resolveConflict(item.id, false)}>
+            <Icon name="close" />
             この操作を破棄
           </button>
         </div>
