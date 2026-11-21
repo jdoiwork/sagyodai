@@ -239,3 +239,44 @@ it("列幅の確定待ちを保持し、失敗時は確定済みの幅に戻す"
   act(() => dispatch.mock.calls[0][1](false));
   expect(handle.getAttribute("aria-valuenow")).toBe("160");
 });
+
+it("編集中のセルの行・列見出しを強調し、フォーカス移動と終了に追従する", () => {
+  const editable = {
+    ...table,
+    columns: ["品名", "数量"],
+    rows: [
+      ["ノート", "3"],
+      ["鉛筆", "2"],
+    ],
+  };
+  const { getByLabelText, container } = render(<TableGrid table={editable} />);
+  const first = getByLabelText("表 1行 1列"),
+    second = getByLabelText("表 2行 2列");
+  fireEvent.focus(first);
+  expect(
+    container
+      .querySelector('thead [data-column="0"]')
+      ?.classList.contains("editing-header"),
+  ).toBe(true);
+  expect(
+    container
+      .querySelector('[data-row="0"] th')
+      ?.classList.contains("editing-header"),
+  ).toBe(true);
+  fireEvent.blur(first);
+  fireEvent.focus(second);
+  expect(container.querySelectorAll(".editing-header")).toHaveLength(2);
+  expect(
+    container
+      .querySelector('thead [data-column="1"]')
+      ?.classList.contains("editing-header"),
+  ).toBe(true);
+  expect(
+    container
+      .querySelector('[data-row="1"] th')
+      ?.classList.contains("editing-header"),
+  ).toBe(true);
+  fireEvent.blur(second);
+  expect(container.querySelectorAll(".editing-header")).toHaveLength(0);
+  expect(dispatch).not.toHaveBeenCalled();
+});

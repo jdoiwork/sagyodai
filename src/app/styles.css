@@ -885,3 +885,12 @@ button.action-danger:hover {
 .canvas-toolbar[aria-busy="true"] button:not(:disabled) {
   cursor: wait;
 }
+
+.data-grid th.editing-header:not(.delete-preview) {
+  background: #dceee3;
+  color: #205c43;
+  box-shadow: inset 0 0 0 1px #78a58b;
+}
+.data-grid th.editing-header .column-letter {
+  color: #47745c;
+}

@@ -38,7 +38,8 @@ export function TableGrid({
       : (table.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH),
   );
   const [top, setTop] = useState(0);
-  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  const [focusedCell, setFocusedCell] = useState<Point | null>(null);
+  const focusedRow = focusedCell?.row ?? null;
   const [selection, setSelection] = useState<{ start: Point; end: Point }>({
     start: { row: 0, col: 0 },
     end: { row: 0, col: 0 },
@@ -182,12 +183,16 @@ export function TableGrid({
         ref={viewport}
         className="grid-scroll nodrag nopan nowheel"
         onFocusCapture={(e) => {
-          const row = (e.target as HTMLElement).closest<HTMLElement>(
-            "[data-row]",
+          const target = e.target as HTMLElement;
+          const cell = target.closest<HTMLElement>("td[data-col]");
+          const row = cell?.closest<HTMLElement>("tr[data-row]");
+          setFocusedCell(
+            !readOnly && target.matches("textarea.cell") && cell && row
+              ? { row: Number(row.dataset.row), col: Number(cell.dataset.col) }
+              : null,
           );
-          if (row) setFocusedRow(Number(row.dataset.row));
         }}
-        onBlurCapture={() => setFocusedRow(null)}
+        onBlurCapture={() => setFocusedCell(null)}
         onScroll={(e) => setTop(e.currentTarget.scrollTop)}
         onPaste={(e) => {
           if (readOnly || (e.target as HTMLElement).closest("thead")) return;
@@ -254,11 +259,16 @@ export function TableGrid({
                   key={c}
                   data-column={c}
                   className={
-                    contextMenu?.preview &&
-                    contextMenu.kind === "column" &&
-                    contextMenu.index === c
-                      ? "delete-preview"
-                      : undefined
+                    [
+                      focusedCell?.col === c ? "editing-header" : "",
+                      contextMenu?.preview &&
+                      contextMenu.kind === "column" &&
+                      contextMenu.index === c
+                        ? "delete-preview"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined
                   }
                   onContextMenu={(e) => {
                     if (readOnly) return;
@@ -321,7 +331,7 @@ export function TableGrid({
                     }}
                   >
                     <th
-                      className={`row-number${contextMenu?.preview && contextMenu.kind === "row" && contextMenu.index === r ? " delete-preview" : ""}`}
+                      className={`row-number${focusedRow === r ? " editing-header" : ""}${contextMenu?.preview && contextMenu.kind === "row" && contextMenu.index === r ? " delete-preview" : ""}`}
                     >
                       {r + 1}
                     </th>
