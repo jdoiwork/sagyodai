@@ -895,8 +895,12 @@ button.action-danger:hover {
   color: #47745c;
 }
 
-.column-name[draggable="true"] {
+.data-grid th[draggable="true"] {
   user-select: none;
+  cursor: default;
+}
+.column-name-editor .cell {
+  user-select: text;
 }
 .data-grid th.column-drop-before::before,
 .data-grid th.column-drop-after::after {

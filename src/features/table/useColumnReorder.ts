@@ -1,4 +1,10 @@
-import { useRef, useState, type DragEvent, type RefObject } from "react";
+import {
+  useRef,
+  useState,
+  type DragEvent,
+  type PointerEvent,
+  type RefObject,
+} from "react";
 import type { Command, TableData } from "../../api/project";
 
 export function useColumnReorder(
@@ -6,6 +12,7 @@ export function useColumnReorder(
   viewport: RefObject<HTMLDivElement | null>,
   dispatch: (command: Command) => void,
 ) {
+  const blockedStart = useRef(false);
   const source = useRef<{ from: number; table: TableData } | null>(null);
   const [marker, setMarker] = useState<{
     col: number;
@@ -29,8 +36,20 @@ export function useColumnReorder(
     marker,
     sourceProps: (from: number) => ({
       draggable: true,
+      onPointerDownCapture: (e: PointerEvent) => {
+        blockedStart.current = !!(e.target as HTMLElement).closest(
+          "textarea, input, [role=separator]",
+        );
+      },
       onDragStart: (e: DragEvent) => {
         e.stopPropagation();
+        if (
+          blockedStart.current ||
+          e.currentTarget.querySelector("textarea, input")
+        ) {
+          e.preventDefault();
+          return;
+        }
         source.current = { from, table };
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("application/x-sagyodai-column", table.id);

@@ -260,6 +260,7 @@ export function TableGrid({
                 <th
                   key={c}
                   data-column={c}
+                  {...(!readOnly ? reorder.sourceProps(c) : {})}
                   {...(!readOnly ? reorder.targetProps(c) : {})}
                   className={
                     [
@@ -293,15 +294,7 @@ export function TableGrid({
                   <span className="column-letter">
                     {String.fromCharCode(65 + c)}
                   </span>
-                  {readOnly ? (
-                    name
-                  ) : (
-                    <ColumnHeader
-                      table={table}
-                      col={c}
-                      dragProps={reorder.sourceProps(c)}
-                    />
-                  )}
+                  {readOnly ? name : <ColumnHeader table={table} col={c} />}
                   <ColumnResizeHandle
                     table={table}
                     col={c}
