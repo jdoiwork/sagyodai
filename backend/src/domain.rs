@@ -99,6 +99,11 @@ pub enum Command {
         kind: Kind,
         position: Option<Position>,
     },
+    ConnectFromPort {
+        id: String,
+        source: String,
+        from_input: bool,
+    },
     Connect {
         id: String,
         source: Option<String>,

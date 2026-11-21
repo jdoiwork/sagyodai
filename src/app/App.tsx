@@ -32,6 +32,8 @@ function Canvas() {
     source: string;
     revision: number;
   } | null>(null);
+  const connectionFromInput = useRef(false);
+  const [connectionColor, setConnectionColor] = useState<string>();
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
   const { zoomTo, fitView, screenToFlowPosition } = useReactFlow();
   const { zoom } = useViewport();
@@ -137,6 +139,22 @@ function Canvas() {
           }}
           onMoveStart={() => setEdgeMenu(null)}
           nodesConnectable
+          onConnectStart={(_, params) => {
+            connectionFromInput.current = params.handleType === "target";
+            const table = project?.tables.find((t) => t.id === params.nodeId);
+            setConnectionColor(
+              colorValue(
+                connectionFromInput.current
+                  ? table?.inputColor
+                  : table?.outputColor,
+              ),
+            );
+          }}
+          onConnectEnd={() => setConnectionColor(undefined)}
+          connectionLineStyle={{
+            stroke: connectionColor ?? "#396b5b",
+            strokeWidth: 2.5,
+          }}
           connectionRadius={28}
           reconnectRadius={16}
           onReconnect={(edge, connection) =>
@@ -175,9 +193,10 @@ function Canvas() {
           }
           onConnect={(connection) =>
             dispatch({
-              type: "connect",
+              type: "connectFromPort",
               id: connection.target,
               source: connection.source,
+              fromInput: connectionFromInput.current,
             })
           }
           zoomOnDoubleClick={false}

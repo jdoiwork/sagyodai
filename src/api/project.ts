@@ -69,6 +69,7 @@ export type Command =
       color: PaletteColor | null;
     }
   | { type: "setCompact"; id: string; compact: boolean }
+  | { type: "connectFromPort"; id: string; source: string; fromInput: boolean }
   | { type: "connect"; id: string; source: string | null }
   | {
       type: "configure";

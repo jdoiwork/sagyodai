@@ -1189,3 +1189,78 @@ fn connection_colors_roundtrip_and_undo_without_changing_data() {
         .is_err()
     );
 }
+
+#[test]
+fn dragging_a_connection_copies_the_start_port_color_atomically() {
+    use crate::domain::{ColorTarget, PaletteColor};
+    let mut p = flow();
+    for (id, target, color) in [
+        ("table-1", ColorTarget::Output, PaletteColor::Blue),
+        ("table-2", ColorTarget::Input, PaletteColor::Purple),
+    ] {
+        run(
+            &mut p,
+            Command::SetColor {
+                id: id.into(),
+                target,
+                color: Some(color),
+            },
+        )
+        .unwrap();
+    }
+    run(
+        &mut p,
+        Command::Connect {
+            id: "table-2".into(),
+            source: None,
+        },
+    )
+    .unwrap();
+    for (from_input, expected) in [(false, PaletteColor::Blue), (true, PaletteColor::Purple)] {
+        let connected = run(
+            &mut p,
+            Command::ConnectFromPort {
+                id: "table-2".into(),
+                source: "table-1".into(),
+                from_input,
+            },
+        )
+        .unwrap();
+        assert_eq!(connected.tables[1].edge_color, Some(expected));
+        let undone = run(&mut p, Command::Undo).unwrap();
+        assert_eq!(undone.tables[1].source, None);
+        assert_eq!(undone.tables[1].edge_color, None);
+    }
+    run(
+        &mut p,
+        Command::SetColor {
+            id: "table-1".into(),
+            target: ColorTarget::Output,
+            color: None,
+        },
+    )
+    .unwrap();
+    let connected = run(
+        &mut p,
+        Command::ConnectFromPort {
+            id: "table-2".into(),
+            source: "table-1".into(),
+            from_input: false,
+        },
+    )
+    .unwrap();
+    assert_eq!(connected.tables[1].edge_color, None);
+    let before = p.export().unwrap();
+    assert!(
+        run(
+            &mut p,
+            Command::ConnectFromPort {
+                id: "table-2".into(),
+                source: "table-2".into(),
+                from_input: false
+            }
+        )
+        .is_err()
+    );
+    assert_eq!(p.export().unwrap(), before);
+}

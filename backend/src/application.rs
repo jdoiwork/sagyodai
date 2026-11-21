@@ -103,6 +103,25 @@ impl Project {
                 }
                 t.title = title.to_string();
             }
+            Command::ConnectFromPort {
+                id,
+                source,
+                from_input,
+            } => {
+                let color = if from_input {
+                    table_mut(tables, &id)?.input_color
+                } else {
+                    table_mut(tables, &source)?.output_color
+                };
+                self.edit(
+                    tables,
+                    Command::Connect {
+                        id: id.clone(),
+                        source: Some(source),
+                    },
+                )?;
+                table_mut(tables, &id)?.edge_color = color;
+            }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
                 if t.kind == Kind::Input {
