@@ -8,7 +8,7 @@
 - 表: HTML の table と textarea。IME を標準入力欄で扱う方式から検証し、Glide Data Grid の採否は保留する。
 - 中核: Rust。表の更新、配置、Undo / Redo を共通操作で処理する。
 - 接続: 試作用の axum HTTP アダプタ。Vite からローカルの Rust コアへプロキシする。
-- 状態: Rust プロセスのメモリ内。終了前に [プロジェクトファイル](project-files.md) へ保存すると、再起動後に読み込める。自動保存はない。
+- 状態: Rust が確定操作をローカルへ自動保存し、起動時に復元する。[プロジェクトファイル](project-files.md) の手動書き出し・読み込みも可能。
 
 Tauri の WebView への組み込みは未実施。ブラウザでの確認結果が、そのまま macOS WebView の IME 挙動を保証するわけではない。
 

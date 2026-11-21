@@ -5,6 +5,7 @@ use crate::domain::{
 use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
 const HISTORY_LIMIT: usize = 30;
 
+#[derive(Clone)]
 pub struct Project {
     tables: Vec<Table>,
     revision: u64,
@@ -26,6 +27,14 @@ impl Default for Project {
 }
 
 impl Project {
+    pub fn restore(document: serde_json::Value, revision: u64) -> Result<Self, String> {
+        Ok(Self {
+            tables: storage::decode(document)?,
+            revision,
+            ..Self::default()
+        })
+    }
+
     pub fn export(&self) -> Result<Vec<u8>, String> {
         storage::encode(&self.tables)
     }

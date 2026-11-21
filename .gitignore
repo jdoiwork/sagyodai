@@ -4,3 +4,4 @@ backend/target/
 test-results/
 playwright-report/
 .DS_Store
+.sagyodai/

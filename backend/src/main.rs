@@ -1,4 +1,5 @@
 mod application;
+mod autosave;
 mod domain;
 mod graph;
 #[cfg(test)]
@@ -20,6 +21,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 struct SharedProject {
     project: Arc<Mutex<Project>>,
+    autosave: Arc<autosave::Autosave>,
     changes: tokio::sync::watch::Sender<u64>,
 }
 type ApiError = (StatusCode, Json<serde_json::Value>);
@@ -54,7 +56,7 @@ async fn command(
             ),
         ));
     }
-    let next = state.apply(request).map_err(error)?;
+    let next = project.autosave.apply(&mut state, request).map_err(error)?;
     project.changes.send_replace(next.revision);
     Ok(Json(next))
 }
@@ -101,18 +103,30 @@ async fn events(State(project): State<SharedProject>) -> impl IntoResponse {
 }
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut project = Project::default();
-    if let Ok(path) = std::env::var("SAGYODAI_STARTUP_PROJECT") {
+    let port: u16 = std::env::var("SAGYODAI_CORE_PORT")
+        .unwrap_or_else(|_| "4318".into())
+        .parse()?;
+    let path = std::env::var_os("SAGYODAI_AUTOSAVE_PATH")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../.sagyodai")
+                .join(format!("project-{port}.json"))
+        });
+    let autosave = Arc::new(autosave::Autosave::open(path)?);
+    let project = if let Some(saved) = autosave.load()? {
+        saved
+    } else if let Ok(path) = std::env::var("SAGYODAI_STARTUP_PROJECT") {
         let bytes = std::fs::read(path)?;
         if bytes.len() > storage::MAX_FILE_BYTES {
             return Err("起動ファイルが8 MiBを超えています。".into());
         }
-        let document = serde_json::from_slice(&bytes)?;
-        project.apply(Request {
-            expected_revision: 0,
-            command: domain::Command::OpenProject { document },
-        })?;
-    }
+        Project::restore(serde_json::from_slice(&bytes)?, 0)?
+    } else {
+        Project::default()
+    };
+    // 初期データも保存。既存の自動保存が不正なら、ここまで到達しない。
+    autosave.save(&project)?;
     let app = Router::new()
         .route("/api/project", get(snapshot))
         .route("/api/project/events", get(events))
@@ -122,10 +136,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(SharedProject {
             changes: tokio::sync::watch::channel(project.snapshot().revision).0,
             project: Arc::new(Mutex::new(project)),
+            autosave,
         });
-    let port: u16 = std::env::var("SAGYODAI_CORE_PORT")
-        .unwrap_or_else(|_| "4318".into())
-        .parse()?;
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     println!("作業台の試作コア: http://127.0.0.1:{port}");
     axum::serve(listener, app).await?;
