@@ -879,3 +879,8 @@ button.action-danger:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 短い操作の処理中にツールバー全体を薄くせず、入力だけを抑止する。 */
+.canvas-toolbar[aria-busy="true"] button:not(:disabled) {
+  cursor: wait;
+}

@@ -41,7 +41,7 @@ function Canvas() {
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
   function addNode(kind: "input" | "filter" | "display") {
-    if (!canvas.current || !project) return;
+    if (!canvas.current || !project || pending > 0) return;
     const rect = canvas.current.getBoundingClientRect();
     const guideRect = guide.current?.getBoundingClientRect();
     const right = guideRect?.width ? guideRect.left - 16 : rect.right - 24;
@@ -134,24 +134,27 @@ function Canvas() {
             color="#cdd6d2"
           />
         </ReactFlow>
-        <div className="canvas-toolbar">
+        <div className="canvas-toolbar" aria-busy={pending > 0}>
           <button
             className="primary"
-            disabled={!project || pending > 0}
+            disabled={!project}
+            aria-disabled={!project || pending > 0}
             onClick={() => addNode("input")}
           >
             <Icon name="plus" />
             表を追加
           </button>
           <button
-            disabled={!project || pending > 0}
+            disabled={!project}
+            aria-disabled={!project || pending > 0}
             onClick={() => addNode("filter")}
           >
             <Icon name="filter" />
             フィルタ
           </button>
           <button
-            disabled={!project || pending > 0}
+            disabled={!project}
+            aria-disabled={!project || pending > 0}
             onClick={() => addNode("display")}
           >
             <Icon name="table" />
@@ -159,16 +162,22 @@ function Canvas() {
           </button>
           <div className="toolbar-separator" />
           <button
-            disabled={!project?.canUndo || pending > 0}
-            onClick={() => dispatch({ type: "undo" })}
+            disabled={!project?.canUndo}
+            aria-disabled={!project?.canUndo || pending > 0}
+            onClick={() => {
+              if (!pending) dispatch({ type: "undo" });
+            }}
             title="全タブ共通の履歴を戻します"
             aria-label="元に戻す"
           >
             <Icon name="undo" />
           </button>
           <button
-            disabled={!project?.canRedo || pending > 0}
-            onClick={() => dispatch({ type: "redo" })}
+            disabled={!project?.canRedo}
+            aria-disabled={!project?.canRedo || pending > 0}
+            onClick={() => {
+              if (!pending) dispatch({ type: "redo" });
+            }}
             aria-label="やり直す"
           >
             <Icon name="redo" />
