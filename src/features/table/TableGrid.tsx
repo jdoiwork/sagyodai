@@ -1,4 +1,4 @@
-import { Icon } from "../../components/Icon";
+import { RowMenu } from "./RowMenu";
 import { ColumnHeader } from "./ColumnHeader";
 import { Fragment, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
@@ -16,6 +16,12 @@ export function TableGrid({
 }) {
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
+  const [rowMenu, setRowMenu] = useState<{
+    x: number;
+    y: number;
+    row: number;
+    rows: string[][];
+  } | null>(null);
   const [top, setTop] = useState(0);
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
   const [selection, setSelection] = useState<{ start: Point; end: Point }>({
@@ -115,6 +121,21 @@ export function TableGrid({
   }
   return (
     <>
+      {rowMenu && !readOnly && (
+        <RowMenu
+          {...rowMenu}
+          disabled={rowMenu.rows.length <= 1}
+          onClose={() => setRowMenu(null)}
+          onDelete={() =>
+            dispatch({
+              type: "removeRow",
+              id: table.id,
+              row: rowMenu.row,
+              expectedRows: rowMenu.rows,
+            })
+          }
+        />
+      )}
       {pasteError && (
         <div className="inline-error" role="alert">
           {pasteError}
@@ -197,28 +218,22 @@ export function TableGrid({
               return (
                 <Fragment key={r}>
                   {spacer(r - previous - 1)}
-                  <tr key={r} data-row={r}>
-                    <th className="row-number">
-                      {r + 1}
-                      {!readOnly && (
-                        <button
-                          className="row-delete action-danger"
-                          aria-label={`${table.title} ${r + 1}行を削除`}
-                          title="行を削除（Undo で戻せます）"
-                          disabled={table.rows.length <= 1}
-                          onClick={() =>
-                            dispatch({
-                              type: "removeRow",
-                              id: table.id,
-                              row: r,
-                              expectedRows: table.rows,
-                            })
-                          }
-                        >
-                          <Icon name="trash" />
-                        </button>
-                      )}
-                    </th>
+                  <tr
+                    key={r}
+                    data-row={r}
+                    onContextMenu={(e) => {
+                      if (readOnly) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setRowMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        row: r,
+                        rows: table.rows,
+                      });
+                    }}
+                  >
+                    <th className="row-number">{r + 1}</th>
                     {row.map((value, c) => (
                       <td key={c} data-col={c}>
                         {readOnly ? (

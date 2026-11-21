@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 type Props = {
+  autoFocus?: boolean;
   value: string;
   label: string;
   selected: boolean;
@@ -8,6 +9,7 @@ type Props = {
   onNavigate: (direction: "next" | "previous" | "down" | "up") => void;
 };
 export const Cell = memo(function Cell({
+  autoFocus,
   value,
   label,
   selected,
@@ -25,6 +27,7 @@ export const Cell = memo(function Cell({
   }, [value]);
   return (
     <textarea
+      autoFocus={autoFocus}
       aria-label={label}
       data-committed-value={value}
       className={selected ? "cell selected-cell" : "cell"}

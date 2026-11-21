@@ -822,17 +822,32 @@ button.action-danger:hover {
   border: 1px solid #dce4db;
   background: white;
 }
-.column-heading button,
-button.row-delete {
+.column-heading button {
   padding: 3px;
   min-height: 24px;
 }
-.data-grid:has(.row-delete) .row-number {
-  width: 70px;
-  min-width: 70px;
-  max-width: 70px;
+.column-name,
+.column-name-editor {
+  flex: 1;
+  min-width: 0;
 }
-button.row-delete {
-  margin-left: 4px;
-  vertical-align: middle;
+.column-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+.row-context-menu {
+  position: fixed;
+  z-index: 10000;
+  width: 196px;
+  padding: 6px;
+  border: 1px solid #cfdcd4;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 16px #274d3126;
+}
+.row-context-menu button {
+  width: 100%;
+  justify-content: flex-start;
 }

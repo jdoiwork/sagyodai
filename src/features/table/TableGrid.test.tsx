@@ -95,14 +95,23 @@ it("行削除と列名編集・列削除に表示時の比較条件を添える"
       ["鉛筆", "2"],
     ],
   };
-  const { getByLabelText } = render(<TableGrid table={editable} />);
-  fireEvent.click(getByLabelText("表 2行を削除"));
+  const { getByLabelText, getByRole, queryByLabelText } = render(
+    <TableGrid table={editable} />,
+  );
+  expect(queryByLabelText("表 2行を削除")).toBeNull();
+  fireEvent.contextMenu(getByLabelText("表 2行 1列"), {
+    clientX: 120,
+    clientY: 200,
+  });
+  fireEvent.click(getByRole("menuitem", { name: "2行を削除" }));
   expect(dispatch).toHaveBeenLastCalledWith({
     type: "removeRow",
     id: "t",
     row: 1,
     expectedRows: editable.rows,
   });
+  expect(queryByLabelText("表 2列の名前")).toBeNull();
+  fireEvent.doubleClick(getByLabelText("表 2列の名前を編集"));
   const name = getByLabelText("表 2列の名前");
   fireEvent.focus(name);
   fireEvent.change(name, { target: { value: "在庫" } });
@@ -122,4 +131,20 @@ it("行削除と列名編集・列削除に表示時の比較条件を添える"
     expectedColumns: editable.columns,
     expectedRows: editable.rows,
   });
+});
+
+it("右クリックメニューを Escape で閉じ、列名の編集も Escape で取り消す", () => {
+  const { getByLabelText, queryByRole, queryByLabelText } = render(
+    <TableGrid table={table} />,
+  );
+  fireEvent.contextMenu(getByLabelText("表 1行 1列"));
+  expect(queryByRole("menu")).not.toBeNull();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(queryByRole("menu")).toBeNull();
+  fireEvent.doubleClick(getByLabelText("表 1列の名前を編集"));
+  const input = getByLabelText("表 1列の名前");
+  fireEvent.change(input, { target: { value: "取り消す" } });
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(queryByLabelText("表 1列の名前")).toBeNull();
+  expect(dispatch).not.toHaveBeenCalled();
 });
