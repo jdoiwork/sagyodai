@@ -11,9 +11,10 @@ export function useColumnReorder(
   table: TableData,
   viewport: RefObject<HTMLDivElement | null>,
   dispatch: (command: Command) => void,
+  selectedColumns: number[] = [],
 ) {
   const blockedStart = useRef(false);
-  const source = useRef<{ from: number; table: TableData } | null>(null);
+  const source = useRef<{ indices: number[]; table: TableData } | null>(null);
   const [marker, setMarker] = useState<{
     col: number;
     side: "before" | "after";
@@ -26,9 +27,15 @@ export function useColumnReorder(
     const rect = e.currentTarget.getBoundingClientRect();
     const after = e.clientX >= rect.left + rect.width / 2;
     const boundary = col + (after ? 1 : 0);
-    const from = source.current!.from;
+    const indices = source.current!.indices;
+    const to = boundary - indices.filter((n) => n < boundary).length;
+    const order = table.columns
+      .map((_, i) => i)
+      .filter((i) => !indices.includes(i));
+    order.splice(to, 0, ...indices);
     return {
-      to: boundary > from ? boundary - 1 : boundary,
+      to,
+      unchanged: order.every((old, i) => old === i),
       side: after ? ("after" as const) : ("before" as const),
     };
   }
@@ -50,7 +57,12 @@ export function useColumnReorder(
           e.preventDefault();
           return;
         }
-        source.current = { from, table };
+        source.current = {
+          indices: selectedColumns.includes(from)
+            ? [...selectedColumns].sort((a, b) => a - b)
+            : [from],
+          table,
+        };
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("application/x-sagyodai-column", table.id);
       },
@@ -63,9 +75,7 @@ export function useColumnReorder(
         e.stopPropagation();
         e.dataTransfer.dropEffect = "move";
         const target = destination(e, col);
-        setMarker(
-          target.to === source.current.from ? null : { col, side: target.side },
-        );
+        setMarker(target.unchanged ? null : { col, side: target.side });
         const el = viewport.current;
         if (el) {
           const rect = el.getBoundingClientRect();
@@ -78,13 +88,14 @@ export function useColumnReorder(
         if (!start) return;
         e.preventDefault();
         e.stopPropagation();
-        const { to } = destination(e, col);
+        const { to, unchanged } = destination(e, col);
         clear();
-        if (to === start.from) return;
+        if (unchanged) return;
         dispatch({
-          type: "moveColumn",
+          ...(start.indices.length === 1
+            ? { type: "moveColumn" as const, from: start.indices[0] }
+            : { type: "moveColumns" as const, indices: start.indices }),
           id: table.id,
-          from: start.from,
           to,
           expectedColumns: start.table.columns,
           expectedRows: start.table.rows,

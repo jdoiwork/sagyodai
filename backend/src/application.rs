@@ -330,6 +330,22 @@ impl Project {
                     &expected_rows,
                 )?;
             }
+            Command::MoveColumns {
+                id,
+                indices,
+                to,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::move_columns(
+                    tables,
+                    &id,
+                    &indices,
+                    to,
+                    &expected_columns,
+                    &expected_rows,
+                )?;
+            }
             Command::MoveColumn {
                 id,
                 from,

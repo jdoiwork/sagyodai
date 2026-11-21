@@ -26,7 +26,12 @@ export function TableGrid({
   useDeletionAnimation(viewport, table);
   useTableWheel(viewport, onCanvasScroll);
   const headers = useHeaderSelection(table);
-  const reorder = useColumnReorder(table, viewport, dispatch);
+  const reorder = useColumnReorder(
+    table,
+    viewport,
+    dispatch,
+    headers.selection?.kind === "column" ? headers.selection.indices : [],
+  );
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;

@@ -828,3 +828,96 @@ fn bulk_deletion_is_atomic_and_one_undo() {
         .is_err()
     );
 }
+
+#[test]
+fn multiple_columns_move_together_with_references_and_undo() {
+    let mut p = flow();
+    let original = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::ResizeColumn {
+            id: original.id.clone(),
+            col: 1,
+            width: 240.0,
+            expected_width: 160.0,
+            expected_columns: original.columns.clone(),
+        },
+    )
+    .unwrap();
+    let before = p.snapshot();
+    run(
+        &mut p,
+        Command::MoveColumns {
+            id: original.id.clone(),
+            indices: vec![3, 1],
+            to: 0,
+            expected_columns: original.columns.clone(),
+            expected_rows: original.rows.clone(),
+        },
+    )
+    .unwrap();
+    let moved = p.snapshot();
+    assert_eq!(moved.tables[0].columns, ["数量", "メモ", "品名", "分類"]);
+    assert_eq!(moved.tables[0].column_widths[0], 240.0);
+    assert_eq!(moved.tables[1].filter.as_ref().unwrap().column, 0);
+    for (old_table, new_table) in before.tables.iter().zip(&moved.tables) {
+        for (old, new) in old_table.rows.iter().zip(&new_table.rows) {
+            assert_eq!(
+                *new,
+                vec![
+                    old[1].clone(),
+                    old[3].clone(),
+                    old[0].clone(),
+                    old[2].clone()
+                ]
+            );
+        }
+    }
+    assert!(
+        run(
+            &mut p,
+            Command::MoveColumns {
+                id: original.id.clone(),
+                indices: vec![0, 2],
+                to: 2,
+                expected_columns: original.columns.clone(),
+                expected_rows: original.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, original.rows);
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 1);
+    for (indices, to) in [(vec![], 0), (vec![1, 1], 0), (vec![99], 0), (vec![0, 1], 3)] {
+        assert!(
+            run(
+                &mut p,
+                Command::MoveColumns {
+                    id: original.id.clone(),
+                    indices,
+                    to,
+                    expected_columns: original.columns.clone(),
+                    expected_rows: original.rows.clone()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(p.snapshot().tables[0].rows, original.rows);
+    }
+    run(
+        &mut p,
+        Command::MoveColumns {
+            id: original.id,
+            indices: vec![0, 2],
+            to: 2,
+            expected_columns: original.columns,
+            expected_rows: original.rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        p.snapshot().tables[0].columns,
+        ["数量", "メモ", "品名", "分類"]
+    );
+}

@@ -118,16 +118,39 @@ pub fn move_column(
     columns: &[String],
     rows: &[Vec<String>],
 ) -> Result<(), String> {
+    move_columns(tables, id, &[from], to, columns, rows)
+}
+
+pub fn move_columns(
+    tables: &mut [Table],
+    id: &str,
+    indices: &[usize],
+    to: usize,
+    columns: &[String],
+    rows: &[Vec<String>],
+) -> Result<(), String> {
     let i = input_index(tables, id)?;
     if tables[i].columns != columns || tables[i].rows != rows {
         return Err(
             "表の内容が変更されています。表示を確認して列を並べ替え直してください。".into(),
         );
     }
-    if from >= columns.len() || to >= columns.len() {
-        return Err("移動する列が存在しません。".into());
+    let mut selected = indices.to_vec();
+    selected.sort_unstable();
+    selected.dedup();
+    if selected.is_empty()
+        || selected.len() != indices.len()
+        || selected.iter().any(|n| *n >= columns.len())
+        || to > columns.len() - selected.len()
+    {
+        return Err("移動する列または移動先が不正です。".into());
     }
-    if from == to {
+    // to は選択列を取り除いた後の挿入位置。離れた列も元の順序でまとめる。
+    let mut order: Vec<usize> = (0..columns.len())
+        .filter(|n| !selected.contains(n))
+        .collect();
+    order.splice(to..to, selected);
+    if order.iter().copied().eq(0..columns.len()) {
         return Ok(());
     }
     let mut affected = vec![id.to_string()];
@@ -137,35 +160,30 @@ pub fn move_column(
             .as_ref()
             .is_some_and(|s| affected.contains(s))
         {
-            // 旧列順のキャッシュを持つノードが残ると、後続の列参照が変わってしまう。
             if tables[n].manual || tables[n].stale || tables[n].error.is_some() {
                 return Err("接続先に手動更新・更新待ち・エラーがあります。自動更新に切り替えて問題を解消するか、接続を外してから列を並べ替えてください。".into());
             }
             affected.push(tables[n].id.clone());
         }
     }
+    let mut new_index = vec![0; columns.len()];
+    for (new, old) in order.iter().enumerate() {
+        new_index[*old] = new;
+    }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
-        t.column_widths.resize(columns.len(), 160.0);
-        let width = t.column_widths.remove(from);
-        t.column_widths.insert(to, width);
+        t.column_widths = order
+            .iter()
+            .map(|old| t.column_widths.get(*old).copied().unwrap_or(160.0))
+            .collect();
         if let Some(f) = &mut t.filter {
-            f.column = if f.column == from {
-                to
-            } else if from < to && f.column > from && f.column <= to {
-                f.column - 1
-            } else if to < from && f.column >= to && f.column < from {
-                f.column + 1
-            } else {
-                f.column
-            };
+            f.column = new_index[f.column];
         }
     }
-    let name = tables[i].columns.remove(from);
-    tables[i].columns.insert(to, name);
-    for row in &mut tables[i].rows {
-        let value = row.remove(from);
-        row.insert(to, value);
-    }
+    tables[i].columns = order.iter().map(|old| columns[*old].clone()).collect();
+    tables[i].rows = rows
+        .iter()
+        .map(|row| order.iter().map(|old| row[*old].clone()).collect())
+        .collect();
     Ok(())
 }
 

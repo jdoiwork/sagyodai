@@ -430,3 +430,41 @@ it("列記号から複数列を選択し、全列削除を防ぐ", () => {
   rerender(<TableGrid table={{ ...t, columns: ["丙", "乙", "甲"] }} />);
   expect(container.querySelectorAll('[aria-selected="true"]')).toHaveLength(0);
 });
+
+it.each([
+  { selected: [0, 2], target: 3, x: 440, to: 2 },
+  { selected: [1, 3], target: 0, x: 310, to: 0 },
+  { selected: [1, 2], target: 2, x: 440, to: null },
+])("複数列 $selected をまとめて移動する", ({ selected, target, x, to }) => {
+  const t = {
+    ...table,
+    columns: ["甲", "乙", "丙", "丁"],
+    rows: [["a", "b", "c", "d"]],
+  };
+  const { container } = render(<TableGrid table={t} />);
+  const header = (n: number) =>
+    container.querySelector(`[data-column="${n}"]`)!;
+  fireEvent.click(header(selected[0]));
+  fireEvent.click(header(selected[1]), { metaKey: true });
+  vi.spyOn(header(target), "getBoundingClientRect").mockReturnValue({
+    left: 300,
+    width: 160,
+  } as DOMRect);
+  const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  fireEvent.dragStart(header(selected[1]).querySelector(".column-letter")!, {
+    dataTransfer,
+  });
+  const drop = new Event("drop", { bubbles: true, cancelable: true });
+  Object.assign(drop, { clientX: x, dataTransfer });
+  fireEvent(header(target), drop);
+  if (to === null) expect(dispatch).not.toHaveBeenCalled();
+  else
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+      type: "moveColumns",
+      id: t.id,
+      indices: selected,
+      to,
+      expectedColumns: t.columns,
+      expectedRows: t.rows,
+    });
+});
