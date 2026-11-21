@@ -84,6 +84,23 @@ impl Project {
             Command::OpenProject { document } => {
                 *tables = storage::decode(document)?;
             }
+            Command::Rename {
+                id,
+                title,
+                expected_title,
+            } => {
+                let t = table_mut(tables, &id)?;
+                if t.title != expected_title {
+                    return Err(
+                        "タイトルが別の操作で変更されました。入力は保持されています。".into(),
+                    );
+                }
+                let title = title.trim();
+                if title.is_empty() || title.len() > 1024 {
+                    return Err("タイトルは空欄にせず、1024バイト以内で入力してください。".into());
+                }
+                t.title = title.to_string();
+            }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
                 if t.kind == Kind::Input {

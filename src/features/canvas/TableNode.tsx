@@ -1,3 +1,4 @@
+import { NodeTitle } from "./NodeTitle";
 import { Icon } from "../../components/Icon";
 import { NodeSettings } from "../filter/NodeSettings";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
@@ -39,7 +40,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
       <header className="table-drag-handle">
         <div className="table-icon">▦</div>
         <div>
-          <h2>{table.title}</h2>
+          <NodeTitle table={table} />
           <span>
             {table.kind === "input"
               ? "入力ソース"

@@ -12,7 +12,9 @@ export function SyncConflicts() {
           <pre>
             {item.command.type === "paste"
               ? item.command.values.map((row) => row.join("\t")).join("\n")
-              : JSON.stringify(item.command)}
+              : item.command.type === "rename"
+                ? item.command.title
+                : JSON.stringify(item.command)}
           </pre>
           <button onClick={() => resolveConflict(item.id, true)}>
             <Icon name="refresh" />

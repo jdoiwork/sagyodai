@@ -44,6 +44,7 @@ export type Command =
       kind: "input" | "filter" | "display";
       position?: { x: number; y: number };
     }
+  | { type: "rename"; id: string; title: string; expectedTitle: string }
   | { type: "connect"; id: string; source: string | null }
   | {
       type: "configure";

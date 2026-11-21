@@ -79,6 +79,11 @@ pub enum Command {
     Run {
         id: String,
     },
+    Rename {
+        id: String,
+        title: String,
+        expected_title: String,
+    },
     RemoveNode {
         id: String,
     },

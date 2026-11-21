@@ -84,15 +84,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribeProject(() => void refresh(), setConnected);
     const focus = (event: FocusEvent) => {
       editing.current =
-        event.target instanceof HTMLTextAreaElement &&
-        event.target.classList.contains("cell");
+        event.target instanceof HTMLElement &&
+        event.target.matches("textarea.cell, input.node-title-input");
     };
     const blur = () => {
       // React の onBlur が入力を操作キューへ渡した後に、保留した画面更新を反映する。
       queueMicrotask(() => {
         editing.current =
-          document.activeElement instanceof HTMLTextAreaElement &&
-          document.activeElement.classList.contains("cell");
+          document.activeElement instanceof HTMLElement &&
+          document.activeElement.matches(
+            "textarea.cell, input.node-title-input",
+          );
         if (!editing.current && current.current && alive.current)
           setProject(current.current);
       });
@@ -110,7 +112,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const warn = (event: BeforeUnloadEvent) => {
       const input = document.activeElement;
       const editing =
-        input instanceof HTMLTextAreaElement &&
+        (input instanceof HTMLTextAreaElement ||
+          input instanceof HTMLInputElement) &&
         input.value !== input.dataset.committedValue;
       if (
         current.current?.revision !== exportedRevision ||
@@ -214,6 +217,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             ),
           ),
         });
+      } else if (command.type === "rename") {
+        const title = current.current?.tables.find(
+          (t) => t.id === command.id,
+        )?.title;
+        dispatch({ ...command, expectedTitle: title ?? command.expectedTitle });
       } else dispatch(command);
     }
   }

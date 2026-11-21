@@ -272,3 +272,42 @@ fn node_creation_uses_requested_position_and_undo_restores_it() {
     run(&mut p, Command::Redo).unwrap();
     assert_eq!(p.snapshot().tables[1].y, 930.0);
 }
+
+#[test]
+fn rename_preserves_connections_rejects_conflicts_and_roundtrips() {
+    let mut p = flow();
+    let original = p.snapshot().tables[0].title.clone();
+    run(
+        &mut p,
+        Command::Rename {
+            id: "table-1".into(),
+            title: "売上データ".into(),
+            expected_title: original.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].source.as_deref(), Some("table-1"));
+    let saved = p.export().unwrap();
+    assert_eq!(
+        storage::decode(serde_json::from_slice(&saved).unwrap()).unwrap()[0].title,
+        "売上データ"
+    );
+    for (title, expected) in [("競合", original.as_str()), ("  ", "売上データ")] {
+        assert!(
+            run(
+                &mut p,
+                Command::Rename {
+                    id: "table-1".into(),
+                    title: title.into(),
+                    expected_title: expected.into()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(p.export().unwrap(), saved);
+    }
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].title, original);
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.snapshot().tables[0].title, "売上データ");
+}
