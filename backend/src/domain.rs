@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     pub id: String,
     pub title: String,
@@ -26,6 +26,9 @@ pub struct Snapshot {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum Command {
     AddTable,
+    OpenProject {
+        document: serde_json::Value,
+    },
     Paste {
         id: String,
         row: usize,

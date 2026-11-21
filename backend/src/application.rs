@@ -1,8 +1,6 @@
 use crate::domain::{Command, Request, Snapshot, Table, sample_table};
 
-const MAX_ROWS: usize = 5000;
-const MAX_COLS: usize = 50;
-const MAX_CELL_BYTES: usize = 100_000;
+use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
 const HISTORY_LIMIT: usize = 30;
 
 pub struct Project {
@@ -26,6 +24,10 @@ impl Default for Project {
 }
 
 impl Project {
+    pub fn export(&self) -> Result<Vec<u8>, String> {
+        storage::encode(&self.tables)
+    }
+
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
             revision: self.revision,
@@ -70,9 +72,18 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::OpenProject { document } => {
+                *tables = storage::decode(document)?;
+            }
             Command::AddTable => {
                 if tables.len() >= 20 {
                     return Err("試作では表は20個までです。".into());
+                }
+                while tables
+                    .iter()
+                    .any(|table| table.id == format!("table-{}", self.next_id))
+                {
+                    self.next_id += 1;
                 }
                 tables.push(sample_table(
                     format!("table-{}", self.next_id),
@@ -147,10 +158,7 @@ impl Project {
                 width,
                 height,
             } => {
-                if ![x, y, width, height].iter().all(|v| v.is_finite())
-                    || !(380.0..=2400.0).contains(&width)
-                    || !(240.0..=1600.0).contains(&height)
-                {
+                if !storage::valid_layout(x, y, width, height) {
                     return Err("表の位置またはサイズが不正です。".into());
                 }
                 let table = table_mut(tables, &id)?;
@@ -205,6 +213,30 @@ mod tests {
         assert_eq!(p.tables[0].rows, before);
         run(&mut p, Command::Redo).unwrap();
         assert_eq!(p.tables[0].rows[5][4], "列追加");
+    }
+    #[test]
+    fn opening_file_is_atomic_undoable_and_preserves_unique_ids() {
+        let mut p = Project::default();
+        let initial = p.export().unwrap();
+        let mut tables = vec![
+            sample_table("table-1".into(), 0),
+            sample_table("table-2".into(), 1),
+        ];
+        tables[0].rows[0][0] = "復元したデータ".into();
+        let document: serde_json::Value =
+            serde_json::from_slice(&storage::encode(&tables).unwrap()).unwrap();
+        let mut invalid = document.clone();
+        invalid["formatVersion"] = 2.into();
+        assert!(run(&mut p, Command::OpenProject { document: invalid }).is_err());
+        assert_eq!(p.export().unwrap(), initial);
+        assert_eq!(p.revision, 0);
+        run(&mut p, Command::OpenProject { document }).unwrap();
+        assert_eq!(p.tables[0].rows[0][0], "復元したデータ");
+        run(&mut p, Command::Undo).unwrap();
+        assert_eq!(p.export().unwrap(), initial);
+        run(&mut p, Command::Redo).unwrap();
+        run(&mut p, Command::AddTable).unwrap();
+        assert_eq!(p.tables[2].id, "table-3");
     }
     #[test]
     fn invalid_paste_and_stale_edit_leave_state_untouched() {

@@ -26,6 +26,7 @@ export const Cell = memo(function Cell({
   return (
     <textarea
       aria-label={label}
+      data-committed-value={value}
       className={selected ? "cell selected-cell" : "cell"}
       rows={1}
       value={draft}

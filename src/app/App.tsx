@@ -10,6 +10,7 @@ import {
 import { useProject } from "./ProjectContext";
 import { TableNode } from "../features/canvas/TableNode";
 import { useCanvasNodes } from "../features/canvas/useCanvasNodes";
+import { ProjectFiles } from "../features/project/ProjectFiles";
 const nodeTypes = { table: TableNode };
 function Canvas() {
   const { project, dispatch, error, pending } = useProject();
@@ -31,9 +32,7 @@ function Canvas() {
         <span className="project-name">はじめてのキャンバス</span>
         <span className="prototype-label">操作感の試作</span>
         <div className="header-right">
-          <span className="session-note">
-            セッション内のみ・ファイル保存は未対応
-          </span>
+          <ProjectFiles />
           <button className="help-button" onClick={() => setHelp((v) => !v)}>
             操作ガイド
           </button>

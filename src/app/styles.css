@@ -500,3 +500,38 @@ button:disabled {
 .react-flow__background {
   background: #f3f5f1;
 }
+.project-files {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.project-files > button {
+  padding: 8px 12px;
+  border: 1px solid #dce3de;
+}
+.project-files .save-button {
+  color: white;
+  background: #28614f;
+  border-color: #28614f;
+}
+.file-message {
+  position: fixed;
+  z-index: 30;
+  top: 84px;
+  right: 24px;
+  max-width: min(520px, calc(100vw - 48px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #f6fff8;
+  border: 1px solid #b9d6c0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px #163d2410;
+  font-size: 12px;
+}
+.file-message.failure {
+  background: #fff0e9;
+  border-color: #e8bda9;
+  color: #9e4630;
+}

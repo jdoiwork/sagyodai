@@ -19,6 +19,7 @@ export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
   | { type: "addTable" | "undo" | "redo" }
+  | { type: "openProject"; document: unknown }
   | { type: "paste"; id: string; row: number; col: number; values: string[][] }
   | { type: "addRows"; id: string; count: number }
   | { type: "addColumn"; id: string }
@@ -50,3 +51,21 @@ export const sendCommand = (expectedRevision: number, command: Command) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expectedRevision, command }),
   }).then(read);
+
+export async function exportProject(): Promise<{
+  blob: Blob;
+  revision: number;
+}> {
+  const response = await fetch("/api/project/export");
+  if (!response.ok) {
+    await read(response);
+    throw new Error("ファイルを書き出せませんでした。");
+  }
+  const revision = Number(response.headers.get("x-project-revision"));
+  if (
+    !Number.isSafeInteger(revision) ||
+    response.headers.get("x-project-revision") === null
+  )
+    throw new Error("保存時の状態を確認できません。");
+  return { blob: await response.blob(), revision };
+}
