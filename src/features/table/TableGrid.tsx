@@ -1,3 +1,4 @@
+import { useDeletionAnimation } from "./useDeletionAnimation";
 import { TableContextMenu } from "./TableContextMenu";
 import { ColumnHeader } from "./ColumnHeader";
 import { Fragment, useRef, useState } from "react";
@@ -16,6 +17,7 @@ export function TableGrid({
 }) {
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
+  useDeletionAnimation(viewport, table);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -229,6 +231,7 @@ export function TableGrid({
               {table.columns.map((name, c) => (
                 <th
                   key={c}
+                  data-column={c}
                   className={
                     contextMenu?.preview &&
                     contextMenu.kind === "column" &&
