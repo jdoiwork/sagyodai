@@ -38,7 +38,26 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         }
       />
       <header className="table-drag-handle">
-        <div className="table-icon">▦</div>
+        <div
+          className="table-icon"
+          title={
+            table.kind === "input"
+              ? "手入力の表"
+              : table.kind === "filter"
+                ? "フィルタ"
+                : "結果表"
+          }
+        >
+          <Icon
+            name={
+              table.kind === "input"
+                ? "editableTable"
+                : table.kind === "filter"
+                  ? "filter"
+                  : "table"
+            }
+          />
+        </div>
         <div>
           <NodeTitle table={table} />
           <span>

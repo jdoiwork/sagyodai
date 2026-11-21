@@ -3,6 +3,8 @@ const paths = {
   edit: "m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Z",
   plus: "M12 5v14M5 12h14",
   filter: "M3 5h18l-7 8v6l-4 2v-8Z",
+  editableTable:
+    "M10 20H3V4h16v5M3 9h10M8 9v11M12 21l1-4 7-7 3 3-7 7ZM18 12l3 3",
   table: "M3 4h18v16H3ZM3 9h18M9 9v11",
   check: "m5 12 4 4L19 6",
   refresh:
