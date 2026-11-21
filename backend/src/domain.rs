@@ -7,6 +7,8 @@ pub struct Table {
     pub source: Option<String>,
     pub filter: Option<Filter>,
     pub manual: bool,
+    #[serde(default)]
+    pub compact: bool,
     pub stale: bool,
     pub error: Option<String>,
     pub id: String,
@@ -78,6 +80,10 @@ pub enum Command {
         filter: Option<Filter>,
         manual: bool,
     },
+    SetCompact {
+        id: String,
+        compact: bool,
+    },
     Run {
         id: String,
     },
@@ -138,6 +144,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         source: None,
         filter: None,
         manual: false,
+        compact: false,
         stale: false,
         error: None,
         id,

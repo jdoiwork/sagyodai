@@ -18,6 +18,7 @@ const table: TableData = {
   source: null,
   filter: null,
   manual: false,
+  compact: false,
   stale: false,
   error: null,
   rows: [[""]],

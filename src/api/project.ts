@@ -21,6 +21,7 @@ const tableSchema = z.object({
   source: z.string().nullable(),
   filter: filterSchema.nullable(),
   manual: z.boolean(),
+  compact: z.boolean().default(false),
   stale: z.boolean(),
   error: z.string().nullable(),
   title: z.string(),
@@ -47,6 +48,7 @@ export type Command =
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }
+  | { type: "setCompact"; id: string; compact: boolean }
   | { type: "connect"; id: string; source: string | null }
   | {
       type: "configure";

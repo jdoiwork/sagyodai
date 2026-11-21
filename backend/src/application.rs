@@ -118,6 +118,16 @@ impl Project {
                 t.manual = manual;
                 crate::graph::order(tables)?;
             }
+            Command::SetCompact { id, compact } => {
+                let table = tables
+                    .iter_mut()
+                    .find(|t| t.id == id)
+                    .ok_or("ノードが見つかりません。")?;
+                if table.kind != Kind::Filter {
+                    return Err("コンパクト表示はフィルタで使用できます。".into());
+                }
+                table.compact = compact;
+            }
             Command::Run { id } => {
                 table_mut(tables, &id)?;
             }

@@ -28,7 +28,15 @@ export function NodeSettings({ table }: { table: TableData }) {
       draft.value !== table.filter?.value);
   return (
     <div className="node-settings nodrag nopan nowheel">
-      <label>
+      {table.compact && table.filter && (
+        <div className="compact-condition" title="適用済みの条件">
+          {source?.columns[table.filter.column] ??
+            `列 ${table.filter.column + 1}`}{" "}
+          {operators.find(([op]) => op === table.filter?.operator)?.[1]}{" "}
+          {JSON.stringify(table.filter.value)}
+        </div>
+      )}
+      <label hidden={table.compact}>
         入力元
         <select
           aria-label={`${table.title} 入力元`}
@@ -53,6 +61,7 @@ export function NodeSettings({ table }: { table: TableData }) {
       </label>
       {table.kind === "filter" && draft && (
         <form
+          hidden={table.compact}
           onFocusCapture={() => {
             editing.current = true;
           }}
@@ -123,7 +132,12 @@ export function NodeSettings({ table }: { table: TableData }) {
           </div>
         </form>
       )}
-      <div className="execution-controls">
+      {table.compact && hasUnappliedChanges && (
+        <div className="condition-draft-status" role="status">
+          未適用の変更あり — 展開して適用
+        </div>
+      )}
+      <div className="execution-controls" hidden={table.compact}>
         <label>
           <input
             type="checkbox"

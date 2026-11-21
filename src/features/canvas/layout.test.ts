@@ -7,6 +7,7 @@ const tables: TableData[] = [1, 2].map((i) => ({
   source: null,
   filter: null,
   manual: false,
+  compact: false,
   stale: false,
   error: null,
   title: `表${i}`,
@@ -69,4 +70,36 @@ it("操作が確定した後は Undo の配置を受け入れる", () => {
     { x: 100, y: 200 },
     { x: 200, y: 400 },
   ]);
+});
+it("折りたたんだフィルタの移動後も、展開すると元のサイズへ戻る", () => {
+  const filter: TableData = { ...tables[0], kind: "filter", compact: true };
+  const compact = reconcileNodes(
+    [filter],
+    [],
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(compact[0].style).toMatchObject({ width: 380, height: 178 });
+  compact[0].position = { x: 500, y: 600 };
+  const dragging = reconcileNodes(
+    [filter],
+    compact,
+    new Set([filter.id]),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(dragging[0].position).toEqual({ x: 500, y: 600 });
+  const expanded = reconcileNodes(
+    [{ ...filter, compact: false, x: 500, y: 600 }],
+    dragging,
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(expanded[0].style).toMatchObject({ width: 760, height: 390 });
+  expect(expanded[0].position).toEqual({ x: 500, y: 600 });
 });

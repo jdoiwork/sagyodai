@@ -27,7 +27,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         />
       )}
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && !table.compact}
         minWidth={380}
         minHeight={240}
         maxWidth={2400}
@@ -68,7 +68,24 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 : "結果の表示"}
           </span>
         </div>
-        <span className="editable-badge">
+        {table.kind === "filter" && (
+          <button
+            className="nodrag nopan"
+            aria-label={`${table.title} ${table.compact ? "展開" : "コンパクト表示"}`}
+            aria-expanded={!table.compact}
+            onClick={() =>
+              dispatch({
+                type: "setCompact",
+                id: table.id,
+                compact: !table.compact,
+              })
+            }
+          >
+            <Icon name={table.compact ? "expand" : "collapse"} />
+            {table.compact ? "展開" : "縮小"}
+          </button>
+        )}
+        <span className="editable-badge" hidden={table.compact}>
           {table.kind === "input" ? "編集可能" : "読み取り専用"}
         </span>
         <span className="grip" aria-hidden="true">

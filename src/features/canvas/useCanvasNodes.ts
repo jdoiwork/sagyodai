@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useNodesState } from "@xyflow/react";
 import type { Command, Snapshot } from "../../api/project";
 import {
+  COMPACT_FILTER_SIZE,
   reconcileNodes,
   sameLayout,
   type Layout,
@@ -31,8 +32,9 @@ export function useCanvasNodes(
                 position: { x: layout.x, y: layout.y },
                 style: {
                   ...node.style,
-                  width: layout.width,
-                  height: layout.height,
+                  ...(node.data.table.compact
+                    ? COMPACT_FILTER_SIZE
+                    : { width: layout.width, height: layout.height }),
                 },
               }
             : node,

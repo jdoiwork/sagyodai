@@ -16,6 +16,7 @@ const table = {
   source: null,
   filter: null,
   manual: false,
+  compact: false,
   stale: false,
   error: null,
   title: "表",

@@ -1,5 +1,7 @@
 // 装飾用のアイコン。操作名はボタンの文字・aria-label に任せる。
 const paths = {
+  collapse: "m6 14 6-6 6 6",
+  expand: "m6 10 6 6 6-6",
   edit: "m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Z",
   plus: "M12 5v14M5 12h14",
   filter: "M3 5h18l-7 8v6l-4 2v-8Z",

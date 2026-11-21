@@ -118,8 +118,12 @@ function Canvas() {
             finish(node.id, {
               x: node.position.x,
               y: node.position.y,
-              width: Number(node.style?.width ?? node.data.table.width),
-              height: Number(node.style?.height ?? node.data.table.height),
+              width: node.data.table.compact
+                ? node.data.table.width
+                : Number(node.style?.width ?? node.data.table.width),
+              height: node.data.table.compact
+                ? node.data.table.height
+                : Number(node.style?.height ?? node.data.table.height),
             })
           }
         >

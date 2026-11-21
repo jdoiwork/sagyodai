@@ -350,3 +350,41 @@ fn numeric_equality_handles_notation_invalid_cells_and_saved_conditions() {
     configure(&mut p, Operator::Equals, "3", false);
     assert_eq!(p.snapshot().tables[2].rows.len(), 1);
 }
+
+#[test]
+fn compact_filter_preserves_data_dimensions_and_survives_save_and_undo() {
+    let mut p = flow();
+    let original = p.snapshot().tables[1].clone();
+    run(
+        &mut p,
+        Command::SetCompact {
+            id: original.id.clone(),
+            compact: true,
+        },
+    )
+    .unwrap();
+    let compact = p.snapshot().tables[1].clone();
+    assert!(compact.compact);
+    assert_eq!(compact.rows, original.rows);
+    assert_eq!(
+        (compact.width, compact.height),
+        (original.width, original.height)
+    );
+    let file = p.export().unwrap();
+    let restored = storage::decode(serde_json::from_slice(&file).unwrap()).unwrap();
+    assert!(restored[1].compact);
+    run(&mut p, Command::Undo).unwrap();
+    assert!(!p.snapshot().tables[1].compact);
+    run(&mut p, Command::Redo).unwrap();
+    assert!(p.snapshot().tables[1].compact);
+    assert!(
+        run(
+            &mut p,
+            Command::SetCompact {
+                id: "table-1".into(),
+                compact: true
+            }
+        )
+        .is_err()
+    );
+}

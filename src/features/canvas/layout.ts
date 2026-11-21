@@ -1,5 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { TableData } from "../../api/project";
+export const COMPACT_FILTER_SIZE = { width: 380, height: 178 };
 export type Layout = Pick<TableData, "x" | "y" | "width" | "height">;
 export type TableFlowNode = Node<
   {
@@ -30,8 +31,12 @@ export function reconcileNodes(
         ? {
             x: old.position.x,
             y: old.position.y,
-            width: Number(old.style?.width ?? table.width),
-            height: Number(old.style?.height ?? table.height),
+            width: table.compact
+              ? table.width
+              : Number(old.style?.width ?? table.width),
+            height: table.compact
+              ? table.height
+              : Number(old.style?.height ?? table.height),
           }
         : (pending.get(table.id) ?? table);
     return {
@@ -40,7 +45,12 @@ export function reconcileNodes(
       type: "table",
       dragHandle: ".table-drag-handle",
       position: { x: local.x, y: local.y },
-      style: { ...old?.style, width: local.width, height: local.height },
+      style: {
+        ...old?.style,
+        ...(table.kind === "filter" && table.compact
+          ? COMPACT_FILTER_SIZE
+          : { width: local.width, height: local.height }),
+      },
       selected: old?.selected ?? false,
       data: {
         table,
