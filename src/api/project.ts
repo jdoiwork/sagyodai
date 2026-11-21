@@ -41,7 +41,7 @@ export type Command =
   | { type: "addTable" | "undo" | "redo" }
   | {
       type: "addNode";
-      kind: "filter" | "display";
+      kind: "input" | "filter" | "display";
       position?: { x: number; y: number };
     }
   | { type: "connect"; id: string; source: string | null }

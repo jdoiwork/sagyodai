@@ -27,7 +27,7 @@ function Canvas() {
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
-    kind: "filter" | "display";
+    kind: "input" | "filter" | "display";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -40,7 +40,7 @@ function Canvas() {
       adding.current = null;
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
-  function addNode(kind: "filter" | "display") {
+  function addNode(kind: "input" | "filter" | "display") {
     if (!canvas.current || !project) return;
     const rect = canvas.current.getBoundingClientRect();
     const guideRect = guide.current?.getBoundingClientRect();
@@ -133,8 +133,8 @@ function Canvas() {
         <div className="canvas-toolbar">
           <button
             className="primary"
-            disabled={!project}
-            onClick={() => dispatch({ type: "addTable" })}
+            disabled={!project || pending > 0}
+            onClick={() => addNode("input")}
           >
             <Icon name="plus" />
             表を追加
