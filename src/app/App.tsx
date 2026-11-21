@@ -46,7 +46,28 @@ function Canvas() {
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           deleteKeyCode={null}
-          nodesConnectable={false}
+          nodesConnectable
+          edges={(project?.tables ?? [])
+            .filter((t) => t.source)
+            .map((t) => ({
+              id: `edge-${t.id}`,
+              source: t.source!,
+              target: t.id,
+              sourceHandle: "out",
+              targetHandle: "in",
+              type: "smoothstep",
+              style: {
+                stroke: t.stale ? "#bd9147" : "#386e61",
+                strokeWidth: 2.5,
+              },
+            }))}
+          onConnect={(connection) =>
+            dispatch({
+              type: "connect",
+              id: connection.target,
+              source: connection.source,
+            })
+          }
           zoomOnDoubleClick={false}
           minZoom={0.4}
           maxZoom={2}
@@ -81,6 +102,18 @@ function Canvas() {
             onClick={() => dispatch({ type: "addTable" })}
           >
             ＋ 表を追加
+          </button>
+          <button
+            disabled={!project}
+            onClick={() => dispatch({ type: "addNode", kind: "filter" })}
+          >
+            ＋ フィルタ
+          </button>
+          <button
+            disabled={!project}
+            onClick={() => dispatch({ type: "addNode", kind: "display" })}
+          >
+            ＋ 結果表
           </button>
           <div className="toolbar-separator" />
           <button
@@ -199,7 +232,7 @@ function Canvas() {
                 : "接続中"}
         </span>
         <span>
-          {project?.tables.length ?? 0} 個の表
+          {project?.tables.length ?? 0} 個のノード
           <span className="status-separator">/</span>
           セル編集はフォーカス移動時に反映
         </span>

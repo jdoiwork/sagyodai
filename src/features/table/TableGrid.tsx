@@ -5,7 +5,13 @@ import { Cell } from "./Cell";
 import { formatTsv, parseTsv } from "./clipboard";
 const ROW_HEIGHT = 36;
 type Point = { row: number; col: number };
-export function TableGrid({ table }: { table: TableData }) {
+export function TableGrid({
+  table,
+  readOnly = false,
+}: {
+  table: TableData;
+  readOnly?: boolean;
+}) {
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
   const [top, setTop] = useState(0);
@@ -110,6 +116,7 @@ export function TableGrid({ table }: { table: TableData }) {
         onBlurCapture={() => setFocusedRow(null)}
         onScroll={(e) => setTop(e.currentTarget.scrollTop)}
         onPaste={(e) => {
+          if (readOnly) return;
           const text = e.clipboardData.getData("text/plain");
           if (!/[\t\r\n]/.test(text)) return;
           e.preventDefault();
@@ -140,6 +147,7 @@ export function TableGrid({ table }: { table: TableData }) {
           }
         }}
         onCopy={(e) => {
+          if (readOnly) return;
           if (minRow === maxRow && minCol === maxCol) return;
           e.preventDefault();
           e.clipboardData.setData(
@@ -177,33 +185,39 @@ export function TableGrid({ table }: { table: TableData }) {
                     <th className="row-number">{r + 1}</th>
                     {row.map((value, c) => (
                       <td key={c} data-col={c}>
-                        <Cell
-                          value={value}
-                          label={`${table.title} ${r + 1}行 ${c + 1}列`}
-                          selected={
-                            r >= minRow &&
-                            r <= maxRow &&
-                            c >= minCol &&
-                            c <= maxCol
-                          }
-                          onSelect={(extend) =>
-                            setSelection((s) => ({
-                              start: extend ? s.start : { row: r, col: c },
-                              end: { row: r, col: c },
-                            }))
-                          }
-                          onCommit={(v, original) =>
-                            dispatch({
-                              type: "paste",
-                              id: table.id,
-                              row: r,
-                              col: c,
-                              values: [[v]],
-                              expectedValues: [[original]],
-                            })
-                          }
-                          onNavigate={(direction) => navigate(r, c, direction)}
-                        />
+                        {readOnly ? (
+                          <span className="result-cell">{value}</span>
+                        ) : (
+                          <Cell
+                            value={value}
+                            label={`${table.title} ${r + 1}行 ${c + 1}列`}
+                            selected={
+                              r >= minRow &&
+                              r <= maxRow &&
+                              c >= minCol &&
+                              c <= maxCol
+                            }
+                            onSelect={(extend) =>
+                              setSelection((s) => ({
+                                start: extend ? s.start : { row: r, col: c },
+                                end: { row: r, col: c },
+                              }))
+                            }
+                            onCommit={(v, original) =>
+                              dispatch({
+                                type: "paste",
+                                id: table.id,
+                                row: r,
+                                col: c,
+                                values: [[v]],
+                                expectedValues: [[original]],
+                              })
+                            }
+                            onNavigate={(direction) =>
+                              navigate(r, c, direction)
+                            }
+                          />
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -214,6 +228,13 @@ export function TableGrid({ table }: { table: TableData }) {
           </tbody>
         </table>
       </div>
+      {readOnly && table.rows.length === 0 && (
+        <div className="empty-result">
+          {table.stale
+            ? "結果はまだありません"
+            : "条件に一致する行はありません（0件）"}
+        </div>
+      )}
       <div className="table-footer nodrag nopan">
         <span>
           {table.rows.length.toLocaleString()} 行 × {table.columns.length} 列

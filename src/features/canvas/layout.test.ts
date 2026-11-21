@@ -3,6 +3,12 @@ import { reconcileNodes, type TableFlowNode, type Layout } from "./layout";
 import type { TableData } from "../../api/project";
 const tables: TableData[] = [1, 2].map((i) => ({
   id: `table-${i}`,
+  kind: "input" as const,
+  source: null,
+  filter: null,
+  manual: false,
+  stale: false,
+  error: null,
   title: `表${i}`,
   columns: ["列"],
   rows: [[""]],

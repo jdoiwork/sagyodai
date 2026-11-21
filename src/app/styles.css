@@ -559,3 +559,92 @@ button:disabled {
 .conflict-panel button {
   margin: 4px;
 }
+
+.react-flow__handle {
+  width: 14px;
+  height: 14px;
+  background: #396b5b;
+  border: 3px solid white;
+}
+.node-settings {
+  padding: 12px 16px;
+  border-bottom: 1px solid #dfe7e1;
+  font-size: 12px;
+  overflow: auto;
+  flex-shrink: 0;
+  max-height: calc(100% - 68px);
+}
+.node-settings > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.node-settings select,
+.node-settings input:not([type="checkbox"]) {
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #d8e0dc;
+  border-radius: 5px;
+  background: white;
+  font: inherit;
+}
+.node-settings > label select {
+  flex: 1;
+}
+.node-settings form {
+  margin-top: 10px;
+}
+.condition-fields {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.condition-fields select {
+  flex: 1;
+}
+.node-settings form > input {
+  width: 65%;
+  margin-right: 6px;
+}
+.execution-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.execution-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.node-status {
+  margin-top: 8px;
+  color: #386e61;
+}
+.node-status.stale {
+  color: #986515;
+}
+.result-cell {
+  display: block;
+  min-height: 35px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.empty-result {
+  padding: 15px;
+  color: #7d8a83;
+  font-size: 12px;
+}
+
+.node-settings select,
+.node-settings input {
+  color: #263d32;
+  color-scheme: light;
+}
+.table-node {
+  overflow: visible;
+}
+.table-drag-handle {
+  border-radius: 11px 11px 0 0;
+}

@@ -1,5 +1,8 @@
 mod application;
 mod domain;
+mod graph;
+#[cfg(test)]
+mod graph_tests;
 mod storage;
 
 use application::Project;

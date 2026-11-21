@@ -1,4 +1,5 @@
-import { NodeResizer, type NodeProps } from "@xyflow/react";
+import { NodeSettings } from "../filter/NodeSettings";
+import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
@@ -7,6 +8,22 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const table = data.table;
   return (
     <section className="table-node" aria-label={table.title}>
+      {table.kind !== "input" && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="in"
+          aria-label={`${table.title} 入力端子`}
+        />
+      )}
+      {table.kind !== "display" && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="out"
+          aria-label={`${table.title} 出力端子`}
+        />
+      )}
       <NodeResizer
         isVisible={selected}
         minWidth={380}
@@ -22,33 +39,54 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         <div className="table-icon">▦</div>
         <div>
           <h2>{table.title}</h2>
-          <span>入力ソース</span>
+          <span>
+            {table.kind === "input"
+              ? "入力ソース"
+              : table.kind === "filter"
+                ? "行の絞り込み"
+                : "結果の表示"}
+          </span>
         </div>
-        <span className="editable-badge">編集可能</span>
+        <span className="editable-badge">
+          {table.kind === "input" ? "編集可能" : "読み取り専用"}
+        </span>
         <span className="grip" aria-hidden="true">
           ⠿
         </span>
       </header>
-      <div className="table-actions nodrag nopan">
-        <span className="table-mode">文字列の表</span>
-        <button
-          onClick={() => dispatch({ type: "addRows", id: table.id, count: 1 })}
-        >
-          ＋ 行
-        </button>
-        <button onClick={() => dispatch({ type: "addColumn", id: table.id })}>
-          ＋ 列
-        </button>
-        <button
-          title="スクロール確認用に空の行を追加"
-          onClick={() =>
-            dispatch({ type: "addRows", id: table.id, count: 100 })
-          }
-        >
-          ＋ 100 行
-        </button>
-      </div>
-      <TableGrid table={table} />
+      {table.kind === "input" ? (
+        <>
+          <div className="table-actions nodrag nopan">
+            <span className="table-mode">文字列の表</span>
+            <button
+              onClick={() =>
+                dispatch({ type: "addRows", id: table.id, count: 1 })
+              }
+            >
+              ＋ 行
+            </button>
+            <button
+              onClick={() => dispatch({ type: "addColumn", id: table.id })}
+            >
+              ＋ 列
+            </button>
+            <button
+              title="スクロール確認用に空の行を追加"
+              onClick={() =>
+                dispatch({ type: "addRows", id: table.id, count: 100 })
+              }
+            >
+              ＋ 100 行
+            </button>
+          </div>
+          <TableGrid table={table} />
+        </>
+      ) : (
+        <>
+          <NodeSettings table={table} />
+          {table.kind === "display" && <TableGrid table={table} readOnly />}
+        </>
+      )}
     </section>
   );
 }

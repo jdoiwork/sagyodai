@@ -12,6 +12,12 @@ afterEach(() => {
 });
 const table = {
   id: "t",
+  kind: "input" as const,
+  source: null,
+  filter: null,
+  manual: false,
+  stale: false,
+  error: null,
   title: "表",
   columns: ["列"],
   rows: Array.from({ length: 1000 }, () => [""]),
@@ -62,4 +68,19 @@ it("選んだセルを起点に複数行を一括で貼り付ける", () => {
       ["大阪", "4"],
     ],
   });
+});
+
+it("結果表は編集欄を持たず、貼り付けても操作を送信しない", () => {
+  const { container, queryAllByRole, getByText } = render(
+    <TableGrid
+      table={{ ...table, kind: "display", rows: [["読み取り専用"]] }}
+      readOnly
+    />,
+  );
+  expect(queryAllByRole("textbox")).toHaveLength(0);
+  fireEvent.paste(getByText("読み取り専用"), {
+    clipboardData: { getData: () => "変更\t禁止" },
+  });
+  expect(dispatch).not.toHaveBeenCalled();
+  expect(container.textContent).toContain("読み取り専用");
 });

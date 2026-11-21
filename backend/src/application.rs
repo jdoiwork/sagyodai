@@ -1,4 +1,4 @@
-use crate::domain::{Command, Request, Snapshot, Table, sample_table};
+use crate::domain::{Command, Filter, Kind, Operator, Request, Snapshot, Table, sample_table};
 
 use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
 const HISTORY_LIMIT: usize = 30;
@@ -58,7 +58,16 @@ impl Project {
             command => {
                 // 検証に失敗した場合は一部だけ変更せず、変更前の状態を維持する。
                 let mut tables = self.tables.clone();
+                let run = if let Command::Run { id } = &command {
+                    Some(id.clone())
+                } else {
+                    None
+                };
+                let opening = matches!(command, Command::OpenProject { .. });
                 self.edit(&mut tables, command)?;
+                if !opening {
+                    crate::graph::evaluate(&mut tables, &self.tables, run.as_deref())?;
+                }
                 self.undo.push(std::mem::replace(&mut self.tables, tables));
                 if self.undo.len() > HISTORY_LIMIT {
                     self.undo.remove(0);
@@ -75,7 +84,44 @@ impl Project {
             Command::OpenProject { document } => {
                 *tables = storage::decode(document)?;
             }
-            Command::AddTable => {
+            Command::Connect { id, source } => {
+                let t = table_mut(tables, &id)?;
+                if t.kind == Kind::Input {
+                    return Err("手入力の表には接続できません。".into());
+                }
+                t.source = source;
+                crate::graph::order(tables)?;
+            }
+            Command::Configure { id, filter, manual } => {
+                let t = table_mut(tables, &id)?;
+                if t.kind == Kind::Input {
+                    return Err("手入力の表には加工設定を指定できません。".into());
+                }
+                t.filter = filter;
+                t.manual = manual;
+                crate::graph::order(tables)?;
+            }
+            Command::Run { id } => {
+                table_mut(tables, &id)?;
+            }
+            Command::RemoveNode { id } => {
+                table_mut(tables, &id)?;
+                if tables.len() == 1 {
+                    return Err("最後のノードは削除できません。".into());
+                }
+                tables.retain(|t| t.id != id);
+                for t in tables {
+                    if t.source.as_ref() == Some(&id) {
+                        t.source = None;
+                    }
+                }
+            }
+            Command::AddTable | Command::AddNode { .. } => {
+                let kind = if let Command::AddNode { kind } = command {
+                    kind
+                } else {
+                    Kind::Input
+                };
                 if tables.len() >= 20 {
                     return Err("試作では表は20個までです。".into());
                 }
@@ -85,10 +131,38 @@ impl Project {
                 {
                     self.next_id += 1;
                 }
+                let next_x = tables.iter().map(|t| t.x + t.width).fold(0.0_f64, f64::max) + 120.0;
                 tables.push(sample_table(
                     format!("table-{}", self.next_id),
                     tables.len(),
                 ));
+                if kind != Kind::Input {
+                    let t = tables.last_mut().ok_or("ノードを作成できません。")?;
+                    t.kind = kind;
+                    t.title = format!(
+                        "{} {}",
+                        if kind == Kind::Filter {
+                            "フィルタ"
+                        } else {
+                            "結果表"
+                        },
+                        self.next_id
+                    );
+                    t.columns.clear();
+                    t.rows.clear();
+                    t.width = if kind == Kind::Filter { 400.0 } else { 760.0 };
+                    t.height = if kind == Kind::Filter { 360.0 } else { 390.0 };
+                    t.x = next_x;
+                    t.y = 100.0;
+                    t.stale = true;
+                    if kind == Kind::Filter {
+                        t.filter = Some(Filter {
+                            column: 0,
+                            operator: Operator::Equals,
+                            value: String::new(),
+                        });
+                    }
+                }
                 self.next_id += 1;
             }
             Command::Paste {
@@ -113,6 +187,9 @@ impl Project {
                     return Err("セルの内容が長すぎます。".into());
                 }
                 let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Input {
+                    return Err("加工結果は読み取り専用です。".into());
+                }
                 if let Some(expected) = expected_values {
                     if expected.len() != values.len()
                         || expected
@@ -155,6 +232,9 @@ impl Project {
             }
             Command::AddRows { id, count } => {
                 let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Input {
+                    return Err("加工結果は読み取り専用です。".into());
+                }
                 if count == 0 || count > MAX_ROWS.saturating_sub(table.rows.len()) {
                     return Err("試作の上限は5000行です。".into());
                 }
@@ -164,6 +244,9 @@ impl Project {
             }
             Command::AddColumn { id } => {
                 let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Input {
+                    return Err("加工結果は読み取り専用です。".into());
+                }
                 if table.columns.len() >= MAX_COLS {
                     return Err("試作の上限は50列です。".into());
                 }
@@ -250,7 +333,7 @@ mod tests {
         let document: serde_json::Value =
             serde_json::from_slice(&storage::encode(&tables).unwrap()).unwrap();
         let mut invalid = document.clone();
-        invalid["formatVersion"] = 2.into();
+        invalid["formatVersion"] = 99.into();
         assert!(run(&mut p, Command::OpenProject { document: invalid }).is_err());
         assert_eq!(p.export().unwrap(), initial);
         assert_eq!(p.revision, 0);

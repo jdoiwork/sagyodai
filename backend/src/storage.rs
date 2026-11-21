@@ -1,9 +1,9 @@
 //! ブラウザ版のプロジェクトファイル。ディスクへの書き込みはブラウザの保存機能に任せる。
-use crate::domain::Table;
+use crate::domain::{Kind, Table};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 2;
 pub const MAX_FILE_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_ROWS: usize = 5000;
 pub const MAX_COLS: usize = 50;
@@ -50,9 +50,9 @@ pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
         if table.title.len() > 1024 || table.columns.iter().any(|c| c.len() > 1024) {
             return Err("表名または列名が長すぎます。".into());
         }
-        if table.columns.is_empty()
+        if (table.kind == Kind::Input && table.columns.is_empty())
             || table.columns.len() > MAX_COLS
-            || table.rows.is_empty()
+            || (table.kind == Kind::Input && table.rows.is_empty())
             || table.rows.len() > MAX_ROWS
         {
             return Err("表の大きさは1〜5000行・1〜50列にしてください。".into());
@@ -68,6 +68,7 @@ pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
             return Err("表の位置またはサイズが不正です。".into());
         }
     }
+    crate::graph::order(&file.tables)?;
     // 開けるのに再保存できないデータを受け入れない。
     encode(&file.tables)?;
     Ok(file.tables)

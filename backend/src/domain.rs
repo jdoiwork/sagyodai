@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    pub kind: Kind,
+    pub source: Option<String>,
+    pub filter: Option<Filter>,
+    pub manual: bool,
+    pub stale: bool,
+    pub error: Option<String>,
     pub id: String,
     pub title: String,
     pub columns: Vec<String>,
@@ -11,6 +17,32 @@ pub struct Table {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Kind {
+    Input,
+    Filter,
+    Display,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Operator {
+    Equals,
+    NotEquals,
+    Contains,
+    Greater,
+    Less,
+    AtLeast,
+    AtMost,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Filter {
+    pub column: usize,
+    pub operator: Operator,
+    pub value: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -31,6 +63,24 @@ pub struct Snapshot {
 )]
 pub enum Command {
     AddTable,
+    AddNode {
+        kind: Kind,
+    },
+    Connect {
+        id: String,
+        source: Option<String>,
+    },
+    Configure {
+        id: String,
+        filter: Option<Filter>,
+        manual: bool,
+    },
+    Run {
+        id: String,
+    },
+    RemoveNode {
+        id: String,
+    },
     OpenProject {
         document: serde_json::Value,
     },
@@ -69,6 +119,12 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        kind: Kind::Input,
+        source: None,
+        filter: None,
+        manual: false,
+        stale: false,
+        error: None,
         id,
         title: format!("手入力の表 {:02}", index + 1),
         columns: vec!["品名".into(), "数量".into(), "分類".into(), "メモ".into()],

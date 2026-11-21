@@ -1,6 +1,26 @@
 import { z } from "zod";
+export const filterSchema = z.object({
+  column: z.number().int().nonnegative(),
+  operator: z.enum([
+    "equals",
+    "notEquals",
+    "contains",
+    "greater",
+    "less",
+    "atLeast",
+    "atMost",
+  ]),
+  value: z.string(),
+});
+export type FilterConfig = z.infer<typeof filterSchema>;
 const tableSchema = z.object({
   id: z.string(),
+  kind: z.enum(["input", "filter", "display"]),
+  source: z.string().nullable(),
+  filter: filterSchema.nullable(),
+  manual: z.boolean(),
+  stale: z.boolean(),
+  error: z.string().nullable(),
   title: z.string(),
   columns: z.array(z.string()),
   rows: z.array(z.array(z.string())),
@@ -19,6 +39,15 @@ export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
   | { type: "addTable" | "undo" | "redo" }
+  | { type: "addNode"; kind: "filter" | "display" }
+  | { type: "connect"; id: string; source: string | null }
+  | {
+      type: "configure";
+      id: string;
+      filter: FilterConfig | null;
+      manual: boolean;
+    }
+  | { type: "run" | "removeNode"; id: string }
   | { type: "openProject"; document: unknown }
   | {
       type: "paste";
