@@ -129,7 +129,7 @@ export function TableGrid({
           targetLabel={
             contextMenu.kind === "row"
               ? `行${contextMenu.index + 1} `
-              : `「${contextMenu.columns[contextMenu.index]}」`
+              : `「${contextMenu.columns[contextMenu.index]}」列`
           }
           disabled={
             (contextMenu.kind === "row"

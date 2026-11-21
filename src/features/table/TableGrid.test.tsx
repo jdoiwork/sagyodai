@@ -125,7 +125,7 @@ it("行削除と列名編集・列削除に表示時の比較条件を添える"
   });
   expect(queryByLabelText("表 1列を削除")).toBeNull();
   fireEvent.contextMenu(getByLabelText("表 1列の名前を編集"));
-  fireEvent.click(getByRole("menuitem", { name: "「品名」を削除" }));
+  fireEvent.click(getByRole("menuitem", { name: "「品名」列を削除" }));
   expect(dispatch).toHaveBeenLastCalledWith({
     type: "removeColumn",
     id: "t",
