@@ -551,3 +551,60 @@ it("画面外へ移動してもドラッグ元の行ヘッダーを維持する"
   fireEvent.dragEnd(header);
   expect(container.querySelector('[data-row="0"]')).toBeNull();
 });
+
+it.each([
+  { kind: "row", after: false, label: "上に2行挿入", at: 0 },
+  { kind: "row", after: true, label: "下に2行挿入", at: 3 },
+  { kind: "column", after: false, label: "左に2列挿入", at: 0 },
+  { kind: "column", after: true, label: "右に2列挿入", at: 3 },
+])("右クリックから $label", ({ kind, label, at }) => {
+  const t = {
+    ...table,
+    columns: ["甲", "乙", "丙"],
+    rows: [
+      ["a", "b", "c"],
+      ["d", "e", "f"],
+      ["g", "h", "i"],
+    ],
+  };
+  const { container, getByRole } = render(<TableGrid table={t} />);
+  const header = (i: number) =>
+    container.querySelector(
+      kind === "row" ? `[data-row="${i}"] th` : `[data-column="${i}"]`,
+    )!;
+  fireEvent.click(header(0));
+  fireEvent.click(header(2), { metaKey: true });
+  fireEvent.contextMenu(header(2));
+  fireEvent.click(getByRole("menuitem", { name: label }));
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+    type: kind === "row" ? "insertRows" : "insertColumns",
+    id: t.id,
+    at,
+    count: 2,
+    expectedColumns: t.columns,
+    expectedRows: t.rows,
+  });
+});
+
+it("最後の1行でも前後に挿入でき、上限の列には挿入できない", () => {
+  const t = {
+    ...table,
+    columns: Array.from({ length: 50 }, (_, i) => `列${i}`),
+    rows: [Array(50).fill("")],
+  };
+  const { container, getByRole } = render(<TableGrid table={t} />);
+  fireEvent.contextMenu(container.querySelector('[data-row="0"] th')!);
+  expect(
+    (getByRole("menuitem", { name: "行1 を削除" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+  expect(
+    (getByRole("menuitem", { name: "下に1行挿入" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  fireEvent.contextMenu(container.querySelector('[data-column="0"]')!);
+  expect(
+    (getByRole("menuitem", { name: "左に1列挿入" }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(true);
+});

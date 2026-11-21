@@ -1013,3 +1013,124 @@ fn row_reordering_preserves_values_filter_order_and_undo() {
         .is_err()
     );
 }
+
+#[test]
+fn insertion_preserves_cells_widths_references_and_undo() {
+    let mut p = flow();
+    let before = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::ResizeColumn {
+            id: before.id.clone(),
+            col: 1,
+            width: 240.0,
+            expected_width: 160.0,
+            expected_columns: before.columns.clone(),
+        },
+    )
+    .unwrap();
+    run(
+        &mut p,
+        Command::InsertColumns {
+            id: before.id.clone(),
+            at: 1,
+            count: 2,
+            expected_columns: before.columns.clone(),
+            expected_rows: before.rows.clone(),
+        },
+    )
+    .unwrap();
+    let after = p.snapshot();
+    assert_eq!(after.tables[0].columns.len(), before.columns.len() + 2);
+    assert_eq!(&after.tables[0].rows[0][1..3], &["", ""]);
+    assert_eq!(after.tables[0].rows[0][3], before.rows[0][1]);
+    assert_eq!(after.tables[0].column_widths[3], 240.0);
+    assert_eq!(after.tables[1].filter.as_ref().unwrap().column, 3);
+    assert_eq!(after.tables[2].columns, after.tables[0].columns);
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 1);
+    for at in [0, before.rows.len()] {
+        run(
+            &mut p,
+            Command::InsertRows {
+                id: before.id.clone(),
+                at,
+                count: 2,
+                expected_columns: before.columns.clone(),
+                expected_rows: before.rows.clone(),
+            },
+        )
+        .unwrap();
+        let now = p.snapshot().tables[0].rows.clone();
+        assert_eq!(
+            &now[at..at + 2],
+            &vec![vec![String::new(); before.columns.len()]; 2]
+        );
+        let mut restored = now;
+        restored.drain(at..at + 2);
+        assert_eq!(restored, before.rows);
+        run(&mut p, Command::Undo).unwrap();
+    }
+    for at in [0, before.columns.len()] {
+        run(
+            &mut p,
+            Command::InsertColumns {
+                id: before.id.clone(),
+                at,
+                count: 1,
+                expected_columns: before.columns.clone(),
+                expected_rows: before.rows.clone(),
+            },
+        )
+        .unwrap();
+        assert_eq!(p.snapshot().tables[0].rows[0][at], "");
+        run(&mut p, Command::Undo).unwrap();
+    }
+    for (at, count) in [(0, 0), (9999, 1), (0, 5001)] {
+        assert!(
+            run(
+                &mut p,
+                Command::InsertRows {
+                    id: before.id.clone(),
+                    at,
+                    count,
+                    expected_columns: before.columns.clone(),
+                    expected_rows: before.rows.clone()
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    }
+    let mut stale = before.rows.clone();
+    stale[0][0] = "古い値".into();
+    assert!(
+        run(
+            &mut p,
+            Command::InsertColumns {
+                id: before.id.clone(),
+                at: 0,
+                count: 1,
+                expected_columns: before.columns.clone(),
+                expected_rows: stale
+            }
+        )
+        .is_err()
+    );
+    configure(&mut p, Operator::AtLeast, "3", true);
+    assert!(
+        run(
+            &mut p,
+            Command::InsertColumns {
+                id: before.id,
+                at: 0,
+                count: 1,
+                expected_columns: before.columns,
+                expected_rows: before.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+}

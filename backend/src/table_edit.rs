@@ -254,3 +254,69 @@ pub fn move_rows(
     tables[i].rows = order.iter().map(|old| rows[*old].clone()).collect();
     Ok(())
 }
+
+pub fn insert(
+    tables: &mut [Table],
+    id: &str,
+    at: usize,
+    count: usize,
+    is_column: bool,
+    columns: &[String],
+    rows: &[Vec<String>],
+) -> Result<(), String> {
+    let i = input_index(tables, id)?;
+    if tables[i].columns != columns || tables[i].rows != rows {
+        return Err("表の内容が変更されています。表示を確認して挿入し直してください。".into());
+    }
+    let (len, limit) = if is_column {
+        (columns.len(), crate::storage::MAX_COLS)
+    } else {
+        (rows.len(), crate::storage::MAX_ROWS)
+    };
+    if at > len || count == 0 || count > limit.saturating_sub(len) {
+        return Err("挿入位置または件数が不正です。上限は5000行・50列です。".into());
+    }
+    if !is_column {
+        tables[i]
+            .rows
+            .splice(at..at, vec![vec![String::new(); columns.len()]; count]);
+        return Ok(());
+    }
+    let mut affected = vec![id.to_string()];
+    for n in crate::graph::order(tables)? {
+        if tables[n]
+            .source
+            .as_ref()
+            .is_some_and(|s| affected.contains(s))
+        {
+            // 旧スキーマのキャッシュを残したまま後続の列参照をずらさない。
+            if tables[n].manual || tables[n].stale || tables[n].error.is_some() {
+                return Err("接続先に手動更新・更新待ち・エラーがあります。解消するか接続を外してから列を挿入してください。".into());
+            }
+            affected.push(tables[n].id.clone());
+        }
+    }
+    for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
+        t.column_widths.resize(columns.len(), 160.0);
+        t.column_widths.splice(at..at, vec![160.0; count]);
+        if let Some(f) = &mut t.filter
+            && f.column >= at
+        {
+            f.column += count;
+        }
+    }
+    let mut names = Vec::new();
+    let mut number = 1;
+    while names.len() < count {
+        let name = format!("列 {number}");
+        if !columns.contains(&name) {
+            names.push(name);
+        }
+        number += 1;
+    }
+    tables[i].columns.splice(at..at, names);
+    for row in &mut tables[i].rows {
+        row.splice(at..at, vec![String::new(); count]);
+    }
+    Ok(())
+}

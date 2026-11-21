@@ -330,6 +330,40 @@ impl Project {
                     &expected_rows,
                 )?;
             }
+            Command::InsertRows {
+                id,
+                at,
+                count,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::insert(
+                    tables,
+                    &id,
+                    at,
+                    count,
+                    false,
+                    &expected_columns,
+                    &expected_rows,
+                )?;
+            }
+            Command::InsertColumns {
+                id,
+                at,
+                count,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::insert(
+                    tables,
+                    &id,
+                    at,
+                    count,
+                    true,
+                    &expected_columns,
+                    &expected_rows,
+                )?;
+            }
             Command::MoveRows {
                 id,
                 indices,

@@ -9,6 +9,10 @@ export function TableContextMenu({
   disabled,
   onPreview,
   onDelete,
+  kind,
+  count,
+  insertDisabled,
+  onInsert,
   onClose,
 }: {
   x: number;
@@ -17,6 +21,10 @@ export function TableContextMenu({
   disabled: boolean;
   onPreview: (active: boolean) => void;
   onDelete: () => void;
+  kind: "row" | "column";
+  count: number;
+  insertDisabled: boolean;
+  onInsert: (after: boolean) => void;
   onClose: () => void;
 }) {
   const menu = useRef<HTMLDivElement>(null);
@@ -49,13 +57,30 @@ export function TableContextMenu({
       className="table-context-menu nodrag nopan"
       style={{
         left: Math.max(0, Math.min(x, window.innerWidth - 200)),
-        top: Math.max(0, Math.min(y, window.innerHeight - 56)),
+        top: Math.max(0, Math.min(y, window.innerHeight - 144)),
       }}
       onContextMenu={(e) => e.preventDefault()}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) onClose();
       }}
     >
+      {[false, true].map((after) => (
+        <button
+          key={String(after)}
+          role="menuitem"
+          disabled={insertDisabled}
+          onMouseEnter={() => onPreview(false)}
+          onClick={() => {
+            onInsert(after);
+            onClose();
+          }}
+        >
+          <Icon name="plus" />
+          {kind === "row" ? (after ? "下" : "上") : after ? "右" : "左"}に
+          {count}
+          {kind === "row" ? "行" : "列"}挿入
+        </button>
+      ))}
       <button
         autoFocus
         role="menuitem"

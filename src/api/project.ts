@@ -120,6 +120,14 @@ export type Command =
       expectedColumns: string[];
       expectedRows: string[][];
     }
+  | {
+      type: "insertRows" | "insertColumns";
+      id: string;
+      at: number;
+      count: number;
+      expectedColumns: string[];
+      expectedRows: string[][];
+    }
   | { type: "addColumn"; id: string }
   | {
       type: "place";

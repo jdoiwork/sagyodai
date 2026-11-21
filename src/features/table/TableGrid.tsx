@@ -167,6 +167,24 @@ export function TableGrid({
       {contextMenu && !readOnly && (
         <TableContextMenu
           {...contextMenu}
+          count={contextMenu.indices.length}
+          insertDisabled={
+            contextMenu.kind === "row"
+              ? contextMenu.rows.length + contextMenu.indices.length > 5000
+              : contextMenu.columns.length + contextMenu.indices.length > 50
+          }
+          onInsert={(after) =>
+            dispatch({
+              type: contextMenu.kind === "row" ? "insertRows" : "insertColumns",
+              id: table.id,
+              at: after
+                ? Math.max(...contextMenu.indices) + 1
+                : Math.min(...contextMenu.indices),
+              count: contextMenu.indices.length,
+              expectedColumns: contextMenu.columns,
+              expectedRows: contextMenu.rows,
+            })
+          }
           targetLabel={
             contextMenu.indices.length > 1
               ? `選択した${contextMenu.indices.length}${contextMenu.kind === "row" ? "行" : "列"}`
