@@ -626,3 +626,30 @@ it("最後の1行でも前後に挿入でき、上限の列には挿入できな
       .disabled,
   ).toBe(true);
 });
+
+it.each(["", "   ", "あ".repeat(342)])(
+  "無効な列名は送信せず、その場で修正できる",
+  (invalid) => {
+    const { getByLabelText, getByRole, queryByLabelText } = render(
+      <TableGrid table={table} />,
+    );
+    fireEvent.doubleClick(getByLabelText("表 1列の名前を編集"));
+    const input = getByLabelText("表 1列の名前");
+    fireEvent.change(input, { target: { value: invalid } });
+    fireEvent.blur(input);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(getByRole("alert").textContent).toMatch(/列名/);
+    expect(getByLabelText("表 1列の名前")).toBe(input);
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "新しい列名" } });
+    fireEvent.blur(input);
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+      type: "renameColumn",
+      id: table.id,
+      col: 0,
+      name: "新しい列名",
+      expectedColumns: table.columns,
+    });
+    expect(queryByLabelText("表 1列の名前")).toBeNull();
+  },
+);

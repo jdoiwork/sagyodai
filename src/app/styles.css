@@ -942,3 +942,10 @@ button.action-danger:hover {
 .data-grid tr.row-drop-after > * {
   box-shadow: inset 0 -3px #347f69;
 }
+
+.column-name-error {
+  display: block;
+  color: #a33333;
+  font-size: 11px;
+  white-space: normal;
+}

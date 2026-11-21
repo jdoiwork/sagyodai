@@ -1,3 +1,4 @@
+import { columnNameError } from "./columnName";
 import { useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -12,10 +13,20 @@ export function ColumnHeader({
 }) {
   const { dispatch } = useProject();
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState("");
   return (
     <div className="column-heading">
       {editing ? (
-        <div className="column-name-editor" onBlur={() => setEditing(false)}>
+        <div
+          className="column-name-editor"
+          onChangeCapture={() => setError("")}
+          onBlur={(event) => {
+            if (!(event.target instanceof HTMLTextAreaElement)) return;
+            const message = columnNameError(event.target.value);
+            setError(message);
+            if (!message) setEditing(false);
+          }}
+        >
           <Cell
             autoFocus
             value={table.columns[col]}
@@ -23,7 +34,8 @@ export function ColumnHeader({
             selected={false}
             onSelect={() => {}}
             onNavigate={() => (document.activeElement as HTMLElement)?.blur()}
-            onCommit={(name, original) =>
+            onCommit={(name, original) => {
+              if (columnNameError(name)) return;
               dispatch({
                 type: "renameColumn",
                 id: table.id,
@@ -32,9 +44,14 @@ export function ColumnHeader({
                 expectedColumns: table.columns.map((value, i) =>
                   i === col ? original : value,
                 ),
-              })
-            }
+              });
+            }}
           />
+          {error && (
+            <span className="column-name-error" role="alert">
+              {error}
+            </span>
+          )}
         </div>
       ) : (
         <span

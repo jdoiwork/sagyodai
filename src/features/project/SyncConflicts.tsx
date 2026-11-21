@@ -1,3 +1,4 @@
+import { columnNameError } from "../table/columnName";
 import { Icon } from "../../components/Icon";
 import { useProject } from "../../app/ProjectContext";
 export function SyncConflicts() {
@@ -33,7 +34,19 @@ export function SyncConflicts() {
                               ? `列${item.command.from + 1}を列${item.command.to + 1}の位置へ移動`
                               : JSON.stringify(item.command)}
           </pre>
-          <button onClick={() => resolveConflict(item.id, true)}>
+          {item.command.type === "renameColumn" &&
+            columnNameError(item.command.name) && (
+              <p>
+                この入力は再適用できません。操作を破棄して列名を入力し直してください。
+              </p>
+            )}
+          <button
+            disabled={
+              item.command.type === "renameColumn" &&
+              !!columnNameError(item.command.name)
+            }
+            onClick={() => resolveConflict(item.id, true)}
+          >
             <Icon name="refresh" />
             現在の状態に再適用
           </button>
