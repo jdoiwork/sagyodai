@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "dev:core": "cargo run --manifest-path backend/Cargo.toml",
     "build": "tsc --noEmit && vite build",
