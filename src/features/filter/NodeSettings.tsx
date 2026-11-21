@@ -27,7 +27,9 @@ export function NodeSettings({ table }: { table: TableData }) {
       draft.operator !== table.filter?.operator ||
       draft.value !== table.filter?.value);
   return (
-    <div className="node-settings nodrag nopan nowheel">
+    <div
+      className={`node-settings nodrag nopan nowheel${table.compact ? " node-settings-compact" : ""}`}
+    >
       {table.compact && table.filter && (
         <div className="compact-condition" title="適用済みの条件">
           {source?.columns[table.filter.column] ??
@@ -133,8 +135,12 @@ export function NodeSettings({ table }: { table: TableData }) {
         </form>
       )}
       {table.compact && hasUnappliedChanges && (
-        <div className="condition-draft-status" role="status">
-          未適用の変更あり — 展開して適用
+        <div
+          className="condition-draft-status"
+          role="status"
+          title="未適用の変更あり — 展開して適用"
+        >
+          未適用
         </div>
       )}
       <div className="execution-controls" hidden={table.compact}>
@@ -169,6 +175,10 @@ export function NodeSettings({ table }: { table: TableData }) {
       <div
         className={table.stale ? "node-status stale" : "node-status"}
         role="status"
+        title={
+          table.error ??
+          (table.stale ? "更新待ち — 前回の結果を保持" : undefined)
+        }
       >
         {table.error ??
           (table.stale

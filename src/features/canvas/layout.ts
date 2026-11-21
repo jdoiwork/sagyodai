@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { TableData } from "../../api/project";
-export const COMPACT_FILTER_SIZE = { width: 380, height: 178 };
+export const COMPACT_FILTER_SIZE = { width: 380, height: 102 };
 export type Layout = Pick<TableData, "x" | "y" | "width" | "height">;
 export type TableFlowNode = Node<
   {

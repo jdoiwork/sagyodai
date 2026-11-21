@@ -781,3 +781,32 @@ button.action-danger:hover {
   white-space: nowrap;
   margin-bottom: 8px;
 }
+
+.node-settings-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  max-height: none;
+  overflow: hidden;
+  border-bottom: 0;
+  line-height: 18px;
+}
+.node-settings-compact .compact-condition {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.node-settings-compact .node-status {
+  order: 1;
+  max-width: 50%;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.node-settings-compact .condition-draft-status {
+  order: 2;
+  flex-shrink: 0;
+  white-space: nowrap;
+}

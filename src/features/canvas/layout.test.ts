@@ -81,7 +81,7 @@ it("折りたたんだフィルタの移動後も、展開すると元のサイ�
     noop,
     noop,
   );
-  expect(compact[0].style).toMatchObject({ width: 380, height: 178 });
+  expect(compact[0].style).toMatchObject({ width: 380, height: 102 });
   compact[0].position = { x: 500, y: 600 };
   const dragging = reconcileNodes(
     [filter],
@@ -137,8 +137,8 @@ it("リサイズで設定されたノード寸法も折りたたみ・展開に�
   );
   expect(compact[0]).toMatchObject({
     width: 380,
-    height: 178,
-    style: { width: 380, height: 178 },
+    height: 102,
+    style: { width: 380, height: 102 },
   });
   const expanded = reconcileNodes(
     [filter],
