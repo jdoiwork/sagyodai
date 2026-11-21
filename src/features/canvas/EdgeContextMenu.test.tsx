@@ -22,3 +22,27 @@ it("解除を選んだ時だけ実行し、Escape と外側クリックは閉じ
   expect(onDisconnect).toHaveBeenCalledOnce();
   expect(onClose).toHaveBeenCalledTimes(3);
 });
+
+it("パレットは選択中の色を示し、選択した色だけを変更する", () => {
+  const onColor = vi.fn(),
+    onClose = vi.fn(),
+    onDisconnect = vi.fn();
+  const ui = render(
+    <EdgeContextMenu
+      x={0}
+      y={0}
+      color="blue"
+      onColor={onColor}
+      onClose={onClose}
+      onDisconnect={onDisconnect}
+    />,
+  );
+  expect(
+    ui.getByRole("menuitemradio", { name: "青" }).getAttribute("aria-checked"),
+  ).toBe("true");
+  fireEvent.click(ui.getByRole("menuitemradio", { name: "紫" }));
+  expect(onColor).toHaveBeenLastCalledWith("purple");
+  expect(onDisconnect).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByRole("menuitemradio", { name: "標準色に戻す" }));
+  expect(onColor).toHaveBeenLastCalledWith(null);
+});

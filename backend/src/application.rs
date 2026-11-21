@@ -1,4 +1,6 @@
-use crate::domain::{Command, Filter, Kind, Operator, Request, Snapshot, Table, sample_table};
+use crate::domain::{
+    ColorTarget, Command, Filter, Kind, Operator, Request, Snapshot, Table, sample_table,
+};
 
 use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
 const HISTORY_LIMIT: usize = 30;
@@ -117,6 +119,17 @@ impl Project {
                 t.filter = filter;
                 t.manual = manual;
                 crate::graph::order(tables)?;
+            }
+            Command::SetColor { id, target, color } => {
+                let table = table_mut(tables, &id)?;
+                match target {
+                    ColorTarget::Edge if table.source.is_some() => table.edge_color = color,
+                    ColorTarget::Input if table.kind != Kind::Input => table.input_color = color,
+                    ColorTarget::Output if table.kind != Kind::Display => {
+                        table.output_color = color
+                    }
+                    _ => return Err("色を変更する接続線または端子がありません。".into()),
+                }
             }
             Command::SetCompact { id, compact } => {
                 let table = tables

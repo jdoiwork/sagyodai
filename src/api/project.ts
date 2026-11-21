@@ -1,4 +1,14 @@
 import { z } from "zod";
+export const paletteColorSchema = z.enum([
+  "green",
+  "blue",
+  "purple",
+  "pink",
+  "red",
+  "orange",
+  "gray",
+]);
+export type PaletteColor = z.infer<typeof paletteColorSchema>;
 export const filterSchema = z.object({
   column: z.number().int().nonnegative(),
   operator: z.enum([
@@ -16,6 +26,9 @@ export const filterSchema = z.object({
 });
 export type FilterConfig = z.infer<typeof filterSchema>;
 const tableSchema = z.object({
+  edgeColor: paletteColorSchema.nullable().optional(),
+  inputColor: paletteColorSchema.nullable().optional(),
+  outputColor: paletteColorSchema.nullable().optional(),
   id: z.string(),
   kind: z.enum(["input", "filter", "display"]),
   source: z.string().nullable(),
@@ -49,6 +62,12 @@ export type Command =
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }
+  | {
+      type: "setColor";
+      id: string;
+      target: "edge" | "input" | "output";
+      color: PaletteColor | null;
+    }
   | { type: "setCompact"; id: string; compact: boolean }
   | { type: "connect"; id: string; source: string | null }
   | {

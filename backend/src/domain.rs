@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default)]
+    pub edge_color: Option<PaletteColor>,
+    #[serde(default)]
+    pub input_color: Option<PaletteColor>,
+    #[serde(default)]
+    pub output_color: Option<PaletteColor>,
     pub kind: Kind,
     pub source: Option<String>,
     pub filter: Option<Filter>,
@@ -21,6 +27,26 @@ pub struct Table {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PaletteColor {
+    Green,
+    Blue,
+    Purple,
+    Pink,
+    Red,
+    Orange,
+    Gray,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ColorTarget {
+    Edge,
+    Input,
+    Output,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,6 +107,11 @@ pub enum Command {
         id: String,
         filter: Option<Filter>,
         manual: bool,
+    },
+    SetColor {
+        id: String,
+        target: ColorTarget,
+        color: Option<PaletteColor>,
     },
     SetCompact {
         id: String,
@@ -212,6 +243,9 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        edge_color: None,
+        input_color: None,
+        output_color: None,
         kind: Kind::Input,
         source: None,
         filter: None,

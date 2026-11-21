@@ -1,3 +1,4 @@
+import { colorValue } from "../features/canvas/colors";
 import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
 import { createsCycle } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
@@ -99,6 +100,17 @@ function Canvas() {
           <EdgeContextMenu
             x={edgeMenu.x}
             y={edgeMenu.y}
+            color={
+              project.tables.find((t) => t.id === edgeMenu.target)?.edgeColor
+            }
+            onColor={(color) =>
+              dispatch({
+                type: "setColor",
+                id: edgeMenu.target,
+                target: "edge",
+                color,
+              })
+            }
             onClose={() => setEdgeMenu(null)}
             onDisconnect={() =>
               dispatch({ type: "connect", id: edgeMenu.target, source: null })
@@ -145,7 +157,9 @@ function Canvas() {
               type: "smoothstep",
               reconnectable: "source" as const,
               style: {
-                stroke: t.stale ? "#bd9147" : "#386e61",
+                stroke:
+                  colorValue(t.edgeColor) ?? (t.stale ? "#bd9147" : "#386e61"),
+                strokeDasharray: t.stale ? "6 4" : undefined,
                 strokeWidth: 2.5,
               },
             }))}

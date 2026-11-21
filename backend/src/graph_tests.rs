@@ -1134,3 +1134,58 @@ fn insertion_preserves_cells_widths_references_and_undo() {
     );
     assert_eq!(p.snapshot().tables[0].rows, before.rows);
 }
+
+#[test]
+fn connection_colors_roundtrip_and_undo_without_changing_data() {
+    use crate::domain::{ColorTarget, PaletteColor};
+    let mut p = flow();
+    let before = p.snapshot();
+    for (id, target, color) in [
+        ("table-1", ColorTarget::Output, PaletteColor::Blue),
+        ("table-2", ColorTarget::Input, PaletteColor::Purple),
+        ("table-2", ColorTarget::Edge, PaletteColor::Red),
+    ] {
+        run(
+            &mut p,
+            Command::SetColor {
+                id: id.into(),
+                target,
+                color: Some(color),
+            },
+        )
+        .unwrap();
+    }
+    let saved = storage::decode(serde_json::from_slice(&p.export().unwrap()).unwrap()).unwrap();
+    assert_eq!(saved[0].output_color, Some(PaletteColor::Blue));
+    assert_eq!(saved[1].input_color, Some(PaletteColor::Purple));
+    assert_eq!(saved[1].edge_color, Some(PaletteColor::Red));
+    for (a, b) in saved.iter().zip(&before.tables) {
+        assert_eq!(a.rows, b.rows);
+        assert_eq!(a.stale, b.stale);
+    }
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[1].edge_color, None);
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.snapshot().tables[1].edge_color, Some(PaletteColor::Red));
+    run(
+        &mut p,
+        Command::SetColor {
+            id: "table-2".into(),
+            target: ColorTarget::Edge,
+            color: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].edge_color, None);
+    assert!(
+        run(
+            &mut p,
+            Command::SetColor {
+                id: "table-1".into(),
+                target: ColorTarget::Input,
+                color: Some(PaletteColor::Red)
+            }
+        )
+        .is_err()
+    );
+}
