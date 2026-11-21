@@ -1,3 +1,4 @@
+import { emptyRowIndices } from "../table/emptyRows";
 import { useCallback } from "react";
 import { CANVAS_SCROLL_SPEED } from "./scroll";
 import { NodeTitle } from "./NodeTitle";
@@ -16,6 +17,7 @@ import { TableGrid } from "../table/TableGrid";
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
+  const emptyRows = table.kind === "input" ? emptyRowIndices(table.rows) : [];
   const { getViewport, setViewport } = useReactFlow();
   const onCanvasScroll = useCallback(
     (dx: number, dy: number) => {
@@ -141,18 +143,24 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
               <Icon name="plus" />列
             </button>
             <button
-              disabled={table.rows.length > 4900}
+              disabled={emptyRows.length === 0}
               title={
-                table.rows.length > 4900
-                  ? "100行追加すると上限の5000行を超えます"
-                  : "スクロール確認用に空の行を追加"
+                emptyRows.length
+                  ? `全セルが空の${emptyRows.length}行を削除（全行が空なら1行残します）`
+                  : "削除できる空行はありません（最低1行は残します）"
               }
-              onClick={() =>
-                dispatch({ type: "addRows", id: table.id, count: 100 })
-              }
+              onClick={() => {
+                if (emptyRows.length)
+                  dispatch({
+                    type: "removeRows",
+                    id: table.id,
+                    indices: emptyRows,
+                    expectedRows: table.rows,
+                  });
+              }}
             >
-              <Icon name="plus" />
-              100 行
+              <Icon name="trash" />
+              空行を削除
             </button>
             <button
               className="action-danger"
