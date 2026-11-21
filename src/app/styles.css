@@ -718,3 +718,10 @@ button.action-danger:hover {
 .canvas-toolbar .primary:hover {
   background: #204f40;
 }
+
+.table-actions {
+  height: auto;
+  min-height: 44px;
+  flex-wrap: wrap;
+  padding-block: 6px;
+}

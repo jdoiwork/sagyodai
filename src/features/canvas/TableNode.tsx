@@ -5,7 +5,7 @@ import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
-  const { dispatch } = useProject();
+  const { dispatch, project } = useProject();
   const table = data.table;
   return (
     <section className="table-node" aria-label={table.title}>
@@ -79,6 +79,19 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             >
               <Icon name="plus" />
               100 行
+            </button>
+            <button
+              className="action-danger"
+              disabled={project?.tables.length === 1}
+              title={
+                project?.tables.length === 1
+                  ? "最後のノードは削除できません"
+                  : "この表を削除（Undo で戻せます）"
+              }
+              onClick={() => dispatch({ type: "removeNode", id: table.id })}
+            >
+              <Icon name="trash" />
+              削除
             </button>
           </div>
           <TableGrid table={table} />
