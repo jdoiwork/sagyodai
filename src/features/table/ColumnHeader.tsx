@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
-import { Icon } from "../../components/Icon";
 import { Cell } from "./Cell";
 
 export function ColumnHeader({
@@ -56,23 +55,6 @@ export function ColumnHeader({
           {table.columns[col]}
         </span>
       )}
-      <button
-        className="action-danger column-delete"
-        aria-label={`${table.title} ${col + 1}列を削除`}
-        title="列を削除（Undo で戻せます）"
-        disabled={table.columns.length <= 1}
-        onClick={() =>
-          dispatch({
-            type: "removeColumn",
-            id: table.id,
-            col,
-            expectedColumns: table.columns,
-            expectedRows: table.rows,
-          })
-        }
-      >
-        <Icon name="trash" />
-      </button>
     </div>
   );
 }

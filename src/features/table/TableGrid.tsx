@@ -1,4 +1,4 @@
-import { RowMenu } from "./RowMenu";
+import { TableContextMenu } from "./TableContextMenu";
 import { ColumnHeader } from "./ColumnHeader";
 import { Fragment, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
@@ -16,10 +16,12 @@ export function TableGrid({
 }) {
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
-  const [rowMenu, setRowMenu] = useState<{
+  const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    row: number;
+    index: number;
+    kind: "row" | "column";
+    columns: string[];
     rows: string[][];
   } | null>(null);
   const [top, setTop] = useState(0);
@@ -121,18 +123,33 @@ export function TableGrid({
   }
   return (
     <>
-      {rowMenu && !readOnly && (
-        <RowMenu
-          {...rowMenu}
-          disabled={rowMenu.rows.length <= 1}
-          onClose={() => setRowMenu(null)}
+      {contextMenu && !readOnly && (
+        <TableContextMenu
+          {...contextMenu}
+          targetLabel={`${contextMenu.index + 1}${contextMenu.kind === "row" ? "行" : "列"}`}
+          disabled={
+            (contextMenu.kind === "row"
+              ? contextMenu.rows.length
+              : contextMenu.columns.length) <= 1
+          }
+          onClose={() => setContextMenu(null)}
           onDelete={() =>
-            dispatch({
-              type: "removeRow",
-              id: table.id,
-              row: rowMenu.row,
-              expectedRows: rowMenu.rows,
-            })
+            dispatch(
+              contextMenu.kind === "row"
+                ? {
+                    type: "removeRow",
+                    id: table.id,
+                    row: contextMenu.index,
+                    expectedRows: contextMenu.rows,
+                  }
+                : {
+                    type: "removeColumn",
+                    id: table.id,
+                    col: contextMenu.index,
+                    expectedRows: contextMenu.rows,
+                    expectedColumns: contextMenu.columns,
+                  },
+            )
           }
         />
       )}
@@ -202,7 +219,22 @@ export function TableGrid({
             <tr>
               <th className="row-number">#</th>
               {table.columns.map((name, c) => (
-                <th key={c}>
+                <th
+                  key={c}
+                  onContextMenu={(e) => {
+                    if (readOnly) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      index: c,
+                      kind: "column",
+                      columns: table.columns,
+                      rows: table.rows,
+                    });
+                  }}
+                >
                   <span className="column-letter">
                     {String.fromCharCode(65 + c)}
                   </span>
@@ -225,10 +257,12 @@ export function TableGrid({
                       if (readOnly) return;
                       e.preventDefault();
                       e.stopPropagation();
-                      setRowMenu({
+                      setContextMenu({
                         x: e.clientX,
                         y: e.clientY,
-                        row: r,
+                        index: r,
+                        kind: "row",
+                        columns: table.columns,
                         rows: table.rows,
                       });
                     }}

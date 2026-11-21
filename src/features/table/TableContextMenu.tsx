@@ -2,17 +2,17 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../../components/Icon";
 
-export function RowMenu({
+export function TableContextMenu({
   x,
   y,
-  row,
+  targetLabel,
   disabled,
   onDelete,
   onClose,
 }: {
   x: number;
   y: number;
-  row: number;
+  targetLabel: string;
   disabled: boolean;
   onDelete: () => void;
   onClose: () => void;
@@ -43,8 +43,8 @@ export function RowMenu({
     <div
       ref={menu}
       role="menu"
-      aria-label={`${row + 1}行の操作`}
-      className="row-context-menu nodrag nopan"
+      aria-label={`${targetLabel}の操作`}
+      className="table-context-menu nodrag nopan"
       style={{
         left: Math.max(0, Math.min(x, window.innerWidth - 200)),
         top: Math.max(0, Math.min(y, window.innerHeight - 56)),
@@ -65,7 +65,7 @@ export function RowMenu({
         }}
       >
         <Icon name="trash" />
-        {row + 1}行を削除
+        {targetLabel}を削除
       </button>
     </div>,
     document.body,
