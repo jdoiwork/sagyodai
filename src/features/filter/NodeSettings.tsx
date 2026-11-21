@@ -93,13 +93,13 @@ export function NodeSettings({ table }: { table: TableData }) {
                 </option>
               ))}
             </select>
+            <input
+              aria-label={`${table.title} 比較値`}
+              placeholder="比較する値"
+              value={draft.value}
+              onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+            />
           </div>
-          <input
-            aria-label={`${table.title} 比較値`}
-            placeholder="比較する値"
-            value={draft.value}
-            onChange={(e) => setDraft({ ...draft, value: e.target.value })}
-          />
           <button type="submit" className="action-accent">
             <Icon name="check" />
             条件を適用

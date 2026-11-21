@@ -602,16 +602,13 @@ button:disabled {
   margin-top: 10px;
 }
 .condition-fields {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
   gap: 6px;
-  margin-bottom: 8px;
 }
-.condition-fields select {
-  flex: 1;
-}
-.node-settings form > input {
-  width: 65%;
-  margin-right: 6px;
+.condition-fields > * {
+  width: 100%;
+  min-width: 0;
 }
 .execution-controls {
   display: flex;
@@ -693,16 +690,11 @@ button.action-danger:hover {
 }
 .node-settings form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
-.condition-fields {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
-}
-.node-settings form > input {
-  width: 100%;
-  margin-right: 0;
+.node-settings form > button {
+  justify-self: end;
 }
 .execution-controls {
   flex-wrap: wrap;
