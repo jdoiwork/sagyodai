@@ -6,6 +6,8 @@ const operators: [FilterConfig["operator"], string][] = [
   ["equals", "文字列が一致"],
   ["notEquals", "文字列が不一致"],
   ["contains", "文字列を含む"],
+  ["numberEquals", "数値 ="],
+  ["numberNotEquals", "数値 !="],
   ["greater", "数値 >"],
   ["atLeast", "数値 ≥"],
   ["less", "数値 <"],

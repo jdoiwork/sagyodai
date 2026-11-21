@@ -311,3 +311,42 @@ fn rename_preserves_connections_rejects_conflicts_and_roundtrips() {
     run(&mut p, Command::Redo).unwrap();
     assert_eq!(p.snapshot().tables[0].title, "売上データ");
 }
+
+#[test]
+fn numeric_equality_handles_notation_invalid_cells_and_saved_conditions() {
+    let mut p = flow();
+    run(
+        &mut p,
+        Command::Paste {
+            id: "table-1".into(),
+            row: 0,
+            col: 1,
+            values: ["3", "3.0", " 3 ", "3e0", "4", "", "abc", "NaN", "inf"]
+                .iter()
+                .map(|s| vec![s.to_string()])
+                .collect(),
+            expected_values: None,
+        },
+    )
+    .unwrap();
+    configure(&mut p, Operator::NumberEquals, "3", false);
+    assert_eq!(p.snapshot().tables[2].rows.len(), 4);
+    configure(&mut p, Operator::NumberNotEquals, "3.0", false);
+    assert_eq!(p.snapshot().tables[2].rows.len(), 1);
+    assert_eq!(p.snapshot().tables[2].rows[0][1], "4");
+    let file = p.export().unwrap();
+    let mut restored = Project::default();
+    run(
+        &mut restored,
+        Command::OpenProject {
+            document: serde_json::from_slice(&file).unwrap(),
+        },
+    )
+    .unwrap();
+    assert_eq!(restored.export().unwrap(), file);
+    configure(&mut p, Operator::NumberEquals, "NaN", false);
+    assert!(p.snapshot().tables[1].error.is_some());
+    assert_eq!(p.snapshot().tables[2].rows.len(), 1);
+    configure(&mut p, Operator::Equals, "3", false);
+    assert_eq!(p.snapshot().tables[2].rows.len(), 1);
+}

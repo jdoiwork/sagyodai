@@ -9,6 +9,8 @@ export const filterSchema = z.object({
     "less",
     "atLeast",
     "atMost",
+    "numberEquals",
+    "numberNotEquals",
   ]),
   value: z.string(),
 });

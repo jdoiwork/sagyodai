@@ -29,6 +29,8 @@ pub enum Kind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Operator {
+    NumberEquals,
+    NumberNotEquals,
     Equals,
     NotEquals,
     Contains,

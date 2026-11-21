@@ -52,7 +52,12 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
     }
     let numeric = matches!(
         filter.operator,
-        Operator::Greater | Operator::Less | Operator::AtLeast | Operator::AtMost
+        Operator::Greater
+            | Operator::Less
+            | Operator::AtLeast
+            | Operator::AtMost
+            | Operator::NumberEquals
+            | Operator::NumberNotEquals
     );
     let threshold = if numeric {
         Some(number(&filter.value).ok_or("比較値に有限の数値を入力してください。")?)
@@ -69,6 +74,8 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
                 Operator::NotEquals => value != &filter.value,
                 Operator::Contains => value.contains(&filter.value),
                 op => number(value).zip(threshold).is_some_and(|(a, b)| match op {
+                    Operator::NumberEquals => a == b,
+                    Operator::NumberNotEquals => a != b,
                     Operator::Greater => a > b,
                     Operator::Less => a < b,
                     Operator::AtLeast => a >= b,
