@@ -1,3 +1,4 @@
+import { createsCycle } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
@@ -42,7 +43,13 @@ function Canvas() {
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
   function addNode(kind: "input" | "filter" | "display") {
-    if (!canvas.current || !project || pending > 0) return;
+    if (
+      !canvas.current ||
+      !project ||
+      pending > 0 ||
+      project.tables.length >= 20
+    )
+      return;
     const rect = canvas.current.getBoundingClientRect();
     const guideRect = guide.current?.getBoundingClientRect();
     const right = guideRect?.width ? guideRect.left - 16 : rect.right - 24;
@@ -97,6 +104,10 @@ function Canvas() {
                 strokeWidth: 2.5,
               },
             }))}
+          isValidConnection={(connection) =>
+            !!project &&
+            !createsCycle(project.tables, connection.target, connection.source)
+          }
           onConnect={(connection) =>
             dispatch({
               type: "connect",
@@ -139,24 +150,45 @@ function Canvas() {
         <div className="canvas-toolbar" aria-busy={pending > 0}>
           <button
             className="primary"
-            disabled={!project}
-            aria-disabled={!project || pending > 0}
+            disabled={!project || project.tables.length >= 20}
+            title={
+              project && project.tables.length >= 20
+                ? "上限の20ノードに達しています"
+                : undefined
+            }
+            aria-disabled={
+              !project || project.tables.length >= 20 || pending > 0
+            }
             onClick={() => addNode("input")}
           >
             <Icon name="plus" />
             表を追加
           </button>
           <button
-            disabled={!project}
-            aria-disabled={!project || pending > 0}
+            disabled={!project || project.tables.length >= 20}
+            title={
+              project && project.tables.length >= 20
+                ? "上限の20ノードに達しています"
+                : undefined
+            }
+            aria-disabled={
+              !project || project.tables.length >= 20 || pending > 0
+            }
             onClick={() => addNode("filter")}
           >
             <Icon name="filter" />
             フィルタ
           </button>
           <button
-            disabled={!project}
-            aria-disabled={!project || pending > 0}
+            disabled={!project || project.tables.length >= 20}
+            title={
+              project && project.tables.length >= 20
+                ? "上限の20ノードに達しています"
+                : undefined
+            }
+            aria-disabled={
+              !project || project.tables.length >= 20 || pending > 0
+            }
             onClick={() => addNode("display")}
           >
             <Icon name="table" />

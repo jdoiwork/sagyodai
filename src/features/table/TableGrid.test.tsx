@@ -653,3 +653,13 @@ it.each(["", "   ", "あ".repeat(342)])(
     expect(queryByLabelText("表 1列の名前")).toBeNull();
   },
 );
+
+it("貼り付け上限を超える場合は送信前に表内でエラーを表示する", () => {
+  const ui = render(<TableGrid table={table} />);
+  const cell = ui.getByLabelText("表 1行 1列");
+  fireEvent.paste(cell, {
+    clipboardData: { getData: () => Array(51).fill("値").join("\t") },
+  });
+  expect(dispatch).not.toHaveBeenCalled();
+  expect(ui.getByRole("alert").textContent).toMatch(/5000行・50列/);
+});

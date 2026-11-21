@@ -117,6 +117,12 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div className="table-actions nodrag nopan">
             <span className="table-mode">文字列の表</span>
             <button
+              disabled={table.rows.length >= 5000}
+              title={
+                table.rows.length >= 5000
+                  ? "上限の5000行に達しています"
+                  : "行を追加"
+              }
               onClick={() =>
                 dispatch({ type: "addRows", id: table.id, count: 1 })
               }
@@ -124,12 +130,23 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
               <Icon name="plus" />行
             </button>
             <button
+              disabled={table.columns.length >= 50}
+              title={
+                table.columns.length >= 50
+                  ? "上限の50列に達しています"
+                  : "列を追加"
+              }
               onClick={() => dispatch({ type: "addColumn", id: table.id })}
             >
               <Icon name="plus" />列
             </button>
             <button
-              title="スクロール確認用に空の行を追加"
+              disabled={table.rows.length > 4900}
+              title={
+                table.rows.length > 4900
+                  ? "100行追加すると上限の5000行を超えます"
+                  : "スクロール確認用に空の行を追加"
+              }
               onClick={() =>
                 dispatch({ type: "addRows", id: table.id, count: 100 })
               }

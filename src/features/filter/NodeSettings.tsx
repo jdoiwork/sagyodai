@@ -1,3 +1,4 @@
+import { filterInputError, createsCycle } from "../../validation/input";
 import { Icon } from "../../components/Icon";
 import { useEffect, useRef, useState } from "react";
 import type { FilterConfig, TableData } from "../../api/project";
@@ -21,6 +22,12 @@ export function NodeSettings({ table }: { table: TableData }) {
     if (!editing.current) setDraft(table.filter);
   }, [table.filter]);
   const source = project?.tables.find((t) => t.id === table.source);
+  const inputError = draft
+    ? filterInputError(draft) ||
+      (source && draft.column >= source.columns.length
+        ? "対象列を選び直してください。"
+        : "")
+    : "";
   const hasUnappliedChanges =
     draft != null &&
     (draft.column !== table.filter?.column ||
@@ -55,8 +62,15 @@ export function NodeSettings({ table }: { table: TableData }) {
           {project?.tables
             .filter((t) => t.id !== table.id && t.kind !== "display")
             .map((t) => (
-              <option key={t.id} value={t.id}>
+              <option
+                key={t.id}
+                value={t.id}
+                disabled={createsCycle(project!.tables, table.id, t.id)}
+              >
                 {t.title}
+                {createsCycle(project!.tables, table.id, t.id)
+                  ? "（循環するため接続不可）"
+                  : ""}
               </option>
             ))}
         </select>
@@ -69,6 +83,7 @@ export function NodeSettings({ table }: { table: TableData }) {
           }}
           onSubmit={(e) => {
             e.preventDefault();
+            if (inputError) return;
             editing.current = false;
             dispatch({
               type: "configure",
@@ -113,17 +128,25 @@ export function NodeSettings({ table }: { table: TableData }) {
             </select>
             <input
               aria-label={`${table.title} 比較値`}
+              aria-invalid={!!inputError}
+              title={inputError || undefined}
               placeholder="比較する値"
               value={draft.value}
               onChange={(e) => setDraft({ ...draft, value: e.target.value })}
             />
           </div>
+          {inputError && (
+            <div className="inline-error" role="alert">
+              {inputError}
+            </div>
+          )}
           <div className="condition-actions">
             <span className="condition-draft-status" role="status">
               {hasUnappliedChanges ? "未適用の変更あり" : ""}
             </span>
             <button
               type="submit"
+              disabled={!!inputError}
               className={
                 hasUnappliedChanges ? "action-pending" : "action-accent"
               }
@@ -164,6 +187,7 @@ export function NodeSettings({ table }: { table: TableData }) {
           今すぐ更新
         </button>
         <button
+          disabled={project?.tables.length === 1}
           className="action-danger"
           title="このノードを削除（Undo で戻せます）"
           onClick={() => dispatch({ type: "removeNode", id: table.id })}

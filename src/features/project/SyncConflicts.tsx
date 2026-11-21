@@ -1,3 +1,4 @@
+import { commandInputError } from "../../validation/input";
 import { nodeTitleError } from "../canvas/nodeTitleValidation";
 import { columnNameError } from "../table/columnName";
 import { Icon } from "../../components/Icon";
@@ -47,8 +48,15 @@ export function SyncConflicts() {
                 この入力は再適用できません。操作を破棄してタイトルを入力し直してください。
               </p>
             )}
+          {commandInputError(item.command) && (
+            <p>
+              {commandInputError(item.command)}{" "}
+              操作を破棄して入力を修正してください。
+            </p>
+          )}
           <button
             disabled={
+              !!commandInputError(item.command) ||
               (item.command.type === "renameColumn" &&
                 !!columnNameError(item.command.name)) ||
               (item.command.type === "rename" &&

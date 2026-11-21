@@ -1,3 +1,4 @@
+import { pasteInputError } from "../../validation/input";
 import { useRowReorder } from "./useRowReorder";
 import { useHeaderSelection } from "./useHeaderSelection";
 import { useTableWheel } from "./useTableWheel";
@@ -278,6 +279,11 @@ export function TableGrid({
           e.stopPropagation();
           try {
             const values = parseTsv(text);
+            const message = pasteInputError(minRow, minCol, values);
+            if (message) {
+              setPasteError(message);
+              return;
+            }
             // 貼り付け前のセル編集を確定させてから、一括操作を送る。
             (document.activeElement as HTMLElement)?.blur();
             dispatch({
@@ -491,6 +497,7 @@ export function TableGrid({
                           <span className="result-cell">{value}</span>
                         ) : (
                           <Cell
+                            onValidationError={setPasteError}
                             value={value}
                             label={`${table.title} ${r + 1}行 ${c + 1}列`}
                             selected={
