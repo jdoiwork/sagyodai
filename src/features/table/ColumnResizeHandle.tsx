@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 
@@ -18,6 +18,21 @@ export function ColumnResizeHandle({
 }) {
   const { dispatch } = useProject();
   const generation = useRef(0);
+  const [confirmed, setConfirmed] = useState<{
+    width: number;
+    generation: number;
+  } | null>(null);
+  useLayoutEffect(() => {
+    // コアの操作完了と React Flow のノードへの反映は別のレンダーになる。
+    if (
+      confirmed &&
+      confirmed.generation === generation.current &&
+      (table.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH) === confirmed.width
+    ) {
+      onPreview(null);
+      setConfirmed(null);
+    }
+  }, [confirmed, table.columnWidths, col, onPreview]);
   useEffect(
     () => () => {
       generation.current++;
@@ -47,9 +62,10 @@ export function ColumnResizeHandle({
         expectedWidth: original,
         expectedColumns: columns,
       },
-      () => {
-        // 成功・失敗の反映まで保持し、前の応答で新しいドラッグを巻き戻さない。
-        if (generation.current === current) onPreview(null);
+      (succeeded) => {
+        if (generation.current !== current) return;
+        if (succeeded) setConfirmed({ width: value, generation: current });
+        else onPreview(null);
       },
     );
   }
@@ -78,6 +94,7 @@ export function ColumnResizeHandle({
         const scale =
           header.getBoundingClientRect().width / header.offsetWidth || 1;
         generation.current++;
+        setConfirmed(null);
         drag.current = {
           x: e.clientX,
           width,

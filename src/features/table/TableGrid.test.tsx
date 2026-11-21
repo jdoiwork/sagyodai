@@ -220,8 +220,10 @@ it("ズーム50%での列幅ドラッグを補正し、離したときだけ確�
     );
     fireEvent.lostPointerCapture(handle);
     expect(handle.getAttribute("aria-valuenow")).toBe("260");
+    // 保存完了が先に届いても、キャンバスのノードはまだ古い幅のことがある。
+    act(() => dispatch.mock.calls[0][1](true));
+    expect(handle.getAttribute("aria-valuenow")).toBe("260");
     rerender(<TableGrid table={{ ...table, columnWidths: [260] }} />);
-    act(() => dispatch.mock.calls[0][1]());
     expect(handle.getAttribute("aria-valuenow")).toBe("260");
   } finally {
     vi.unstubAllGlobals();
@@ -234,6 +236,6 @@ it("列幅の確定待ちを保持し、失敗時は確定済みの幅に戻す"
   fireEvent.keyDown(handle, { key: "ArrowRight" });
   expect(handle.getAttribute("aria-valuenow")).toBe("170");
   // コア側の幅が変わらないまま完了するのは、競合・通信失敗の場合。
-  act(() => dispatch.mock.calls[0][1]());
+  act(() => dispatch.mock.calls[0][1](false));
   expect(handle.getAttribute("aria-valuenow")).toBe("160");
 });
