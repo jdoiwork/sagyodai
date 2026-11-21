@@ -21,6 +21,11 @@ export function NodeSettings({ table }: { table: TableData }) {
     if (!editing.current) setDraft(table.filter);
   }, [table.filter]);
   const source = project?.tables.find((t) => t.id === table.source);
+  const hasUnappliedChanges =
+    draft != null &&
+    (draft.column !== table.filter?.column ||
+      draft.operator !== table.filter?.operator ||
+      draft.value !== table.filter?.value);
   return (
     <div className="node-settings nodrag nopan nowheel">
       <label>
@@ -102,10 +107,20 @@ export function NodeSettings({ table }: { table: TableData }) {
               onChange={(e) => setDraft({ ...draft, value: e.target.value })}
             />
           </div>
-          <button type="submit" className="action-accent">
-            <Icon name="check" />
-            条件を適用
-          </button>
+          <div className="condition-actions">
+            <span className="condition-draft-status" role="status">
+              {hasUnappliedChanges ? "未適用の変更あり" : ""}
+            </span>
+            <button
+              type="submit"
+              className={
+                hasUnappliedChanges ? "action-pending" : "action-accent"
+              }
+            >
+              <Icon name="check" />
+              条件を適用
+            </button>
+          </div>
         </form>
       )}
       <div className="execution-controls">

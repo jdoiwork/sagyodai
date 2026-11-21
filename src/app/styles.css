@@ -610,6 +610,25 @@ button:disabled {
   width: 100%;
   min-width: 0;
 }
+.condition-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.condition-draft-status {
+  color: #875511;
+  font-weight: 600;
+}
+button.action-pending {
+  color: #75470a;
+  background: #fff0ce;
+  border-color: #c89a42;
+}
+button.action-pending:hover {
+  background: #ffe5ab;
+}
 .execution-controls {
   display: flex;
   align-items: center;
@@ -692,9 +711,6 @@ button.action-danger:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-}
-.node-settings form > button {
-  justify-self: end;
 }
 .execution-controls {
   flex-wrap: wrap;
