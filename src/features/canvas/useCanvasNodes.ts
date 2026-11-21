@@ -55,5 +55,13 @@ export function useCanvasNodes(
       reconcileNodes(project.tables, old, editing, waiting, begin, finish),
     );
   }, [project, outstanding, setNodes, begin, finish]);
-  return { nodes, onNodesChange, begin, finish };
+  const selectNode = useCallback(
+    (id: string) => {
+      setNodes((old) =>
+        old.map((node) => ({ ...node, selected: node.id === id })),
+      );
+    },
+    [setNodes],
+  );
+  return { nodes, onNodesChange, begin, finish, selectNode };
 }

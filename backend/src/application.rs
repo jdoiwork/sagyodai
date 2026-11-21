@@ -117,11 +117,17 @@ impl Project {
                 }
             }
             Command::AddTable | Command::AddNode { .. } => {
-                let kind = if let Command::AddNode { kind } = command {
-                    kind
+                let (kind, position) = if let Command::AddNode { kind, position } = command {
+                    (kind, position)
                 } else {
-                    Kind::Input
+                    (Kind::Input, None)
                 };
+                if position
+                    .as_ref()
+                    .is_some_and(|p| !p.x.is_finite() || !p.y.is_finite())
+                {
+                    return Err("ノードの位置が不正です。".into());
+                }
                 if tables.len() >= 20 {
                     return Err("試作では表は20個までです。".into());
                 }
@@ -162,6 +168,11 @@ impl Project {
                             value: String::new(),
                         });
                     }
+                }
+                if let Some(position) = position {
+                    let t = tables.last_mut().ok_or("ノードを作成できません。")?;
+                    t.x = position.x;
+                    t.y = position.y;
                 }
                 self.next_id += 1;
             }

@@ -1,6 +1,6 @@
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -16,14 +16,47 @@ import { ProjectFiles } from "../features/project/ProjectFiles";
 const nodeTypes = { table: TableNode };
 function Canvas() {
   const { project, dispatch, error, pending, connected } = useProject();
-  const { nodes, onNodesChange, begin, finish } = useCanvasNodes(
+  const { nodes, onNodesChange, begin, finish, selectNode } = useCanvasNodes(
     project,
     dispatch,
     pending,
   );
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
-  const { zoomTo, fitView } = useReactFlow();
+  const { zoomTo, fitView, screenToFlowPosition } = useReactFlow();
   const { zoom } = useViewport();
+  const canvas = useRef<HTMLElement>(null);
+  const guide = useRef<HTMLElement>(null);
+  const adding = useRef<{
+    kind: "filter" | "display";
+    ids: Set<string>;
+  } | null>(null);
+  useEffect(() => {
+    if (!adding.current || !project) return;
+    const added = project.tables.find(
+      (t) => t.kind === adding.current?.kind && !adding.current.ids.has(t.id),
+    );
+    if (added) {
+      selectNode(added.id);
+      adding.current = null;
+    } else if (!pending) adding.current = null;
+  }, [project, pending, selectNode]);
+  function addNode(kind: "filter" | "display") {
+    if (!canvas.current || !project) return;
+    const rect = canvas.current.getBoundingClientRect();
+    const guideRect = guide.current?.getBoundingClientRect();
+    const right = guideRect?.width ? guideRect.left - 16 : rect.right - 24;
+    const left = rect.left + 24,
+      top = rect.top + 88;
+    // 大きく拡大して全体が入らない場合も、見出しと設定の起点を画面内に残す。
+    const width = (kind === "filter" ? 400 : 760) * zoom;
+    const height = (kind === "filter" ? 360 : 390) * zoom;
+    const position = screenToFlowPosition({
+      x: left + Math.max(0, (right - left - width) / 2),
+      y: top + Math.max(0, (rect.bottom - 80 - top - height) / 2),
+    });
+    adding.current = { kind, ids: new Set(project.tables.map((t) => t.id)) };
+    dispatch({ type: "addNode", kind, position });
+  }
   return (
     <div className="workspace">
       <header className="app-header">
@@ -42,7 +75,7 @@ function Canvas() {
           </button>
         </div>
       </header>
-      <main className="canvas-shell">
+      <main ref={canvas} className="canvas-shell">
         <ReactFlow
           nodes={nodes}
           nodeTypes={nodeTypes}
@@ -107,15 +140,15 @@ function Canvas() {
             表を追加
           </button>
           <button
-            disabled={!project}
-            onClick={() => dispatch({ type: "addNode", kind: "filter" })}
+            disabled={!project || pending > 0}
+            onClick={() => addNode("filter")}
           >
             <Icon name="filter" />
             フィルタ
           </button>
           <button
-            disabled={!project}
-            onClick={() => dispatch({ type: "addNode", kind: "display" })}
+            disabled={!project || pending > 0}
+            onClick={() => addNode("display")}
           >
             <Icon name="table" />
             結果表
@@ -138,7 +171,7 @@ function Canvas() {
           </button>
         </div>
         {help && (
-          <aside className="guide">
+          <aside ref={guide} className="guide">
             <div className="guide-eyebrow">CANVAS PLAYGROUND</div>
             <h1>
               表を置いて、

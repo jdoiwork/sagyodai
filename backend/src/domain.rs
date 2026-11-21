@@ -65,6 +65,7 @@ pub enum Command {
     AddTable,
     AddNode {
         kind: Kind,
+        position: Option<Position>,
     },
     Connect {
         id: String,
@@ -108,6 +109,13 @@ pub enum Command {
     },
     Undo,
     Redo,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Position {
+    pub x: f64,
+    pub y: f64,
 }
 
 #[derive(Deserialize)]

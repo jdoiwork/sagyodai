@@ -39,7 +39,11 @@ export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
   | { type: "addTable" | "undo" | "redo" }
-  | { type: "addNode"; kind: "filter" | "display" }
+  | {
+      type: "addNode";
+      kind: "filter" | "display";
+      position?: { x: number; y: number };
+    }
   | { type: "connect"; id: string; source: string | null }
   | {
       type: "configure";

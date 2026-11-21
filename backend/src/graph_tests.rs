@@ -26,11 +26,19 @@ fn configure(p: &mut Project, operator: Operator, value: &str, manual: bool) {
 }
 fn flow() -> Project {
     let mut p = Project::default();
-    run(&mut p, Command::AddNode { kind: Kind::Filter }).unwrap();
+    run(
+        &mut p,
+        Command::AddNode {
+            kind: Kind::Filter,
+            position: None,
+        },
+    )
+    .unwrap();
     run(
         &mut p,
         Command::AddNode {
             kind: Kind::Display,
+            position: None,
         },
     )
     .unwrap();
@@ -73,6 +81,7 @@ fn propagation_branching_read_only_and_shared_undo() {
         &mut p,
         Command::AddNode {
             kind: Kind::Display,
+            position: None,
         },
     )
     .unwrap();
@@ -175,7 +184,14 @@ fn failure_preserves_cache_zero_rows_is_success_and_files_roundtrip() {
 #[test]
 fn cycles_invalid_sources_and_corrupt_saved_graphs_are_atomic() {
     let mut p = flow();
-    run(&mut p, Command::AddNode { kind: Kind::Filter }).unwrap();
+    run(
+        &mut p,
+        Command::AddNode {
+            kind: Kind::Filter,
+            position: None,
+        },
+    )
+    .unwrap();
     run(
         &mut p,
         Command::Connect {
@@ -234,4 +250,25 @@ fn japanese_string_filters_and_empty_match() {
         .unwrap();
         assert_eq!(p.snapshot().tables[2].rows.len(), count);
     }
+}
+
+#[test]
+fn node_creation_uses_requested_position_and_undo_restores_it() {
+    let mut p = Project::default();
+    run(
+        &mut p,
+        Command::AddNode {
+            kind: Kind::Filter,
+            position: Some(crate::domain::Position {
+                x: -1200.5,
+                y: 930.0,
+            }),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].x, -1200.5);
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables.len(), 1);
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.snapshot().tables[1].y, 930.0);
 }
