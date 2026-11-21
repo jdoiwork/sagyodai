@@ -129,6 +129,13 @@ pub enum Command {
         expected_columns: Vec<String>,
         expected_rows: Vec<Vec<String>>,
     },
+    MoveColumn {
+        id: String,
+        from: usize,
+        to: usize,
+        expected_columns: Vec<String>,
+        expected_rows: Vec<Vec<String>>,
+    },
     ResizeColumn {
         id: String,
         col: usize,

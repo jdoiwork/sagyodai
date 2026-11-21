@@ -280,3 +280,37 @@ it("編集中のセルの行・列見出しを強調し、フォーカス移動�
   expect(container.querySelectorAll(".editing-header")).toHaveLength(0);
   expect(dispatch).not.toHaveBeenCalled();
 });
+
+it("列名をドラッグして挿入先を表示し、ドロップ時に並び替えを送る", () => {
+  const editable = {
+    ...table,
+    columns: ["品名", "数量", "メモ"],
+    rows: [["ノート", "3", "青"]],
+  };
+  const { getByLabelText, container } = render(<TableGrid table={editable} />);
+  const source = getByLabelText("表 1列の名前を編集");
+  const target = getByLabelText("表 3列の名前を編集").closest("th")!;
+  vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+    left: 300,
+    width: 160,
+  } as DOMRect);
+  const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  fireEvent.dragStart(source, { dataTransfer });
+  const over = new Event("dragover", { bubbles: true, cancelable: true });
+  Object.assign(over, { clientX: 440, dataTransfer });
+  fireEvent(target, over);
+  expect(target.classList.contains("column-drop-after")).toBe(true);
+  expect(dispatch).not.toHaveBeenCalled();
+  const drop = new Event("drop", { bubbles: true, cancelable: true });
+  Object.assign(drop, { clientX: 440, dataTransfer });
+  fireEvent(target, drop);
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+    type: "moveColumn",
+    id: "t",
+    from: 0,
+    to: 2,
+    expectedColumns: editable.columns,
+    expectedRows: editable.rows,
+  });
+  expect(container.querySelectorAll(".column-drop-after")).toHaveLength(0);
+});

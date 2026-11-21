@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type HTMLAttributes } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Cell } from "./Cell";
@@ -6,9 +6,11 @@ import { Cell } from "./Cell";
 export function ColumnHeader({
   table,
   col,
+  dragProps,
 }: {
   table: TableData;
   col: number;
+  dragProps?: HTMLAttributes<HTMLSpanElement>;
 }) {
   const { dispatch } = useProject();
   const [editing, setEditing] = useState(false);
@@ -38,11 +40,12 @@ export function ColumnHeader({
         </div>
       ) : (
         <span
+          {...dragProps}
           className="column-name"
           tabIndex={0}
           role="button"
           aria-label={`${table.title} ${col + 1}列の名前を編集`}
-          title="ダブルクリックで列名を編集"
+          title="ドラッグで列を移動・ダブルクリックで列名を編集"
           onDoubleClick={() => setEditing(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === "F2") {

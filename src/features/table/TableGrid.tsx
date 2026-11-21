@@ -1,3 +1,4 @@
+import { useColumnReorder } from "./useColumnReorder";
 import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
 import { useDeletionAnimation } from "./useDeletionAnimation";
 import { TableContextMenu } from "./TableContextMenu";
@@ -19,6 +20,7 @@ export function TableGrid({
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
   useDeletionAnimation(viewport, table);
+  const reorder = useColumnReorder(table, viewport, dispatch);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -258,9 +260,13 @@ export function TableGrid({
                 <th
                   key={c}
                   data-column={c}
+                  {...(!readOnly ? reorder.targetProps(c) : {})}
                   className={
                     [
                       focusedCell?.col === c ? "editing-header" : "",
+                      !readOnly && reorder.marker?.col === c
+                        ? `column-drop-${reorder.marker.side}`
+                        : "",
                       contextMenu?.preview &&
                       contextMenu.kind === "column" &&
                       contextMenu.index === c
@@ -287,7 +293,15 @@ export function TableGrid({
                   <span className="column-letter">
                     {String.fromCharCode(65 + c)}
                   </span>
-                  {readOnly ? name : <ColumnHeader table={table} col={c} />}
+                  {readOnly ? (
+                    name
+                  ) : (
+                    <ColumnHeader
+                      table={table}
+                      col={c}
+                      dragProps={reorder.sourceProps(c)}
+                    />
+                  )}
                   <ColumnResizeHandle
                     table={table}
                     col={c}

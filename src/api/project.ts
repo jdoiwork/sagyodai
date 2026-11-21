@@ -91,6 +91,14 @@ export type Command =
       expectedWidth: number;
       expectedColumns: string[];
     }
+  | {
+      type: "moveColumn";
+      id: string;
+      from: number;
+      to: number;
+      expectedColumns: string[];
+      expectedRows: string[][];
+    }
   | { type: "addColumn"; id: string }
   | {
       type: "place";

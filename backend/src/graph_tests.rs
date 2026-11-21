@@ -625,3 +625,124 @@ fn column_widths_are_saved_undoable_guarded_and_follow_deletion() {
     bad["tables"][0]["columnWidths"][0] = 0.into();
     assert!(storage::decode(bad).is_err());
 }
+
+#[test]
+fn column_reordering_preserves_filter_meaning_widths_and_history() {
+    let mut p = flow();
+    configure(&mut p, Operator::Greater, "2", false);
+    let original = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::ResizeColumn {
+            id: original.id.clone(),
+            col: 1,
+            width: 240.0,
+            expected_width: 160.0,
+            expected_columns: original.columns.clone(),
+        },
+    )
+    .unwrap();
+    let output_rows = p.snapshot().tables[2].rows.clone();
+    run(
+        &mut p,
+        Command::MoveColumn {
+            id: original.id.clone(),
+            from: 1,
+            to: 0,
+            expected_columns: original.columns.clone(),
+            expected_rows: original.rows.clone(),
+        },
+    )
+    .unwrap();
+    let moved = p.snapshot();
+    assert_eq!(moved.tables[0].columns, ["数量", "品名", "分類", "メモ"]);
+    assert_eq!(moved.tables[0].rows[0][0], "3");
+    assert_eq!(moved.tables[0].column_widths[0], 240.0);
+    assert_eq!(moved.tables[1].filter.as_ref().unwrap().column, 0);
+    assert_eq!(moved.tables[2].rows.len(), output_rows.len());
+    for (actual, old) in moved.tables[2].rows.iter().zip(&output_rows) {
+        assert_eq!(
+            actual,
+            &vec![
+                old[1].clone(),
+                old[0].clone(),
+                old[2].clone(),
+                old[3].clone()
+            ]
+        );
+    }
+    assert!(
+        run(
+            &mut p,
+            Command::MoveColumn {
+                id: original.id.clone(),
+                from: 1,
+                to: 0,
+                expected_columns: original.columns.clone(),
+                expected_rows: original.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    let file = p.export().unwrap();
+    assert_eq!(
+        storage::encode(&storage::decode(serde_json::from_slice(&file).unwrap()).unwrap()).unwrap(),
+        file
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].columns, original.columns);
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 1);
+    run(&mut p, Command::Redo).unwrap();
+    let current = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::MoveColumn {
+            id: current.id,
+            from: 0,
+            to: 3,
+            expected_columns: current.columns,
+            expected_rows: current.rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 3);
+    assert_eq!(p.snapshot().tables[0].column_widths[3], 240.0);
+    let current = p.snapshot().tables[0].clone();
+    let filter = p.snapshot().tables[1].filter.clone();
+    run(
+        &mut p,
+        Command::Configure {
+            id: "table-2".into(),
+            filter,
+            manual: true,
+        },
+    )
+    .unwrap();
+    assert!(
+        run(
+            &mut p,
+            Command::MoveColumn {
+                id: current.id,
+                from: 0,
+                to: 1,
+                expected_columns: current.columns,
+                expected_rows: current.rows
+            }
+        )
+        .is_err()
+    );
+    let display = p.snapshot().tables[2].clone();
+    assert!(
+        run(
+            &mut p,
+            Command::MoveColumn {
+                id: display.id,
+                from: 0,
+                to: 1,
+                expected_columns: display.columns,
+                expected_rows: display.rows
+            }
+        )
+        .is_err()
+    );
+}

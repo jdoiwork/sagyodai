@@ -309,6 +309,22 @@ impl Project {
                     &expected_rows,
                 )?;
             }
+            Command::MoveColumn {
+                id,
+                from,
+                to,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::move_column(
+                    tables,
+                    &id,
+                    from,
+                    to,
+                    &expected_columns,
+                    &expected_rows,
+                )?;
+            }
             Command::ResizeColumn {
                 id,
                 col,

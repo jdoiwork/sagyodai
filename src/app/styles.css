@@ -894,3 +894,24 @@ button.action-danger:hover {
 .data-grid th.editing-header .column-letter {
   color: #47745c;
 }
+
+.column-name[draggable="true"] {
+  user-select: none;
+}
+.data-grid th.column-drop-before::before,
+.data-grid th.column-drop-after::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #26775a;
+  z-index: 4;
+  pointer-events: none;
+}
+.data-grid th.column-drop-before::before {
+  left: 0;
+}
+.data-grid th.column-drop-after::after {
+  right: 0;
+}
