@@ -830,7 +830,7 @@ button.action-danger:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: text;
+  cursor: default;
 }
 .table-context-menu {
   position: fixed;
