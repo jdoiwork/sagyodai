@@ -954,9 +954,15 @@ button.action-danger:hover {
   min-width: 0;
   flex: 1;
 }
-.node-title-error {
+.table-drag-handle .node-title-error {
   display: block;
   color: #a33333;
   font-size: 12px;
   white-space: normal;
+}
+
+.node-title-input[aria-invalid="true"],
+.cell[aria-invalid="true"],
+.condition-fields input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px #a33333;
 }
