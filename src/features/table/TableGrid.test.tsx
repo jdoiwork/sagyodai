@@ -20,6 +20,7 @@ const table = {
   stale: false,
   error: null,
   title: "表",
+  columnWidths: [],
   columns: ["列"],
   rows: Array.from({ length: 1000 }, () => [""]),
   x: 0,
@@ -187,4 +188,34 @@ it("削除項目のホバー中だけ対象の行・列を強調し、操作は�
   fireEvent.keyDown(document, { key: "Escape" });
   expect(container.querySelectorAll(".delete-preview")).toHaveLength(0);
   expect(dispatch).not.toHaveBeenCalled();
+});
+
+it("ズーム50%での列幅ドラッグを補正し、離したときだけ確定する", () => {
+  vi.stubGlobal("PointerEvent", MouseEvent);
+  try {
+    const { getByLabelText } = render(<TableGrid table={table} />);
+    const handle = getByLabelText("表 1列の幅");
+    handle.setPointerCapture = vi.fn();
+    handle.releasePointerCapture = vi.fn();
+    const header = handle.closest("th")!;
+    Object.defineProperty(header, "offsetWidth", { value: 160 });
+    vi.spyOn(header, "getBoundingClientRect").mockReturnValue({
+      width: 80,
+    } as DOMRect);
+    fireEvent.pointerDown(handle, { button: 0, clientX: 100 });
+    fireEvent.pointerMove(handle, { clientX: 150 });
+    expect(handle.getAttribute("aria-valuenow")).toBe("260");
+    expect(dispatch).not.toHaveBeenCalled();
+    fireEvent.pointerUp(handle, { clientX: 150 });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+      type: "resizeColumn",
+      id: "t",
+      col: 0,
+      width: 260,
+      expectedWidth: 160,
+      expectedColumns: table.columns,
+    });
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

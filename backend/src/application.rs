@@ -309,6 +309,26 @@ impl Project {
                     &expected_rows,
                 )?;
             }
+            Command::ResizeColumn {
+                id,
+                col,
+                width,
+                expected_width,
+                expected_columns,
+            } => {
+                let table = table_mut(tables, &id)?;
+                if table.columns != expected_columns
+                    || col >= table.columns.len()
+                    || table.column_widths.get(col).copied().unwrap_or(160.0) != expected_width
+                {
+                    return Err("列の構成または幅が変更されています。再度操作してください。".into());
+                }
+                if !width.is_finite() || !(60.0..=1200.0).contains(&width) {
+                    return Err("列幅は60〜1200の範囲で指定してください。".into());
+                }
+                table.column_widths.resize(table.columns.len(), 160.0);
+                table.column_widths[col] = width;
+            }
             Command::AddColumn { id } => {
                 let table = table_mut(tables, &id)?;
                 if table.kind != Kind::Input {

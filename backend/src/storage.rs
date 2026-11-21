@@ -47,6 +47,14 @@ pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
         if table.id.is_empty() || table.id.len() > 128 || !ids.insert(&table.id) {
             return Err("表のIDが空、長すぎる、または重複しています。".into());
         }
+        if table.column_widths.len() > table.columns.len()
+            || table
+                .column_widths
+                .iter()
+                .any(|w| !w.is_finite() || !(60.0..=1200.0).contains(w))
+        {
+            return Err("列幅の指定が不正です。".into());
+        }
         if table.title.len() > 1024 || table.columns.iter().any(|c| c.len() > 1024) {
             return Err("表名または列名が長すぎます。".into());
         }

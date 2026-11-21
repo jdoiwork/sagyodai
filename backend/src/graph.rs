@@ -134,6 +134,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         };
         match result {
             Ok((columns, rows)) => {
+                node.column_widths.truncate(columns.len());
                 node.columns = columns;
                 node.rows = rows;
                 node.stale = false;

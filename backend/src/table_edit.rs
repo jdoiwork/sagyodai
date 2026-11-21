@@ -94,6 +94,9 @@ pub fn remove_column(
         }
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
+        if col < t.column_widths.len() {
+            t.column_widths.remove(col);
+        }
         if let Some(f) = &mut t.filter
             && f.column > col
         {

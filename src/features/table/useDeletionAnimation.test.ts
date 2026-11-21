@@ -15,6 +15,7 @@ const before: TableData = {
   y: 0,
   width: 700,
   height: 400,
+  columnWidths: [],
   columns: ["品名", "数量", "メモ"],
   rows: [
     ["ノート", "3", "青"],

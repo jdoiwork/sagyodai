@@ -14,6 +14,8 @@ pub struct Table {
     pub id: String,
     pub title: String,
     pub columns: Vec<String>,
+    #[serde(default)]
+    pub column_widths: Vec<f64>,
     pub rows: Vec<Vec<String>>,
     pub x: f64,
     pub y: f64,
@@ -127,6 +129,13 @@ pub enum Command {
         expected_columns: Vec<String>,
         expected_rows: Vec<Vec<String>>,
     },
+    ResizeColumn {
+        id: String,
+        col: usize,
+        width: f64,
+        expected_width: f64,
+        expected_columns: Vec<String>,
+    },
     AddColumn {
         id: String,
     },
@@ -166,6 +175,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         error: None,
         id,
         title: format!("手入力の表 {:02}", index + 1),
+        column_widths: vec![],
         columns: vec!["品名".into(), "数量".into(), "分類".into(), "メモ".into()],
         rows: vec![
             vec!["ノート", "3", "文房具", "日本語を入力してみましょう"],

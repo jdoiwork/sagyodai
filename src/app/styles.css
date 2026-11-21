@@ -330,7 +330,6 @@ button:disabled {
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  min-width: 100%;
   font-size: 12px;
 }
 .data-grid th {
@@ -347,7 +346,7 @@ button:disabled {
 }
 .data-grid thead th {
   padding: 0 11px;
-  min-width: 160px;
+  min-width: 0;
   border-bottom: 1px solid #dce4db;
   border-right: 1px solid #e8ede6;
 }
@@ -376,7 +375,7 @@ button:disabled {
   border-right: 1px solid #e8ede6;
   border-bottom: 1px solid #e8ede6;
   height: 36px;
-  min-width: 160px;
+  min-width: 0;
 }
 .cell {
   font: inherit;
@@ -388,7 +387,7 @@ button:disabled {
   resize: none;
   display: block;
   width: 100%;
-  min-width: 160px;
+  min-width: 0;
   height: 35px;
   padding: 6px 11px;
   outline: none;
@@ -817,7 +816,7 @@ button.action-danger:hover {
   gap: 4px;
 }
 .column-heading .cell {
-  min-width: 90px;
+  min-width: 0;
   height: 30px;
   border: 1px solid #dce4db;
   background: white;
@@ -854,4 +853,29 @@ button.action-danger:hover {
   background: #ffe4df;
   color: #8f3026;
   box-shadow: inset 0 0 0 1px #ce766b;
+}
+
+.data-grid thead th {
+  position: relative;
+}
+.column-resize-handle {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 3;
+}
+.column-resize-handle:hover,
+.column-resize-handle:focus-visible {
+  background: #39846866;
+  outline: none;
+}
+
+.data-grid .result-cell {
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

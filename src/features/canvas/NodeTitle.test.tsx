@@ -22,6 +22,7 @@ const table: TableData = {
   stale: false,
   error: null,
   rows: [[""]],
+  columnWidths: [],
   columns: ["列"],
   x: 0,
   y: 0,

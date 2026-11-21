@@ -11,6 +11,7 @@ const tables: TableData[] = [1, 2].map((i) => ({
   stale: false,
   error: null,
   title: `表${i}`,
+  columnWidths: [],
   columns: ["列"],
   rows: [[""]],
   x: i * 100,

@@ -545,3 +545,83 @@ fn structural_edits_reject_readonly_and_last_row_or_column() {
         .is_err()
     );
 }
+
+#[test]
+fn column_widths_are_saved_undoable_guarded_and_follow_deletion() {
+    let mut p = flow();
+    let input = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::ResizeColumn {
+            id: input.id.clone(),
+            col: 1,
+            width: 260.0,
+            expected_width: 160.0,
+            expected_columns: input.columns.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[0].column_widths[1], 260.0);
+    assert!(
+        run(
+            &mut p,
+            Command::ResizeColumn {
+                id: input.id.clone(),
+                col: 1,
+                width: 300.0,
+                expected_width: 160.0,
+                expected_columns: input.columns.clone()
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        run(
+            &mut p,
+            Command::ResizeColumn {
+                id: input.id.clone(),
+                col: 1,
+                width: 0.0,
+                expected_width: 260.0,
+                expected_columns: input.columns.clone()
+            }
+        )
+        .is_err()
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert!(p.snapshot().tables[0].column_widths.is_empty());
+    run(&mut p, Command::Redo).unwrap();
+    let output = p.snapshot().tables[2].clone();
+    run(
+        &mut p,
+        Command::ResizeColumn {
+            id: output.id.clone(),
+            col: 1,
+            width: 200.0,
+            expected_width: 160.0,
+            expected_columns: output.columns,
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[2].rows, output.rows);
+    configure(&mut p, Operator::Greater, "2", false);
+    let input = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::RemoveColumn {
+            id: input.id,
+            col: 0,
+            expected_columns: input.columns,
+            expected_rows: input.rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[0].column_widths[0], 260.0);
+    assert_eq!(p.snapshot().tables[2].column_widths[0], 200.0);
+    let file = p.export().unwrap();
+    let decoded = storage::decode(serde_json::from_slice(&file).unwrap()).unwrap();
+    assert_eq!(decoded[0].column_widths[0], 260.0);
+    let mut bad: serde_json::Value = serde_json::from_slice(&file).unwrap();
+    bad["tables"][0]["columnWidths"][0] = 0.into();
+    assert!(storage::decode(bad).is_err());
+}

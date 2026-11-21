@@ -1,3 +1,4 @@
+import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
 import { useDeletionAnimation } from "./useDeletionAnimation";
 import { TableContextMenu } from "./TableContextMenu";
 import { ColumnHeader } from "./ColumnHeader";
@@ -27,6 +28,15 @@ export function TableGrid({
     columns: string[];
     rows: string[][];
   } | null>(null);
+  const [columnPreview, setColumnPreview] = useState<{
+    col: number;
+    width: number;
+  } | null>(null);
+  const columnWidths = table.columns.map((_, col) =>
+    columnPreview?.col === col
+      ? columnPreview.width
+      : (table.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH),
+  );
   const [top, setTop] = useState(0);
   const [focusedRow, setFocusedRow] = useState<number | null>(null);
   const [selection, setSelection] = useState<{ start: Point; end: Point }>({
@@ -224,7 +234,18 @@ export function TableGrid({
           );
         }}
       >
-        <table className="data-grid">
+        <table
+          className="data-grid"
+          style={{
+            width: 42 + columnWidths.reduce((sum, width) => sum + width, 0),
+          }}
+        >
+          <colgroup>
+            <col style={{ width: 42 }} />
+            {columnWidths.map((width, col) => (
+              <col key={col} style={{ width }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th className="row-number">#</th>
@@ -257,6 +278,16 @@ export function TableGrid({
                     {String.fromCharCode(65 + c)}
                   </span>
                   {readOnly ? name : <ColumnHeader table={table} col={c} />}
+                  <ColumnResizeHandle
+                    table={table}
+                    col={c}
+                    width={columnWidths[c]}
+                    onPreview={(width) =>
+                      setColumnPreview(
+                        width === null ? null : { col: c, width },
+                      )
+                    }
+                  />
                 </th>
               ))}
             </tr>

@@ -26,6 +26,7 @@ const tableSchema = z.object({
   error: z.string().nullable(),
   title: z.string(),
   columns: z.array(z.string()),
+  columnWidths: z.array(z.number()).default([]),
   rows: z.array(z.array(z.string())),
   x: z.number(),
   y: z.number(),
@@ -81,6 +82,14 @@ export type Command =
       col: number;
       expectedColumns: string[];
       expectedRows: string[][];
+    }
+  | {
+      type: "resizeColumn";
+      id: string;
+      col: number;
+      width: number;
+      expectedWidth: number;
+      expectedColumns: string[];
     }
   | { type: "addColumn"; id: string }
   | {
