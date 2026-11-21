@@ -356,6 +356,7 @@ button:disabled {
   margin-right: 10px;
 }
 .data-grid .row-number {
+  cursor: default;
   width: 42px;
   min-width: 42px;
   max-width: 42px;
