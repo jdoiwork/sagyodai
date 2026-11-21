@@ -110,6 +110,23 @@ pub enum Command {
         id: String,
         count: usize,
     },
+    RemoveRow {
+        id: String,
+        row: usize,
+        expected_rows: Vec<Vec<String>>,
+    },
+    RenameColumn {
+        id: String,
+        col: usize,
+        name: String,
+        expected_columns: Vec<String>,
+    },
+    RemoveColumn {
+        id: String,
+        col: usize,
+        expected_columns: Vec<String>,
+        expected_rows: Vec<Vec<String>>,
+    },
     AddColumn {
         id: String,
     },

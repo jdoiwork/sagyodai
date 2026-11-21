@@ -1,3 +1,5 @@
+import { Icon } from "../../components/Icon";
+import { ColumnHeader } from "./ColumnHeader";
 import { Fragment, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -21,10 +23,24 @@ export function TableGrid({
     end: { row: 0, col: 0 },
   });
   const [pasteError, setPasteError] = useState("");
-  const minRow = Math.min(selection.start.row, selection.end.row),
-    maxRow = Math.max(selection.start.row, selection.end.row);
-  const minCol = Math.min(selection.start.col, selection.end.col),
-    maxCol = Math.max(selection.start.col, selection.end.col);
+  const minRow = Math.min(
+      selection.start.row,
+      selection.end.row,
+      Math.max(0, table.rows.length - 1),
+    ),
+    maxRow = Math.min(
+      Math.max(selection.start.row, selection.end.row),
+      Math.max(0, table.rows.length - 1),
+    );
+  const minCol = Math.min(
+      selection.start.col,
+      selection.end.col,
+      Math.max(0, table.columns.length - 1),
+    ),
+    maxCol = Math.min(
+      Math.max(selection.start.col, selection.end.col),
+      Math.max(0, table.columns.length - 1),
+    );
   const first = Math.max(
     0,
     Math.min(table.rows.length - 1, Math.floor(top / ROW_HEIGHT) - 5),
@@ -116,7 +132,7 @@ export function TableGrid({
         onBlurCapture={() => setFocusedRow(null)}
         onScroll={(e) => setTop(e.currentTarget.scrollTop)}
         onPaste={(e) => {
-          if (readOnly) return;
+          if (readOnly || (e.target as HTMLElement).closest("thead")) return;
           const text = e.clipboardData.getData("text/plain");
           if (!/[\t\r\n]/.test(text)) return;
           e.preventDefault();
@@ -147,7 +163,7 @@ export function TableGrid({
           }
         }}
         onCopy={(e) => {
-          if (readOnly) return;
+          if (readOnly || (e.target as HTMLElement).closest("thead")) return;
           if (minRow === maxRow && minCol === maxCol) return;
           e.preventDefault();
           e.clipboardData.setData(
@@ -169,7 +185,7 @@ export function TableGrid({
                   <span className="column-letter">
                     {String.fromCharCode(65 + c)}
                   </span>
-                  {name}
+                  {readOnly ? name : <ColumnHeader table={table} col={c} />}
                 </th>
               ))}
             </tr>
@@ -182,7 +198,27 @@ export function TableGrid({
                 <Fragment key={r}>
                   {spacer(r - previous - 1)}
                   <tr key={r} data-row={r}>
-                    <th className="row-number">{r + 1}</th>
+                    <th className="row-number">
+                      {r + 1}
+                      {!readOnly && (
+                        <button
+                          className="row-delete action-danger"
+                          aria-label={`${table.title} ${r + 1}行を削除`}
+                          title="行を削除（Undo で戻せます）"
+                          disabled={table.rows.length <= 1}
+                          onClick={() =>
+                            dispatch({
+                              type: "removeRow",
+                              id: table.id,
+                              row: r,
+                              expectedRows: table.rows,
+                            })
+                          }
+                        >
+                          <Icon name="trash" />
+                        </button>
+                      )}
+                    </th>
                     {row.map((value, c) => (
                       <td key={c} data-col={c}>
                         {readOnly ? (

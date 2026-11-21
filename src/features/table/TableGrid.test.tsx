@@ -85,3 +85,41 @@ it("結果表は編集欄を持たず、貼り付けても操作を送信しな�
   expect(dispatch).not.toHaveBeenCalled();
   expect(container.textContent).toContain("読み取り専用");
 });
+
+it("行削除と列名編集・列削除に表示時の比較条件を添える", () => {
+  const editable = {
+    ...table,
+    columns: ["品名", "数量"],
+    rows: [
+      ["ノート", "3"],
+      ["鉛筆", "2"],
+    ],
+  };
+  const { getByLabelText } = render(<TableGrid table={editable} />);
+  fireEvent.click(getByLabelText("表 2行を削除"));
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "removeRow",
+    id: "t",
+    row: 1,
+    expectedRows: editable.rows,
+  });
+  const name = getByLabelText("表 2列の名前");
+  fireEvent.focus(name);
+  fireEvent.change(name, { target: { value: "在庫" } });
+  fireEvent.blur(name);
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "renameColumn",
+    id: "t",
+    col: 1,
+    name: "在庫",
+    expectedColumns: editable.columns,
+  });
+  fireEvent.click(getByLabelText("表 1列を削除"));
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "removeColumn",
+    id: "t",
+    col: 0,
+    expectedColumns: editable.columns,
+    expectedRows: editable.rows,
+  });
+});

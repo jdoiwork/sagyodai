@@ -388,3 +388,160 @@ fn compact_filter_preserves_data_dimensions_and_survives_save_and_undo() {
         .is_err()
     );
 }
+
+#[test]
+fn editing_rows_and_columns_preserves_filters_and_supports_undo_and_save() {
+    let mut p = flow();
+    configure(&mut p, Operator::Greater, "2", false);
+    let before = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::RenameColumn {
+            id: before.id.clone(),
+            col: 1,
+            name: "在庫数".into(),
+            expected_columns: before.columns.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[2].columns[1], "在庫数");
+    let input = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::RemoveRow {
+            id: input.id.clone(),
+            row: 0,
+            expected_rows: input.rows.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[0].rows.len(), input.rows.len() - 1);
+    assert_eq!(p.snapshot().tables[2].rows.len(), 1);
+    // 別タブで古い行番号を見ていた削除は受け付けない。
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveRow {
+                id: input.id.clone(),
+                row: 0,
+                expected_rows: input.rows
+            }
+        )
+        .is_err()
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, before.rows);
+    let input = p.snapshot().tables[0].clone();
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveColumn {
+                id: input.id.clone(),
+                col: 1,
+                expected_columns: input.columns.clone(),
+                expected_rows: input.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    run(
+        &mut p,
+        Command::RemoveColumn {
+            id: input.id.clone(),
+            col: 0,
+            expected_columns: input.columns,
+            expected_rows: input.rows,
+        },
+    )
+    .unwrap();
+    let s = p.snapshot();
+    assert_eq!(s.tables[0].columns[0], "在庫数");
+    assert_eq!(s.tables[1].filter.as_ref().unwrap().column, 0);
+    assert_eq!(s.tables[2].rows.len(), 2);
+    let file = p.export().unwrap();
+    let mut restored = Project::default();
+    run(
+        &mut restored,
+        Command::OpenProject {
+            document: serde_json::from_slice(&file).unwrap(),
+        },
+    )
+    .unwrap();
+    assert_eq!(restored.export().unwrap(), file);
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[1].filter.as_ref().unwrap().column, 1);
+}
+
+#[test]
+fn structural_edits_reject_readonly_and_last_row_or_column() {
+    let mut p = flow();
+    let output = p.snapshot().tables[2].clone();
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveRow {
+                id: output.id.clone(),
+                row: 0,
+                expected_rows: output.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        run(
+            &mut p,
+            Command::RenameColumn {
+                id: output.id.clone(),
+                col: 0,
+                name: "変更".into(),
+                expected_columns: output.columns.clone()
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveColumn {
+                id: output.id,
+                col: 0,
+                expected_columns: output.columns,
+                expected_rows: output.rows
+            }
+        )
+        .is_err()
+    );
+    let mut t = crate::domain::sample_table("table-1".into(), 0);
+    t.columns = vec!["列".into()];
+    t.rows = vec![vec!["値".into()]];
+    run(
+        &mut p,
+        Command::OpenProject {
+            document: serde_json::from_slice(&storage::encode(&[t.clone()]).unwrap()).unwrap(),
+        },
+    )
+    .unwrap();
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveRow {
+                id: t.id.clone(),
+                row: 0,
+                expected_rows: t.rows.clone()
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        run(
+            &mut p,
+            Command::RemoveColumn {
+                id: t.id,
+                col: 0,
+                expected_columns: t.columns,
+                expected_rows: t.rows
+            }
+        )
+        .is_err()
+    );
+}

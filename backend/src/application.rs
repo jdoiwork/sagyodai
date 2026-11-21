@@ -280,6 +280,35 @@ impl Project {
                     .rows
                     .extend(vec![vec![String::new(); table.columns.len()]; count]);
             }
+            Command::RemoveRow {
+                id,
+                row,
+                expected_rows,
+            } => {
+                crate::table_edit::remove_row(tables, &id, row, &expected_rows)?;
+            }
+            Command::RenameColumn {
+                id,
+                col,
+                name,
+                expected_columns,
+            } => {
+                crate::table_edit::rename_column(tables, &id, col, name, &expected_columns)?;
+            }
+            Command::RemoveColumn {
+                id,
+                col,
+                expected_columns,
+                expected_rows,
+            } => {
+                crate::table_edit::remove_column(
+                    tables,
+                    &id,
+                    col,
+                    &expected_columns,
+                    &expected_rows,
+                )?;
+            }
             Command::AddColumn { id } => {
                 let table = table_mut(tables, &id)?;
                 if table.kind != Kind::Input {

@@ -14,7 +14,13 @@ export function SyncConflicts() {
               ? item.command.values.map((row) => row.join("\t")).join("\n")
               : item.command.type === "rename"
                 ? item.command.title
-                : JSON.stringify(item.command)}
+                : item.command.type === "removeRow"
+                  ? `${item.command.row + 1}行の削除（表示を確認して削除し直してください）`
+                  : item.command.type === "removeColumn"
+                    ? `${item.command.col + 1}列の削除（表示を確認して削除し直してください）`
+                    : item.command.type === "renameColumn"
+                      ? `${item.command.col + 1}列の名前: ${item.command.name}`
+                      : JSON.stringify(item.command)}
           </pre>
           <button onClick={() => resolveConflict(item.id, true)}>
             <Icon name="refresh" />

@@ -810,3 +810,29 @@ button.action-danger:hover {
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+.column-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.column-heading .cell {
+  min-width: 90px;
+  height: 30px;
+  border: 1px solid #dce4db;
+  background: white;
+}
+.column-heading button,
+button.row-delete {
+  padding: 3px;
+  min-height: 24px;
+}
+.data-grid:has(.row-delete) .row-number {
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+}
+button.row-delete {
+  margin-left: 4px;
+  vertical-align: middle;
+}

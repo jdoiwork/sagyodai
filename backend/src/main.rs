@@ -4,6 +4,7 @@ mod graph;
 #[cfg(test)]
 mod graph_tests;
 mod storage;
+mod table_edit;
 
 use application::Project;
 use axum::{
