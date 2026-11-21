@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { TableGrid } from "./TableGrid";
 const { dispatch } = vi.hoisted(() => ({ dispatch: vi.fn() }));
@@ -193,7 +193,7 @@ it("削除項目のホバー中だけ対象の行・列を強調し、操作は�
 it("ズーム50%での列幅ドラッグを補正し、離したときだけ確定する", () => {
   vi.stubGlobal("PointerEvent", MouseEvent);
   try {
-    const { getByLabelText } = render(<TableGrid table={table} />);
+    const { getByLabelText, rerender } = render(<TableGrid table={table} />);
     const handle = getByLabelText("表 1列の幅");
     handle.setPointerCapture = vi.fn();
     handle.releasePointerCapture = vi.fn();
@@ -207,15 +207,33 @@ it("ズーム50%での列幅ドラッグを補正し、離したときだけ確�
     expect(handle.getAttribute("aria-valuenow")).toBe("260");
     expect(dispatch).not.toHaveBeenCalled();
     fireEvent.pointerUp(handle, { clientX: 150 });
-    expect(dispatch).toHaveBeenCalledExactlyOnceWith({
-      type: "resizeColumn",
-      id: "t",
-      col: 0,
-      width: 260,
-      expectedWidth: 160,
-      expectedColumns: table.columns,
-    });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: "resizeColumn",
+        id: "t",
+        col: 0,
+        width: 260,
+        expectedWidth: 160,
+        expectedColumns: table.columns,
+      },
+      expect.any(Function),
+    );
+    fireEvent.lostPointerCapture(handle);
+    expect(handle.getAttribute("aria-valuenow")).toBe("260");
+    rerender(<TableGrid table={{ ...table, columnWidths: [260] }} />);
+    act(() => dispatch.mock.calls[0][1]());
+    expect(handle.getAttribute("aria-valuenow")).toBe("260");
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+it("列幅の確定待ちを保持し、失敗時は確定済みの幅に戻す", () => {
+  const { getByLabelText } = render(<TableGrid table={table} />);
+  const handle = getByLabelText("表 1列の幅");
+  fireEvent.keyDown(handle, { key: "ArrowRight" });
+  expect(handle.getAttribute("aria-valuenow")).toBe("170");
+  // コア側の幅が変わらないまま完了するのは、競合・通信失敗の場合。
+  act(() => dispatch.mock.calls[0][1]());
+  expect(handle.getAttribute("aria-valuenow")).toBe("160");
 });

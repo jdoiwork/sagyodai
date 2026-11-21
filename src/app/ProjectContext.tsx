@@ -17,7 +17,7 @@ import {
 } from "../api/project";
 type ProjectContextValue = {
   project: Snapshot | null;
-  dispatch: (command: Command) => void;
+  dispatch: (command: Command, onSettled?: () => void) => void;
   error: string;
   pending: number;
   openProject: (document: unknown) => Promise<void>;
@@ -184,8 +184,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     queue.current = task.catch(() => {});
     return task;
   }
-  function dispatch(command: Command) {
-    void enqueue(command, true).catch(() => {});
+  function dispatch(command: Command, onSettled?: () => void) {
+    void enqueue(command, true)
+      .catch(() => {})
+      .finally(onSettled);
   }
   async function openProject(document: unknown) {
     const next = await enqueue({ type: "openProject", document }, false);

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 
@@ -17,6 +17,13 @@ export function ColumnResizeHandle({
   onPreview: (width: number | null) => void;
 }) {
   const { dispatch } = useProject();
+  const generation = useRef(0);
+  useEffect(
+    () => () => {
+      generation.current++;
+    },
+    [],
+  );
   const drag = useRef<{
     x: number;
     width: number;
@@ -25,15 +32,26 @@ export function ColumnResizeHandle({
     columns: string[];
   } | null>(null);
   function commit(value: number, original: number, columns: string[]) {
-    if (value !== original)
-      dispatch({
+    const current = ++generation.current;
+    if (value === original) {
+      onPreview(null);
+      return;
+    }
+    onPreview(value);
+    dispatch(
+      {
         type: "resizeColumn",
         id: table.id,
         col,
         width: value,
         expectedWidth: original,
         expectedColumns: columns,
-      });
+      },
+      () => {
+        // 成功・失敗の反映まで保持し、前の応答で新しいドラッグを巻き戻さない。
+        if (generation.current === current) onPreview(null);
+      },
+    );
   }
   return (
     <div
@@ -59,6 +77,7 @@ export function ColumnResizeHandle({
         const header = e.currentTarget.closest("th")!;
         const scale =
           header.getBoundingClientRect().width / header.offsetWidth || 1;
+        generation.current++;
         drag.current = {
           x: e.clientX,
           width,
@@ -82,9 +101,11 @@ export function ColumnResizeHandle({
         drag.current = null;
         e.currentTarget.releasePointerCapture(e.pointerId);
         commit(start.current, start.width, start.columns);
-        onPreview(null);
       }}
       onLostPointerCapture={() => {
+        // 通常の pointerup に続く capture 解放では確定待ちの幅を消さない。
+        if (!drag.current) return;
+        generation.current++;
         drag.current = null;
         onPreview(null);
       }}

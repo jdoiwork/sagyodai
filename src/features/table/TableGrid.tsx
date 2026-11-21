@@ -283,8 +283,12 @@ export function TableGrid({
                     col={c}
                     width={columnWidths[c]}
                     onPreview={(width) =>
-                      setColumnPreview(
-                        width === null ? null : { col: c, width },
+                      setColumnPreview((current) =>
+                        width === null
+                          ? current?.col === c
+                            ? null
+                            : current
+                          : { col: c, width },
                       )
                     }
                   />
