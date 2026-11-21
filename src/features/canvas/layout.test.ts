@@ -103,3 +103,54 @@ it("折りたたんだフィルタの移動後も、展開すると元のサイ�
   expect(expanded[0].style).toMatchObject({ width: 760, height: 390 });
   expect(expanded[0].position).toEqual({ x: 500, y: 600 });
 });
+
+it("リサイズで設定されたノード寸法も折りたたみ・展開に追従する", () => {
+  const filter: TableData = {
+    ...tables[0],
+    kind: "filter",
+    width: 900,
+    height: 600,
+  };
+  const initial = reconcileNodes(
+    [filter],
+    [],
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  // NodeResizer の dimensions(setAttributes: true) が残す状態を再現する。
+  const resized: TableFlowNode[] = initial.map((node) => ({
+    ...node,
+    width: 900,
+    height: 600,
+    measured: { width: 900, height: 600 },
+  }));
+  expect(resized[0].width).toBe(900);
+  const compact = reconcileNodes(
+    [{ ...filter, compact: true }],
+    resized,
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(compact[0]).toMatchObject({
+    width: 380,
+    height: 178,
+    style: { width: 380, height: 178 },
+  });
+  const expanded = reconcileNodes(
+    [filter],
+    compact,
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(expanded[0]).toMatchObject({
+    width: 900,
+    height: 600,
+    style: { width: 900, height: 600 },
+  });
+});

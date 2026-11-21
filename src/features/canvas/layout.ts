@@ -39,17 +39,21 @@ export function reconcileNodes(
               : Number(old.style?.height ?? table.height),
           }
         : (pending.get(table.id) ?? table);
+    const size =
+      table.kind === "filter" && table.compact
+        ? COMPACT_FILTER_SIZE
+        : { width: local.width, height: local.height };
     return {
       ...old,
+      // リサイズで設定される node.width/height は style より優先される。
+      ...size,
       id: table.id,
       type: "table",
       dragHandle: ".table-drag-handle",
       position: { x: local.x, y: local.y },
       style: {
         ...old?.style,
-        ...(table.kind === "filter" && table.compact
-          ? COMPACT_FILTER_SIZE
-          : { width: local.width, height: local.height }),
+        ...size,
       },
       selected: old?.selected ?? false,
       data: {

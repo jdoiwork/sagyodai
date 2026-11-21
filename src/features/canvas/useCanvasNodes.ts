@@ -29,6 +29,9 @@ export function useCanvasNodes(
           node.id === id
             ? {
                 ...node,
+                ...(node.data.table.compact
+                  ? COMPACT_FILTER_SIZE
+                  : { width: layout.width, height: layout.height }),
                 position: { x: layout.x, y: layout.y },
                 style: {
                   ...node.style,
