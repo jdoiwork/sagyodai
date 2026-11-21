@@ -1,3 +1,4 @@
+import { useTableWheel } from "./useTableWheel";
 import { useColumnReorder } from "./useColumnReorder";
 import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
 import { useDeletionAnimation } from "./useDeletionAnimation";
@@ -13,13 +14,16 @@ type Point = { row: number; col: number };
 export function TableGrid({
   table,
   readOnly = false,
+  onCanvasScroll,
 }: {
   table: TableData;
   readOnly?: boolean;
+  onCanvasScroll?: (dx: number, dy: number) => void;
 }) {
   const { dispatch } = useProject();
   const viewport = useRef<HTMLDivElement>(null);
   useDeletionAnimation(viewport, table);
+  useTableWheel(viewport, onCanvasScroll);
   const reorder = useColumnReorder(table, viewport, dispatch);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -183,7 +187,7 @@ export function TableGrid({
       )}
       <div
         ref={viewport}
-        className="grid-scroll nodrag nopan nowheel"
+        className="grid-scroll nodrag nopan"
         onFocusCapture={(e) => {
           const target = e.target as HTMLElement;
           const cell = target.closest<HTMLElement>("td[data-col]");

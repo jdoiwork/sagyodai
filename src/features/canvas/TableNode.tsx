@@ -1,13 +1,33 @@
+import { useCallback } from "react";
+import { CANVAS_SCROLL_SPEED } from "./scroll";
 import { NodeTitle } from "./NodeTitle";
 import { Icon } from "../../components/Icon";
 import { NodeSettings } from "../filter/NodeSettings";
-import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
+import {
+  Handle,
+  Position,
+  NodeResizer,
+  useReactFlow,
+  type NodeProps,
+} from "@xyflow/react";
 import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
+  const { getViewport, setViewport } = useReactFlow();
+  const onCanvasScroll = useCallback(
+    (dx: number, dy: number) => {
+      const viewport = getViewport();
+      void setViewport({
+        ...viewport,
+        x: viewport.x - dx * CANVAS_SCROLL_SPEED,
+        y: viewport.y - dy * CANVAS_SCROLL_SPEED,
+      });
+    },
+    [getViewport, setViewport],
+  );
   return (
     <section className="table-node" aria-label={table.title}>
       {table.kind !== "input" && (
@@ -131,12 +151,14 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
               削除
             </button>
           </div>
-          <TableGrid table={table} />
+          <TableGrid table={table} onCanvasScroll={onCanvasScroll} />
         </>
       ) : (
         <>
           <NodeSettings table={table} />
-          {table.kind === "display" && <TableGrid table={table} readOnly />}
+          {table.kind === "display" && (
+            <TableGrid table={table} readOnly onCanvasScroll={onCanvasScroll} />
+          )}
         </>
       )}
     </section>

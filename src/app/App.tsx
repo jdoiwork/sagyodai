@@ -1,3 +1,4 @@
+import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
 import { useEffect, useRef, useState } from "react";
@@ -107,6 +108,7 @@ function Canvas() {
           minZoom={0.4}
           maxZoom={2}
           panOnScroll
+          panOnScrollSpeed={CANVAS_SCROLL_SPEED}
           zoomOnScroll={false}
           panOnDrag
           selectionOnDrag={false}

@@ -331,3 +331,49 @@ it.each(["名前", "記号", "余白"])(
     expect(container.querySelectorAll(".column-drop-after")).toHaveLength(0);
   },
 );
+
+it("表でスクロールできない分だけを各軸でキャンバスへ渡す", () => {
+  const pan = vi.fn();
+  const { container } = render(
+    <TableGrid table={table} onCanvasScroll={pan} />,
+  );
+  const viewport = container.querySelector(".grid-scroll")! as HTMLElement;
+  Object.defineProperties(viewport, {
+    scrollWidth: { value: 500 },
+    clientWidth: { value: 300 },
+    scrollHeight: { value: 1000 },
+    clientHeight: { value: 400 },
+  });
+  fireEvent.wheel(viewport, { deltaY: 80 });
+  expect(viewport.scrollTop).toBe(80);
+  expect(pan).not.toHaveBeenCalled();
+  viewport.scrollTop = 580;
+  fireEvent.wheel(viewport, { deltaX: 30, deltaY: 60 });
+  expect(viewport.scrollTop).toBe(600);
+  expect(viewport.scrollLeft).toBe(30);
+  expect(pan).toHaveBeenLastCalledWith(0, 40);
+  viewport.scrollLeft = 0;
+  viewport.scrollTop = 0;
+  fireEvent.wheel(viewport, { deltaX: -20, deltaY: -40 });
+  expect(pan).toHaveBeenLastCalledWith(-20, -40);
+});
+
+it("小さい表のホイールはキャンバスへ渡し、Shift横移動とピンチを区別する", () => {
+  const pan = vi.fn();
+  const { container } = render(
+    <TableGrid table={table} onCanvasScroll={pan} />,
+  );
+  const viewport = container.querySelector(".grid-scroll")!;
+  fireEvent.wheel(viewport, { deltaY: 3, deltaMode: 1, shiftKey: true });
+  expect(pan).toHaveBeenLastCalledWith(48, 0);
+  pan.mockClear();
+  const pinch = new WheelEvent("wheel", {
+    deltaY: 30,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+  });
+  fireEvent(viewport, pinch);
+  expect(pinch.defaultPrevented).toBe(false);
+  expect(pan).not.toHaveBeenCalled();
+});
