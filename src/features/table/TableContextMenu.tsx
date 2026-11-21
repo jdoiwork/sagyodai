@@ -7,6 +7,7 @@ export function TableContextMenu({
   y,
   targetLabel,
   disabled,
+  onPreview,
   onDelete,
   onClose,
 }: {
@@ -14,6 +15,7 @@ export function TableContextMenu({
   y: number;
   targetLabel: string;
   disabled: boolean;
+  onPreview: (active: boolean) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -59,6 +61,8 @@ export function TableContextMenu({
         role="menuitem"
         className="action-danger"
         disabled={disabled}
+        onMouseEnter={() => onPreview(!disabled)}
+        onMouseLeave={() => onPreview(false)}
         onClick={() => {
           onDelete();
           onClose();

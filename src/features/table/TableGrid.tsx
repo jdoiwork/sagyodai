@@ -21,6 +21,7 @@ export function TableGrid({
     y: number;
     index: number;
     kind: "row" | "column";
+    preview?: boolean;
     columns: string[];
     rows: string[][];
   } | null>(null);
@@ -136,6 +137,9 @@ export function TableGrid({
               ? contextMenu.rows.length
               : contextMenu.columns.length) <= 1
           }
+          onPreview={(preview) =>
+            setContextMenu((menu) => (menu ? { ...menu, preview } : null))
+          }
           onClose={() => setContextMenu(null)}
           onDelete={() =>
             dispatch(
@@ -225,6 +229,13 @@ export function TableGrid({
               {table.columns.map((name, c) => (
                 <th
                   key={c}
+                  className={
+                    contextMenu?.preview &&
+                    contextMenu.kind === "column" &&
+                    contextMenu.index === c
+                      ? "delete-preview"
+                      : undefined
+                  }
                   onContextMenu={(e) => {
                     if (readOnly) return;
                     e.preventDefault();
@@ -271,9 +282,24 @@ export function TableGrid({
                       });
                     }}
                   >
-                    <th className="row-number">{r + 1}</th>
+                    <th
+                      className={`row-number${contextMenu?.preview && contextMenu.kind === "row" && contextMenu.index === r ? " delete-preview" : ""}`}
+                    >
+                      {r + 1}
+                    </th>
                     {row.map((value, c) => (
-                      <td key={c} data-col={c}>
+                      <td
+                        key={c}
+                        data-col={c}
+                        className={
+                          contextMenu?.preview &&
+                          (contextMenu.kind === "row"
+                            ? contextMenu.index === r
+                            : contextMenu.index === c)
+                            ? "delete-preview"
+                            : undefined
+                        }
+                      >
                         {readOnly ? (
                           <span className="result-cell">{value}</span>
                         ) : (

@@ -847,3 +847,11 @@ button.action-danger:hover {
   width: 100%;
   justify-content: flex-start;
 }
+
+/* セル選択の背景より優先し、メニュー操作中の削除対象を示す。 */
+.data-grid .delete-preview,
+.data-grid .delete-preview .cell {
+  background: #ffe4df;
+  color: #8f3026;
+  box-shadow: inset 0 0 0 1px #ce766b;
+}

@@ -150,3 +150,41 @@ it("右クリックメニューを Escape で閉じ、列名の編集も Escape 
   expect(queryByLabelText("表 1列の名前")).toBeNull();
   expect(dispatch).not.toHaveBeenCalled();
 });
+
+it("削除項目のホバー中だけ対象の行・列を強調し、操作は送らない", () => {
+  const editable = {
+    ...table,
+    columns: ["品名", "数量"],
+    rows: [
+      ["ノート", "3"],
+      ["鉛筆", "2"],
+    ],
+  };
+  const { getByLabelText, getByRole, container } = render(
+    <TableGrid table={editable} />,
+  );
+  fireEvent.contextMenu(getByLabelText("表 2行 1列"));
+  const rowAction = getByRole("menuitem", { name: "行2 を削除" });
+  expect(container.querySelectorAll(".delete-preview")).toHaveLength(0);
+  fireEvent.mouseEnter(rowAction);
+  expect(
+    container.querySelectorAll('[data-row="1"] .delete-preview'),
+  ).toHaveLength(3);
+  expect(
+    container.querySelectorAll('[data-row="0"] .delete-preview'),
+  ).toHaveLength(0);
+  fireEvent.mouseLeave(rowAction);
+  expect(container.querySelectorAll(".delete-preview")).toHaveLength(0);
+  fireEvent.contextMenu(getByLabelText("表 2列の名前を編集"));
+  fireEvent.mouseEnter(getByRole("menuitem", { name: "「数量」列を削除" }));
+  expect(container.querySelectorAll("thead .delete-preview")).toHaveLength(1);
+  expect(
+    container.querySelectorAll('td[data-col="1"].delete-preview'),
+  ).toHaveLength(2);
+  expect(
+    container.querySelectorAll('td[data-col="0"].delete-preview'),
+  ).toHaveLength(0);
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(container.querySelectorAll(".delete-preview")).toHaveLength(0);
+  expect(dispatch).not.toHaveBeenCalled();
+});
