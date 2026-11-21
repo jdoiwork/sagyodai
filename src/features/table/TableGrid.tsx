@@ -126,7 +126,11 @@ export function TableGrid({
       {contextMenu && !readOnly && (
         <TableContextMenu
           {...contextMenu}
-          targetLabel={`${contextMenu.index + 1}${contextMenu.kind === "row" ? "行" : "列"}`}
+          targetLabel={
+            contextMenu.kind === "row"
+              ? `行${contextMenu.index + 1} `
+              : `「${contextMenu.columns[contextMenu.index]}」`
+          }
           disabled={
             (contextMenu.kind === "row"
               ? contextMenu.rows.length
