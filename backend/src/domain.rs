@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default)]
+    pub input_side: Option<PortSide>,
+    #[serde(default)]
+    pub output_side: Option<PortSide>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub csv: Option<crate::csv_source::CsvSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -62,6 +66,15 @@ impl Table {
             .chain(self.union_inputs.iter().map(|input| &input.source))
             .collect()
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PortSide {
+    Top,
+    Right,
+    Bottom,
+    Left,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,6 +152,11 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetPortSide {
+        id: String,
+        input: bool,
+        side: PortSide,
+    },
     CreateViewFilters {
         id: String,
         expected_view: crate::table_view::TableView,
@@ -368,6 +386,8 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        input_side: None,
+        output_side: None,
         csv: None,
         sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,

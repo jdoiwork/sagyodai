@@ -1546,3 +1546,60 @@ fn not_in_excludes_exact_values_and_empty_selection_passes_all_rows() {
     run(&mut p, make(vec!["文房具", "食品", ""], false)).unwrap();
     assert!(p.snapshot().tables[1].rows.is_empty());
 }
+
+#[test]
+fn port_sides_preserve_connections_and_roundtrip_with_undo() {
+    use crate::domain::PortSide;
+    let mut p = flow();
+    let original = p.snapshot();
+    for side in [
+        PortSide::Top,
+        PortSide::Right,
+        PortSide::Bottom,
+        PortSide::Left,
+    ] {
+        for input in [true, false] {
+            run(
+                &mut p,
+                Command::SetPortSide {
+                    id: "table-2".into(),
+                    input,
+                    side,
+                },
+            )
+            .unwrap();
+            let snap = p.snapshot();
+            assert_eq!(snap.tables[1].source, original.tables[1].source);
+            assert_eq!(snap.tables[1].rows, original.tables[1].rows);
+            assert_eq!(
+                if input {
+                    snap.tables[1].input_side
+                } else {
+                    snap.tables[1].output_side
+                },
+                Some(side)
+            );
+        }
+    }
+    let saved = p.export().unwrap();
+    let restored = Project::restore(serde_json::from_slice(&saved).unwrap(), 0).unwrap();
+    assert_eq!(
+        restored.snapshot().tables[1].output_side,
+        Some(PortSide::Left)
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[1].output_side, Some(PortSide::Bottom));
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.export().unwrap(), saved);
+    assert!(
+        run(
+            &mut p,
+            Command::SetPortSide {
+                id: "table-1".into(),
+                input: true,
+                side: PortSide::Top
+            }
+        )
+        .is_err()
+    );
+}

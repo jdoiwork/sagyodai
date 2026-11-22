@@ -1591,3 +1591,46 @@ button.action-danger:hover {
 .node-limit-message span {
   display: block;
 }
+
+.port-side-options {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px 8px;
+}
+.port-side-options button {
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+.port-side-options button[aria-checked="true"] {
+  background: #dceee5;
+  color: #205c48;
+  box-shadow: inset 0 0 0 1px #649e88;
+}
+.table-port.react-flow__handle-top .port-label {
+  top: auto;
+  bottom: 24px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+.table-port.react-flow__handle-bottom .port-label {
+  top: 24px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+.table-port.react-flow__handle-right .port-label {
+  left: 2px;
+  right: auto;
+}
+.table-port.react-flow__handle-left .port-label {
+  right: 2px;
+  left: auto;
+}
+.table-port.react-flow__handle-left .union-source-label {
+  right: 27px;
+}
+.table-port.react-flow__handle-right .union-source-label {
+  left: 27px;
+}

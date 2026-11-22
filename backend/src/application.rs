@@ -132,6 +132,18 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetPortSide { id, input, side } => {
+                let table = table_mut(tables, &id)?;
+                if input {
+                    if matches!(table.kind, Kind::Input | Kind::Csv) {
+                        return Err("このノードに入力端子はありません。".into());
+                    }
+                    table.input_side = Some(side);
+                } else {
+                    table.output_side = Some(side);
+                }
+            }
+
             Command::CreateViewFilters { id, expected_view } => {
                 let source = table_mut(tables, &id)?.clone();
                 let filters = crate::view_filters::conditions(&source, &expected_view)?;

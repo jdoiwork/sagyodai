@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { emptyTableView, type TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
+import { PortSideMenu } from "./PortSideMenu";
 import { sheetOf, sheetsOf } from "../sheets/model";
 
 export const NodeNavigation = createContext({
@@ -18,6 +19,7 @@ export function NodeActions({ table }: { table: TableData }) {
     x: number;
     y: number;
     move: boolean;
+    ports?: boolean;
     revision: number | undefined;
     sheet: string;
   } | null>(null);
@@ -49,7 +51,7 @@ export function NodeActions({ table }: { table: TableData }) {
       document.removeEventListener("pointerdown", outside);
       window.removeEventListener("resize", close);
     };
-  }, [visible, open?.move]);
+  }, [visible, open?.move, open?.ports]);
   return (
     <>
       <button
@@ -127,7 +129,12 @@ export function NodeActions({ table }: { table: TableData }) {
               }
             }}
           >
-            {open.move ? (
+            {open.ports ? (
+              <PortSideMenu
+                table={table}
+                onBack={() => setOpen({ ...open, ports: false })}
+              />
+            ) : open.move ? (
               <>
                 <button
                   role="menuitem"
@@ -167,6 +174,13 @@ export function NodeActions({ table }: { table: TableData }) {
               </>
             ) : (
               <>
+                <button
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  onClick={() => setOpen({ ...open, ports: true })}
+                >
+                  端子の位置<span aria-hidden="true"> ›</span>
+                </button>
                 {["input", "csv", "display"].includes(table.kind) && (
                   <button
                     role="menuitem"

@@ -1,5 +1,5 @@
 import { sheetOf, sourceLabel } from "../sheets/model";
-import { unionInputHandle, unionPortTop } from "../union/ports";
+import { unionInputHandle } from "../union/ports";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useProject } from "../../app/ProjectContext";
 import { EdgeContextMenu } from "./EdgeContextMenu";
@@ -10,6 +10,36 @@ import type { TableData } from "../../api/project";
 // ノード本体の overflow に隠れない位置に端子とラベルを配置する。
 export function NodePorts({ table }: { table: TableData }) {
   const { project, dispatch, pending } = useProject();
+  const inputSide = table.inputSide ?? "left";
+  const outputSide = table.outputSide ?? "right";
+  const positions = {
+    left: Position.Left,
+    right: Position.Right,
+    top: Position.Top,
+    bottom: Position.Bottom,
+  };
+  function placement(input: boolean, index = 0) {
+    const side = input ? inputSide : outputSide;
+    const same =
+      inputSide === outputSide &&
+      table.kind !== "input" &&
+      table.kind !== "csv";
+    const count =
+      table.kind === "union" ? (table.unionInputs?.length ?? 0) + 1 : 1;
+    const offset =
+      input && table.kind === "union"
+        ? `${((index + 1) * (same ? 80 : 100)) / (count + 1)}%`
+        : same
+          ? input
+            ? "30%"
+            : "85%"
+          : side === "left" || side === "right"
+            ? 32
+            : "50%";
+    return side === "top" || side === "bottom"
+      ? { left: offset }
+      : { top: offset };
+  }
   const updateNodeInternals = useUpdateNodeInternals();
   const sourceTable = project?.tables.find((t) => t.id === table.source);
   const externalSource =
@@ -24,6 +54,8 @@ export function NodePorts({ table }: { table: TableData }) {
   }, [
     table.id,
     inputOrder,
+    inputSide,
+    outputSide,
     table.compact,
     table.width,
     table.height,
@@ -98,12 +130,12 @@ export function NodePorts({ table }: { table: TableData }) {
             <Handle
               key={input.source}
               type="target"
-              position={Position.Left}
+              position={positions[inputSide]}
               id={unionInputHandle(input.source)}
               isConnectable={false}
               className="table-port union-input-port"
               style={{
-                top: unionPortTop(index),
+                ...placement(true, index),
                 background: colorValue(input.color),
               }}
               aria-label={`${table.title} 入力${index + 1} ${title} の端子`}
@@ -118,14 +150,11 @@ export function NodePorts({ table }: { table: TableData }) {
       {table.kind !== "input" && table.kind !== "csv" && (
         <Handle
           type="target"
-          position={Position.Left}
+          position={positions[inputSide]}
           id="in"
           className="table-port table-port-input"
           style={{
-            top:
-              table.kind === "union"
-                ? unionPortTop(table.unionInputs?.length ?? 0)
-                : 32,
+            ...placement(true, table.unionInputs?.length ?? 0),
             background: colorValue(table.inputColor),
           }}
           onContextMenu={(e) => openMenu(e, "input")}
@@ -149,10 +178,13 @@ export function NodePorts({ table }: { table: TableData }) {
       {
         <Handle
           type="source"
-          position={Position.Right}
+          position={positions[outputSide]}
           id="out"
           className="table-port table-port-output"
-          style={{ top: 32, background: colorValue(table.outputColor) }}
+          style={{
+            ...placement(false),
+            background: colorValue(table.outputColor),
+          }}
           onContextMenu={(e) => openMenu(e, "output")}
           aria-label={`${table.title} 出力端子`}
           title="出力：入力端子へドラッグして接続（複数ノードへ分岐できます）"

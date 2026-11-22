@@ -1,4 +1,6 @@
 import { z } from "zod";
+export const portSideSchema = z.enum(["top", "right", "bottom", "left"]);
+export type PortSide = z.infer<typeof portSideSchema>;
 export const paletteColorSchema = z.enum([
   "green",
   "blue",
@@ -82,6 +84,8 @@ export const projectionSchema = z.object({
 });
 export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
+  inputSide: portSideSchema.nullable().optional(),
+  outputSide: portSideSchema.nullable().optional(),
   csv: z
     .object({
       sourceText: z.string().nullable().optional(),
@@ -150,6 +154,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setPortSide"; id: string; input: boolean; side: PortSide }
   | {
       type: "createViewFilters";
       id: string;
