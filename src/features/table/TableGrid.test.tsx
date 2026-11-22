@@ -796,3 +796,79 @@ it("列構成が変わったら別の列へ条件を誤適用せず、空欄も�
     ),
   ).toContain("A");
 });
+
+it("表示順で範囲を選択・コピーし、編集は元の行へ送る", () => {
+  const ui = render(
+    <TableGrid
+      table={{ ...table, columns: ["数量"], rows: [["2"], ["10"], ["1"]] }}
+    />,
+  );
+  fireEvent.click(ui.getByLabelText("表 数量 の表示を絞り込み"));
+  fireEvent.click(ui.getByRole("button", { name: "↑ 昇順" }));
+  expect(
+    [...ui.container.querySelectorAll("tr[data-row]")].map((el) =>
+      el.getAttribute("data-row"),
+    ),
+  ).toEqual(["2", "0", "1"]);
+  expect(
+    ui.container
+      .querySelector('tr[data-row="2"] th')
+      ?.getAttribute("draggable"),
+  ).not.toBe("true");
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByLabelText("値の絞り込みを閉じる"));
+  fireEvent.mouseDown(ui.getByLabelText("表 3行 1列"));
+  fireEvent.mouseDown(ui.getByLabelText("表 1行 1列"), { shiftKey: true });
+  const setData = vi.fn();
+  fireEvent.copy(ui.getByLabelText("表 1行 1列"), {
+    clipboardData: { setData },
+  });
+  expect(setData).toHaveBeenCalledWith("text/plain", "1\n2");
+  const cell = ui.getByLabelText("表 3行 1列");
+  fireEvent.focus(cell);
+  fireEvent.change(cell, { target: { value: "3" } });
+  fireEvent.blur(cell);
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "paste",
+    id: "t",
+    row: 2,
+    col: 0,
+    values: [["3"]],
+    expectedValues: [["1"]],
+  });
+});
+it("行ヘッダーの範囲選択は表示順で扱い、降順と解除も出力を変更しない", () => {
+  const ui = render(
+    <TableGrid
+      table={{ ...table, columns: ["数量"], rows: [["2"], ["10"], ["1"]] }}
+    />,
+  );
+  const open = () =>
+    fireEvent.click(ui.getByLabelText("表 数量 の表示を絞り込み"));
+  open();
+  fireEvent.click(ui.getByRole("button", { name: "↑ 昇順" }));
+  fireEvent.click(ui.getByLabelText("値の絞り込みを閉じる"));
+  fireEvent.click(ui.container.querySelector('tr[data-row="2"] th')!);
+  fireEvent.click(ui.container.querySelector('tr[data-row="0"] th')!, {
+    shiftKey: true,
+  });
+  const setData = vi.fn();
+  fireEvent.copy(ui.container.querySelector('tr[data-row="0"] th')!, {
+    clipboardData: { setData },
+  });
+  expect(setData).toHaveBeenCalledWith("text/plain", "1\n2");
+  open();
+  fireEvent.click(ui.getByRole("button", { name: "↓ 降順" }));
+  expect(
+    [...ui.container.querySelectorAll("tr[data-row]")].map((el) =>
+      el.getAttribute("data-row"),
+    ),
+  ).toEqual(["1", "0", "2"]);
+  fireEvent.click(ui.getByRole("button", { name: "並べ替え解除" }));
+  expect(
+    [...ui.container.querySelectorAll("tr[data-row]")].map((el) =>
+      el.getAttribute("data-row"),
+    ),
+  ).toEqual(["0", "1", "2"]);
+  expect(dispatch).not.toHaveBeenCalled();
+});

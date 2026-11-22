@@ -1,14 +1,23 @@
+import type { DisplaySort } from "./displayOrder";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../../components/Icon";
 export type ColumnFilters = Record<number, string[]>;
-export type ColumnFilterState = { schema: string; values: ColumnFilters };
+export type ColumnFilterState = {
+  schema: string;
+  values: ColumnFilters;
+  sort?: DisplaySort | null;
+};
 export function ColumnValueFilter({
   label,
   values,
   selected,
   onChange,
+  sortDirection,
+  onSort,
 }: {
+  sortDirection?: "asc" | "desc";
+  onSort?: (direction: "asc" | "desc" | null) => void;
   label: string;
   values: string[];
   selected?: string[];
@@ -46,14 +55,14 @@ export function ColumnValueFilter({
     <>
       <button
         ref={trigger}
-        className={`column-value-filter nodrag nopan${selected ? " active" : ""}`}
+        className={`column-value-filter nodrag nopan${selected || sortDirection ? " active" : ""}`}
         aria-label={`${label} の表示を絞り込み`}
         aria-haspopup="dialog"
         aria-expanded={!!position}
         title={
           selected
             ? "表示を絞り込み中（出力には影響しません）"
-            : "表示する値を選択"
+            : "表示する値・昇順・降順を選択"
         }
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
@@ -71,7 +80,11 @@ export function ColumnValueFilter({
           setPosition(position ? null : { x: r.left, y: r.bottom + 4 });
         }}
       >
-        <Icon name="filter" />
+        {sortDirection ? (
+          <span aria-hidden="true">{sortDirection === "asc" ? "↑" : "↓"}</span>
+        ) : (
+          <Icon name="filter" />
+        )}
       </button>
       {position &&
         createPortal(
@@ -107,6 +120,25 @@ export function ColumnValueFilter({
             <span className="column-filter-hint">
               表示のみ · 複数選択できます
             </span>
+            {onSort && (
+              <div className="column-sort-actions" aria-label="表示順">
+                <button
+                  aria-pressed={sortDirection === "asc"}
+                  onClick={() => onSort("asc")}
+                >
+                  ↑ 昇順
+                </button>
+                <button
+                  aria-pressed={sortDirection === "desc"}
+                  onClick={() => onSort("desc")}
+                >
+                  ↓ 降順
+                </button>
+                <button disabled={!sortDirection} onClick={() => onSort(null)}>
+                  並べ替え解除
+                </button>
+              </div>
+            )}
             <div className="column-filter-actions">
               <button onClick={() => onChange(undefined)}>すべて表示</button>
               <button onClick={() => onChange([])}>選択を解除</button>

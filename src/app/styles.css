@@ -1299,3 +1299,15 @@ button.action-danger:hover {
   transform: translateY(-50%);
   margin-left: 0;
 }
+.column-sort-actions {
+  display: flex;
+  gap: 5px;
+}
+.column-sort-actions button {
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.column-sort-actions [aria-pressed="true"] {
+  background: #28634f;
+  color: white;
+}

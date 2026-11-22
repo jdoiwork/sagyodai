@@ -1,3 +1,4 @@
+import { sortDisplayRows, type DisplaySort } from "./displayOrder";
 import {
   ColumnValueFilter,
   type ColumnFilterState,
@@ -51,17 +52,25 @@ export function TableGrid({
     () => (filterState.schema === schema ? filterState.values : {}),
     [filterState, schema],
   );
+  const sort = filterState.schema === schema ? filterState.sort : null;
+  const transformed =
+    !!sort || query.trim().length > 0 || Object.keys(filters).length > 0;
   const searching = query.trim().length > 0 || Object.keys(filters).length > 0;
   const visibleRows = useMemo(
-    () => matchingRows(table.rows, query, filters),
-    [table.rows, query, filters],
+    () =>
+      sortDisplayRows(
+        table.rows,
+        matchingRows(table.rows, query, filters),
+        sort,
+      ),
+    [table.rows, query, filters, sort],
   );
   const visibleSet = new Set(visibleRows);
 
   const viewport = useRef<HTMLDivElement>(null);
   useDeletionAnimation(viewport, table);
   useTableWheel(viewport, onCanvasScroll);
-  const headers = useHeaderSelection(table);
+  const headers = useHeaderSelection(table, visibleRows);
   const reorder = useColumnReorder(
     table,
     viewport,
@@ -103,15 +112,15 @@ export function TableGrid({
     end: { row: 0, col: 0 },
   });
   const [pasteError, setPasteError] = useState("");
-  const minRow = Math.min(
-      selection.start.row,
-      selection.end.row,
-      Math.max(0, table.rows.length - 1),
-    ),
-    maxRow = Math.min(
-      Math.max(selection.start.row, selection.end.row),
-      Math.max(0, table.rows.length - 1),
-    );
+  const startIndex = Math.max(0, visibleRows.indexOf(selection.start.row));
+  const endIndex = Math.max(0, visibleRows.indexOf(selection.end.row));
+  const selectedRows = visibleRows.slice(
+    Math.min(startIndex, endIndex),
+    Math.max(startIndex, endIndex) + 1,
+  );
+  const selectedRowSet = new Set(selectedRows);
+  const minRow = selectedRows[0] ?? 0,
+    maxRow = selectedRows.at(-1) ?? 0;
   const minCol = Math.min(
       selection.start.col,
       selection.end.col,
@@ -133,7 +142,7 @@ export function TableGrid({
   const renderedRows = Array.from(
     new Set([
       ...Array.from({ length: last - first }, (_, i) => first + i),
-      ...(!searching &&
+      ...(!transformed &&
       rowReorder.draggedRow !== null &&
       rowReorder.draggedRow < table.rows.length
         ? [rowReorder.draggedRow]
@@ -149,7 +158,12 @@ export function TableGrid({
     setContextMenu(null);
     setPasteError("");
     setFocusedCell(null);
-    const first = matchingRows(table.rows, value, filters)[0] ?? 0;
+    const first =
+      sortDisplayRows(
+        table.rows,
+        matchingRows(table.rows, value, filters),
+        sort,
+      )[0] ?? 0;
     setSelection({
       start: { row: first, col: 0 },
       end: { row: first, col: 0 },
@@ -158,12 +172,44 @@ export function TableGrid({
     setTop(0);
   }
   function changeFilters(next: ColumnFilters) {
-    (columnFilters?.onChange ?? setLocalFilters)({ schema, values: next });
+    (columnFilters?.onChange ?? setLocalFilters)({
+      schema,
+      values: next,
+      sort,
+    });
     headers.clear();
     setContextMenu(null);
     setPasteError("");
     setFocusedCell(null);
-    const first = matchingRows(table.rows, query, next)[0] ?? 0;
+    const first =
+      sortDisplayRows(
+        table.rows,
+        matchingRows(table.rows, query, next),
+        sort,
+      )[0] ?? 0;
+    setSelection({
+      start: { row: first, col: 0 },
+      end: { row: first, col: 0 },
+    });
+    if (viewport.current) viewport.current.scrollTop = 0;
+    setTop(0);
+  }
+  function changeSort(next: DisplaySort | null) {
+    (columnFilters?.onChange ?? setLocalFilters)({
+      schema,
+      values: filters,
+      sort: next,
+    });
+    headers.clear();
+    setContextMenu(null);
+    setPasteError("");
+    setFocusedCell(null);
+    const first =
+      sortDisplayRows(
+        table.rows,
+        matchingRows(table.rows, query, filters),
+        next,
+      )[0] ?? 0;
     setSelection({
       start: { row: first, col: 0 },
       end: { row: first, col: 0 },
@@ -257,10 +303,12 @@ export function TableGrid({
           {table.rows.length.toLocaleString()} 行
         </span>
       </div>
-      {searching && (
+      {transformed && (
         <div className="quick-search-note">
-          表示のみ絞り込み · 出力・集計は全行
-          {!readOnly ? " · 行の並べ替え・複数行の貼り付けは絞り込み解除後" : ""}
+          表示のみ絞り込み・並べ替え · 出力・集計は元の全行
+          {!readOnly
+            ? " · 行の並べ替え・複数行の貼り付けは絞り込み・並べ替え解除後"
+            : ""}
         </div>
       )}
       {contextMenu && !readOnly && (
@@ -378,9 +426,9 @@ export function TableGrid({
           e.stopPropagation();
           try {
             const values = parseTsv(text);
-            if (searching && values.length > 1) {
+            if (transformed && values.length > 1) {
               setPasteError(
-                "表示絞り込み中の複数行への貼り付けは、絞り込みを解除してから行ってください。",
+                "表示絞り込み・並べ替え中の複数行への貼り付けは、並べ替えと絞り込みを解除してから行ってください。",
               );
               return;
             }
@@ -427,8 +475,8 @@ export function TableGrid({
               "text/plain",
               formatTsv(
                 kind === "row"
-                  ? indices
-                      .filter((i) => visibleSet.has(i))
+                  ? visibleRows
+                      .filter((i) => indices.includes(i))
                       .map((i) => table.rows[i])
                   : visibleRows.map((r) =>
                       indices.map((i) => table.rows[r][i]),
@@ -442,9 +490,7 @@ export function TableGrid({
           e.clipboardData.setData(
             "text/plain",
             formatTsv(
-              visibleRows
-                .filter((r) => r >= minRow && r <= maxRow)
-                .map((r) => table.rows[r].slice(minCol, maxCol + 1)),
+              selectedRows.map((r) => table.rows[r].slice(minCol, maxCol + 1)),
             ),
           );
         }}
@@ -468,6 +514,13 @@ export function TableGrid({
                 <th
                   key={c}
                   data-column={c}
+                  aria-sort={
+                    sort?.column === c
+                      ? sort.direction === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
                   {...(!readOnly ? reorder.sourceProps(c) : {})}
                   {...(!readOnly ? reorder.targetProps(c) : {})}
                   className={
@@ -527,6 +580,12 @@ export function TableGrid({
                     label={`${table.title} ${name}`}
                     values={table.rows.map((row) => row[c])}
                     selected={filters[c]}
+                    sortDirection={
+                      sort?.column === c ? sort.direction : undefined
+                    }
+                    onSort={(direction) =>
+                      changeSort(direction ? { column: c, direction } : null)
+                    }
                     onChange={(values) => {
                       const next = { ...filters };
                       if (values === undefined) delete next[c];
@@ -563,7 +622,7 @@ export function TableGrid({
                   <tr
                     key={r}
                     data-row={r}
-                    {...(!readOnly && !searching
+                    {...(!readOnly && !transformed
                       ? rowReorder.targetProps(r)
                       : {})}
                     className={
@@ -591,7 +650,7 @@ export function TableGrid({
                     }}
                   >
                     <th
-                      {...(!readOnly && !searching
+                      {...(!readOnly && !transformed
                         ? rowReorder.sourceProps(r)
                         : {})}
                       tabIndex={readOnly ? undefined : -1}
@@ -632,8 +691,7 @@ export function TableGrid({
                             label={`${table.title} ${r + 1}行 ${c + 1}列`}
                             selected={
                               !headers.selection &&
-                              r >= minRow &&
-                              r <= maxRow &&
+                              selectedRowSet.has(r) &&
                               c >= minCol &&
                               c <= maxCol
                             }

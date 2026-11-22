@@ -8,7 +8,7 @@ type Selection = {
   anchor: number;
   signature: string;
 };
-export function useHeaderSelection(table: TableData) {
+export function useHeaderSelection(table: TableData, rowOrder?: number[]) {
   const [stored, setStored] = useState<Selection | null>(null);
   const [pending, setPending] = useState<
     (Selection & { sourceSignature: string; confirmed: boolean }) | null
@@ -105,6 +105,14 @@ export function useHeaderSelection(table: TableData) {
         { length: Math.abs(index - anchor) + 1 },
         (_, n) => Math.min(index, anchor) + n,
       );
+      if (kind === "row" && rowOrder) {
+        const a = rowOrder.indexOf(anchor),
+          b = rowOrder.indexOf(index);
+        indices =
+          a >= 0 && b >= 0
+            ? rowOrder.slice(Math.min(a, b), Math.max(a, b) + 1)
+            : [index];
+      }
       if (event.ctrlKey || event.metaKey)
         indices = [...new Set([...previous.indices, ...indices])];
     } else if ((event?.ctrlKey || event?.metaKey) && previous) {
