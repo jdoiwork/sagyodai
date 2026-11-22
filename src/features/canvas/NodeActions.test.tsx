@@ -3,13 +3,16 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { NodeActions, NodeNavigation } from "./NodeActions";
 import type { TableData } from "../../api/project";
-const { dispatch } = vi.hoisted(() => ({ dispatch: vi.fn() }));
+const { dispatch, state } = vi.hoisted(() => ({
+  dispatch: vi.fn(),
+  state: { revision: 1 },
+}));
 vi.mock("../../app/ProjectContext", () => ({
   useProject: () => ({
     dispatch,
     pending: 0,
     project: {
-      revision: 1,
+      revision: state.revision,
       sheets: [
         { id: "sheet-1", title: "入力" },
         { id: "sheet-2", title: "結果" },
@@ -20,6 +23,7 @@ vi.mock("../../app/ProjectContext", () => ({
 afterEach(() => {
   cleanup();
   dispatch.mockReset();
+  state.revision = 1;
 });
 const table = { id: "table-1", title: "売上", sheetId: "sheet-1" } as TableData;
 it("アクションから移動先を選び、成功後だけ移動先を表示する", () => {
@@ -105,4 +109,40 @@ it("絞り込みがない表では作成項目を無効にする", () => {
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(true);
+});
+
+it("端子変更後もメニューを維持し、続けてもう片方を変更できる", () => {
+  const source = { ...table, kind: "filter" } as TableData;
+  const ui = render(<NodeActions table={source} />);
+  fireEvent.click(ui.getByRole("button", { name: "売上 のアクション" }));
+  fireEvent.click(ui.getByRole("menuitem", { name: /端子の位置/ }));
+  fireEvent.click(
+    ui.getByRole("menuitemradio", { name: "入力端子を上に配置" }),
+  );
+  state.revision = 2;
+  ui.rerender(<NodeActions table={{ ...source, inputSide: "top" }} />);
+  expect(
+    ui
+      .getByRole("menuitemradio", { name: "入力端子を上に配置" })
+      .getAttribute("aria-checked"),
+  ).toBe("true");
+  fireEvent.click(
+    ui.getByRole("menuitemradio", { name: "出力端子を下に配置" }),
+  );
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "setPortSide",
+    id: table.id,
+    input: false,
+    side: "bottom",
+  });
+  state.revision = 3;
+  ui.rerender(
+    <NodeActions
+      table={{ ...source, inputSide: "top", outputSide: "bottom" }}
+    />,
+  );
+  fireEvent.click(ui.getByRole("menuitem", { name: "← アクションに戻る" }));
+  expect(ui.getByRole("menuitem", { name: /端子の位置/ })).toBeTruthy();
+  fireEvent.keyDown(ui.getByRole("menu"), { key: "Escape" });
+  expect(ui.queryByRole("menu")).toBeNull();
 });

@@ -24,7 +24,9 @@ export function NodeActions({ table }: { table: TableData }) {
     sheet: string;
   } | null>(null);
   const visible =
-    open && open.revision === project?.revision && open.sheet === activeSheet;
+    open &&
+    (open.ports || open.revision === project?.revision) &&
+    open.sheet === activeSheet;
   const view = table.view ?? emptyTableView;
   const filterCount =
     (view.query.trim() ? 1 : 0) +
@@ -135,7 +137,13 @@ export function NodeActions({ table }: { table: TableData }) {
             {open.ports ? (
               <PortSideMenu
                 table={table}
-                onBack={() => setOpen({ ...open, ports: false })}
+                onBack={() =>
+                  setOpen({
+                    ...open,
+                    ports: false,
+                    revision: project?.revision,
+                  })
+                }
               />
             ) : open.move ? (
               <>

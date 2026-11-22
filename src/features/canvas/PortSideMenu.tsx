@@ -38,10 +38,16 @@ export function PortSideMenu({
                       ? (table.inputSide ?? "left")
                       : (table.outputSide ?? "right")) === side
                   }
-                  disabled={pending > 0}
-                  onClick={() =>
-                    dispatch({ type: "setPortSide", id: table.id, input, side })
-                  }
+                  aria-disabled={pending > 0}
+                  onClick={() => {
+                    if (!pending)
+                      dispatch({
+                        type: "setPortSide",
+                        id: table.id,
+                        input,
+                        side,
+                      });
+                  }}
                 >
                   {label}
                 </button>
