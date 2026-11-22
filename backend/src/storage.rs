@@ -58,6 +58,7 @@ pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
     }
     let mut ids = HashSet::new();
     for table in &file.tables {
+        table.view.validate()?;
         if table.footer.as_ref().is_some_and(|f| {
             f.len() > table.columns.len() || !matches!(table.kind, Kind::Input | Kind::Display)
         }) {

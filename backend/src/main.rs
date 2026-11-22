@@ -10,6 +10,7 @@ mod sheet_move_tests;
 mod sheets;
 mod storage;
 mod table_edit;
+mod table_view;
 mod union;
 #[cfg(test)]
 mod union_tests;

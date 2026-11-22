@@ -92,6 +92,10 @@ impl Project {
                 } else {
                     None
                 };
+                let view_only = matches!(
+                    &command,
+                    Command::SetViewQuery { .. } | Command::SetViewColumns { .. }
+                );
                 let opening = matches!(command, Command::OpenProject { .. });
                 let mut sheets = self.sheets.clone();
                 match command {
@@ -109,7 +113,7 @@ impl Project {
                     command => self.edit(&mut tables, command)?,
                 }
                 crate::sheets::validate(&sheets, &tables)?;
-                if !opening {
+                if !opening && !view_only {
                     crate::graph::evaluate(&mut tables, &self.tables, run.as_deref())?;
                 }
                 self.undo.push((
@@ -296,6 +300,30 @@ impl Project {
                 }
                 // 所属だけを変え、入力・出力のID参照や配置、キャッシュは維持する。
                 table.sheet_id = sheet_id;
+            }
+            Command::SetViewQuery {
+                id,
+                query,
+                expected_query,
+            } => {
+                let table = table_mut(tables, &id)?;
+                if table.view.query != expected_query {
+                    return Err("検索語が別の操作で変更されています。".into());
+                }
+                table.view.query = query;
+                table.view.validate()?;
+            }
+            Command::SetViewColumns {
+                id,
+                columns,
+                expected_columns,
+            } => {
+                let table = table_mut(tables, &id)?;
+                if table.view.columns != expected_columns {
+                    return Err("表示設定が別の操作で変更されています。".into());
+                }
+                table.view.columns = columns;
+                table.view.validate()?;
             }
             Command::SetCompact { id, compact } => {
                 let table = tables

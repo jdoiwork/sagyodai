@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default)]
+    pub view: crate::table_view::TableView,
     #[serde(default = "crate::sheets::default_sheet_id")]
     pub sheet_id: String,
     #[serde(default)]
@@ -121,6 +123,16 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetViewQuery {
+        id: String,
+        query: String,
+        expected_query: String,
+    },
+    SetViewColumns {
+        id: String,
+        columns: crate::table_view::ColumnView,
+        expected_columns: crate::table_view::ColumnView,
+    },
     MoveNodeToSheet {
         id: String,
         sheet_id: String,
@@ -316,6 +328,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         filter: None,
         manual: false,
         compact: false,
+        view: Default::default(),
         stale: false,
         error: None,
         id,

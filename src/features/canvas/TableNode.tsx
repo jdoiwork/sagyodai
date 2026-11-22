@@ -1,10 +1,10 @@
-import type { ColumnFilterState } from "../table/ColumnValueFilter";
+import { useTableView } from "../table/useTableView";
 import { NodeActions } from "./NodeActions";
 import { unionPortHeight } from "../union/ports";
 import { UnionSettings } from "../union/UnionSettings";
 import { NodePorts } from "./NodePorts";
 import { emptyRowIndices } from "../table/emptyRows";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { CANVAS_SCROLL_SPEED } from "./scroll";
 import { NodeTitle } from "./NodeTitle";
 import { Icon } from "../../components/Icon";
@@ -16,11 +16,8 @@ import { TableGrid } from "../table/TableGrid";
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
-  const [search, setSearch] = useState("");
-  const [columnFilters, setColumnFilters] = useState<ColumnFilterState>({
-    schema: "",
-    values: {},
-  });
+  const { search, setSearch, columnFilters, setColumnFilters } =
+    useTableView(table);
   const emptyRows = table.kind === "input" ? emptyRowIndices(table.rows) : [];
   const { getViewport, setViewport } = useReactFlow();
   const onCanvasScroll = useCallback(

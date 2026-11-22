@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  emptyTableView,
   loadProject,
   sendCommand,
   exportProject,
@@ -146,12 +147,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           try {
             next = await sendCommand(current.current.revision, command);
           } catch (e) {
-            // セルの比較条件があれば、無関係な変更との revision 競合だけを安全に再試行できる。
+            // 変更前の値の比較条件があれば、無関係な変更との revision 競合だけを安全に再試行できる。
             if (
               !(e instanceof CommandError) ||
               e.status !== 409 ||
-              command.type !== "paste" ||
-              !command.expectedValues
+              !(
+                (command.type === "paste" && command.expectedValues) ||
+                command.type === "setViewQuery" ||
+                command.type === "setViewColumns"
+              )
             )
               throw e;
             const latest = await loadProject();
@@ -226,6 +230,18 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             ),
           ),
         });
+      } else if (
+        command.type === "setViewQuery" ||
+        command.type === "setViewColumns"
+      ) {
+        const view =
+          current.current?.tables.find((t) => t.id === command.id)?.view ??
+          emptyTableView;
+        dispatch(
+          command.type === "setViewQuery"
+            ? { ...command, expectedQuery: view.query }
+            : { ...command, expectedColumns: view.columns },
+        );
       } else if (command.type === "moveNodeToSheet") {
         const table = current.current?.tables.find((t) => t.id === command.id);
         dispatch({

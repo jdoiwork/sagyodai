@@ -25,7 +25,27 @@ export const filterSchema = z.object({
   value: z.string(),
 });
 export type FilterConfig = z.infer<typeof filterSchema>;
+export const columnViewSchema = z.object({
+  schema: z.string(),
+  values: z.record(z.string().regex(/^(0|[1-9][0-9]*)$/), z.array(z.string())),
+  sort: z
+    .object({
+      column: z.number().int().nonnegative(),
+      direction: z.enum(["asc", "desc"]),
+    })
+    .nullable(),
+});
+export const tableViewSchema = z.object({
+  query: z.string(),
+  columns: columnViewSchema,
+});
+export type ColumnView = z.infer<typeof columnViewSchema>;
+export const emptyTableView = {
+  query: "",
+  columns: { schema: "", values: {}, sort: null },
+};
 const tableSchema = z.object({
+  view: tableViewSchema.optional(),
   sheetId: z.string().optional(),
   edgeColor: paletteColorSchema.nullable().optional(),
   inputColor: paletteColorSchema.nullable().optional(),
@@ -65,6 +85,13 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setViewQuery"; id: string; query: string; expectedQuery: string }
+  | {
+      type: "setViewColumns";
+      id: string;
+      columns: ColumnView;
+      expectedColumns: ColumnView;
+    }
   | {
       type: "moveNodeToSheet";
       id: string;
