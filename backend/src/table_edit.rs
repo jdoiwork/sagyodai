@@ -157,6 +157,9 @@ pub fn move_columns(
     columns: &[String],
     rows: &[Vec<String>],
 ) -> Result<(), String> {
+    if tables.iter().any(|t| t.id == id && t.kind == Kind::Display) {
+        return crate::projection::move_columns(tables, id, indices, to, columns, rows);
+    }
     let i = input_index(tables, id)?;
     if tables[i].columns != columns || tables[i].rows != rows {
         return Err(

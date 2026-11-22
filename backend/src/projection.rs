@@ -71,6 +71,100 @@ impl Projection {
     }
 }
 
+// 表のヘッダー位置は出力済みの列位置。非表示列を残したまま可視列のスロットを並べ替える。
+pub fn move_columns(
+    tables: &mut [Table],
+    id: &str,
+    indices: &[usize],
+    to: usize,
+    expected_columns: &[String],
+    expected_rows: &[Vec<String>],
+) -> Result<(), String> {
+    let i = tables
+        .iter()
+        .position(|t| t.id == id)
+        .ok_or("結果表が見つかりません。")?;
+    let table = &tables[i];
+    if table.stale || table.error.is_some() {
+        return Err("結果表を更新してから列を並べ替えてください。".into());
+    }
+    if table.columns != expected_columns || table.rows != expected_rows {
+        return Err(
+            "表の内容が変更されています。表示を確認して列を並べ替え直してください。".into(),
+        );
+    }
+    let source = table
+        .source
+        .as_ref()
+        .and_then(|id| tables.iter().find(|t| &t.id == id))
+        .ok_or("入力が未接続です。")?;
+    let mut config = table.projection.clone().unwrap_or_else(|| Projection {
+        schema: source.columns.clone(),
+        columns: source
+            .columns
+            .iter()
+            .enumerate()
+            .map(|(column, _)| OutputColumn {
+                column,
+                name: String::new(),
+                visible: true,
+            })
+            .collect(),
+    });
+    let (columns, rows) = config.evaluate(source)?;
+    if columns != table.columns || rows != table.rows {
+        return Err("入力が変更されています。結果表を更新してください。".into());
+    }
+    let visible: Vec<_> = config
+        .columns
+        .iter()
+        .filter(|c| c.visible)
+        .cloned()
+        .collect();
+    let mut selected = indices.to_vec();
+    selected.sort_unstable();
+    selected.dedup();
+    if selected.is_empty()
+        || selected.len() != indices.len()
+        || selected.iter().any(|n| *n >= visible.len())
+        || to > visible.len() - selected.len()
+    {
+        return Err("移動する列または移動先が不正です。".into());
+    }
+    let mut order: Vec<_> = (0..visible.len())
+        .filter(|n| !selected.contains(n))
+        .collect();
+    order.splice(to..to, selected);
+    let mut next = order.iter();
+    for column in &mut config.columns {
+        if column.visible
+            && let Some(index) = next.next()
+        {
+            *column = visible[*index].clone();
+        }
+    }
+    config.validate()?;
+    let table = &mut tables[i];
+    table.projection = Some(config);
+    table.view = Default::default();
+    // 自動更新なら同じ操作で列幅・フッターの対象も移動する。
+    if !table.manual {
+        table.column_widths = order
+            .iter()
+            .map(|i| table.column_widths.get(*i).copied().unwrap_or(160.0))
+            .collect();
+        if let Some(footer) = &table.footer {
+            table.footer = Some(
+                order
+                    .iter()
+                    .map(|i| footer.get(*i).copied().unwrap_or(false))
+                    .collect(),
+            );
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,6 +312,111 @@ mod tests {
             .is_err()
         );
         assert_eq!(p.snapshot().revision, before);
+    }
+    #[test]
+    fn header_reordering_preserves_hidden_columns_names_and_downstream_results() {
+        let mut p = Project::default();
+        for _ in 0..2 {
+            run(
+                &mut p,
+                Command::AddNode {
+                    kind: Kind::Display,
+                    sheet_id: None,
+                    position: None,
+                },
+            );
+        }
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-2".into(),
+                source: Some("table-1".into()),
+            },
+        );
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-3".into(),
+                source: Some("table-2".into()),
+            },
+        );
+        let cfg = config(&p.snapshot().tables[0]);
+        run(
+            &mut p,
+            Command::SetProjection {
+                id: "table-2".into(),
+                config: Some(cfg),
+            },
+        );
+        let before = p.snapshot().tables[1].clone();
+        run(
+            &mut p,
+            Command::MoveColumn {
+                id: "table-2".into(),
+                from: 0,
+                to: 1,
+                expected_columns: before.columns.clone(),
+                expected_rows: before.rows.clone(),
+            },
+        );
+        let snapshot = p.snapshot();
+        assert_eq!(snapshot.tables[1].columns, ["品名", "個数"]);
+        assert_eq!(snapshot.tables[2].columns, snapshot.tables[1].columns);
+        assert_eq!(
+            snapshot.tables[2].rows[0],
+            [before.rows[0][1].clone(), before.rows[0][0].clone()]
+        );
+        let projected = snapshot.tables[1].projection.as_ref().unwrap();
+        assert_eq!(
+            projected
+                .columns
+                .iter()
+                .map(|c| c.column)
+                .collect::<Vec<_>>(),
+            [0, 1, 2, 3]
+        );
+        assert!(!projected.columns[2].visible);
+        assert_eq!(projected.columns[1].name, "個数");
+        let restored =
+            storage::decode(serde_json::from_slice(&p.export().unwrap()).unwrap()).unwrap();
+        assert_eq!(restored[1].projection, snapshot.tables[1].projection);
+        assert!(
+            p.apply(Request {
+                expected_revision: snapshot.revision,
+                command: Command::MoveColumn {
+                    id: "table-2".into(),
+                    from: 0,
+                    to: 1,
+                    expected_columns: before.columns.clone(),
+                    expected_rows: before.rows.clone()
+                }
+            })
+            .is_err()
+        );
+        run(&mut p, Command::Undo);
+        assert_eq!(p.snapshot().tables[1].columns, before.columns);
+        run(
+            &mut p,
+            Command::SetProjection {
+                id: "table-2".into(),
+                config: None,
+            },
+        );
+        let plain = p.snapshot().tables[1].clone();
+        run(
+            &mut p,
+            Command::MoveColumn {
+                id: "table-2".into(),
+                from: 0,
+                to: 3,
+                expected_columns: plain.columns.clone(),
+                expected_rows: plain.rows.clone(),
+            },
+        );
+        assert_eq!(
+            p.snapshot().tables[1].columns,
+            ["数量", "分類", "メモ", "品名"]
+        );
     }
     #[test]
     fn rejects_missing_duplicate_and_empty_output_columns() {

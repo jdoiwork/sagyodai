@@ -740,7 +740,7 @@ fn column_reordering_preserves_filter_meaning_widths_and_history() {
                 expected_rows: display.rows
             }
         )
-        .is_err()
+        .is_ok()
     );
 }
 

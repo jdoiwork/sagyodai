@@ -872,3 +872,41 @@ it("行ヘッダーの範囲選択は表示順で扱い、降順と解除も出�
   ).toEqual(["0", "1", "2"]);
   expect(dispatch).not.toHaveBeenCalled();
 });
+
+it("結果表の列ヘッダーの文字からドラッグして出力列を移動できる", () => {
+  const t = {
+    ...table,
+    kind: "display" as const,
+    columns: ["名前", "個数"],
+    rows: [["鉛筆", "3"]],
+  };
+  const { container, rerender } = render(<TableGrid table={t} readOnly />);
+  const first = container.querySelector('[data-column="0"]')!;
+  const last = container.querySelector('[data-column="1"]')!;
+  expect(first.getAttribute("draggable")).toBe("true");
+  vi.spyOn(last, "getBoundingClientRect").mockReturnValue({
+    left: 300,
+    width: 160,
+  } as DOMRect);
+  const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  fireEvent.dragStart(first.querySelector(".column-letter")!, { dataTransfer });
+  const drop = new Event("drop", { bubbles: true, cancelable: true });
+  Object.assign(drop, { clientX: 450, dataTransfer });
+  fireEvent(last, drop);
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith(
+    {
+      type: "moveColumn",
+      id: t.id,
+      from: 0,
+      to: 1,
+      expectedColumns: t.columns,
+      expectedRows: t.rows,
+    },
+    expect.any(Function),
+  );
+  expect(container.querySelector("textarea")).toBeNull();
+  rerender(<TableGrid table={{ ...t, stale: true }} readOnly />);
+  expect(
+    container.querySelector('[data-column="0"]')!.getAttribute("draggable"),
+  ).toBeNull();
+});

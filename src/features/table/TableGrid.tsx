@@ -71,6 +71,8 @@ export function TableGrid({
   useDeletionAnimation(viewport, table);
   useTableWheel(viewport, onCanvasScroll);
   const headers = useHeaderSelection(table, visibleRows);
+  const canReorderColumns =
+    !readOnly || (table.kind === "display" && !table.stale && !table.error);
   const reorder = useColumnReorder(
     table,
     viewport,
@@ -521,13 +523,13 @@ export function TableGrid({
                         : "descending"
                       : undefined
                   }
-                  {...(!readOnly ? reorder.sourceProps(c) : {})}
-                  {...(!readOnly ? reorder.targetProps(c) : {})}
+                  {...(canReorderColumns ? reorder.sourceProps(c) : {})}
+                  {...(canReorderColumns ? reorder.targetProps(c) : {})}
                   className={
                     [
                       headers.contains("column", c) ? "selected-header" : "",
                       focusedCell?.col === c ? "editing-header" : "",
-                      !readOnly && reorder.marker?.col === c
+                      canReorderColumns && reorder.marker?.col === c
                         ? `column-drop-${reorder.marker.side}`
                         : "",
                       contextMenu?.preview &&
