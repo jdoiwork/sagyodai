@@ -3,6 +3,7 @@ import type { GroupConfig, GroupOutput, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
 import { functions, outputColumns, outputName } from "./groupOutputs";
+import { useOutputReorderAnimation } from "./useOutputReorderAnimation";
 const initial: GroupConfig = { groupBy: [], sums: [], count: true };
 export function GroupConditions({
   table,
@@ -20,6 +21,7 @@ export function GroupConditions({
   }, [saved]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const outputs = outputColumns(draft);
+  const reorder = useOutputReorderAnimation(outputs.length);
   const columns = source?.columns ?? [];
   const error = !outputs.length
     ? "出力する集計列を1つ以上追加してください。"
@@ -49,6 +51,7 @@ export function GroupConditions({
   function move(index: number, delta: -1 | 1) {
     const destination = index + delta;
     if (destination < 0 || destination >= outputs.length) return;
+    reorder.move(index, destination);
     const next = [...outputs];
     [next[index], next[destination]] = [next[destination], next[index]];
     changeOutputs(next);
@@ -94,9 +97,13 @@ export function GroupConditions({
           ))}
           {!columns.length && <span>入力を接続してください</span>}
         </div>
-        <div className="group-outputs nowheel">
+        <div className="group-outputs nowheel" ref={reorder.list}>
           {outputs.map((output, i) => (
-            <fieldset className="group-output" key={i}>
+            <fieldset
+              className="group-output"
+              key={reorder.ids[i]}
+              data-output-id={reorder.ids[i]}
+            >
               <legend>出力列 {i + 1}</legend>
               <div className="group-output-order">
                 <button
@@ -167,9 +174,10 @@ export function GroupConditions({
                 <button
                   type="button"
                   aria-label={`出力列${i + 1}を削除`}
-                  onClick={() =>
-                    changeOutputs(outputs.filter((_, n) => n !== i))
-                  }
+                  onClick={() => {
+                    reorder.remove(i);
+                    changeOutputs(outputs.filter((_, n) => n !== i));
+                  }}
                 >
                   <Icon name="trash" />
                 </button>

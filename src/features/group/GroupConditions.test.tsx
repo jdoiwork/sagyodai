@@ -111,7 +111,9 @@ it("未適用の列名を含めて上下に移動し、境界では移動不可�
   fireEvent.change(ui.getByLabelText("出力列2の列名"), {
     target: { value: "平均数量" },
   });
+  const movedInput = ui.getByLabelText("出力列2の列名");
   fireEvent.click(ui.getByLabelText("出力列2を上へ移動"));
+  expect(ui.getByLabelText("出力列1の列名")).toBe(movedInput);
   expect((ui.getByLabelText("出力列1の列名") as HTMLInputElement).value).toBe(
     "平均数量",
   );
