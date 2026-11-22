@@ -5,6 +5,7 @@ mod domain;
 mod graph;
 #[cfg(test)]
 mod graph_tests;
+mod sheets;
 mod storage;
 mod table_edit;
 mod union;

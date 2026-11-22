@@ -8,15 +8,17 @@ const HISTORY_LIMIT: usize = 30;
 #[derive(Clone)]
 pub struct Project {
     tables: Vec<Table>,
+    sheets: Vec<crate::sheets::Sheet>,
     revision: u64,
     next_id: u64,
-    undo: Vec<Vec<Table>>,
-    redo: Vec<Vec<Table>>,
+    undo: Vec<(Vec<Table>, Vec<crate::sheets::Sheet>)>,
+    redo: Vec<(Vec<Table>, Vec<crate::sheets::Sheet>)>,
 }
 
 impl Default for Project {
     fn default() -> Self {
         Self {
+            sheets: crate::sheets::default_sheets(),
             tables: vec![sample_table("table-1".into(), 0)],
             revision: 0,
             next_id: 2,
@@ -28,19 +30,22 @@ impl Default for Project {
 
 impl Project {
     pub fn restore(document: serde_json::Value, revision: u64) -> Result<Self, String> {
+        let file = storage::decode_project(document)?;
         Ok(Self {
-            tables: storage::decode(document)?,
+            tables: file.tables,
+            sheets: file.sheets,
             revision,
             ..Self::default()
         })
     }
 
     pub fn export(&self) -> Result<Vec<u8>, String> {
-        storage::encode(&self.tables)
+        storage::encode_project(&self.tables, &self.sheets)
     }
 
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            sheets: self.sheets.clone(),
             revision: self.revision,
             tables: self
                 .tables
@@ -65,13 +70,18 @@ impl Project {
         match request.command {
             Command::Undo => {
                 if let Some(previous) = self.undo.pop() {
-                    self.redo
-                        .push(std::mem::replace(&mut self.tables, previous));
+                    self.redo.push((
+                        std::mem::replace(&mut self.tables, previous.0),
+                        std::mem::replace(&mut self.sheets, previous.1),
+                    ));
                 }
             }
             Command::Redo => {
                 if let Some(next) = self.redo.pop() {
-                    self.undo.push(std::mem::replace(&mut self.tables, next));
+                    self.undo.push((
+                        std::mem::replace(&mut self.tables, next.0),
+                        std::mem::replace(&mut self.sheets, next.1),
+                    ));
                 }
             }
             command => {
@@ -83,11 +93,29 @@ impl Project {
                     None
                 };
                 let opening = matches!(command, Command::OpenProject { .. });
-                self.edit(&mut tables, command)?;
+                let mut sheets = self.sheets.clone();
+                match command {
+                    Command::AddSheet => crate::sheets::add(&mut sheets)?,
+                    Command::RenameSheet {
+                        id,
+                        title,
+                        expected_title,
+                    } => crate::sheets::rename(&mut sheets, &id, &title, &expected_title)?,
+                    Command::OpenProject { document } => {
+                        let file = storage::decode_project(document)?;
+                        tables = file.tables;
+                        sheets = file.sheets;
+                    }
+                    command => self.edit(&mut tables, command)?,
+                }
+                crate::sheets::validate(&sheets, &tables)?;
                 if !opening {
                     crate::graph::evaluate(&mut tables, &self.tables, run.as_deref())?;
                 }
-                self.undo.push(std::mem::replace(&mut self.tables, tables));
+                self.undo.push((
+                    std::mem::replace(&mut self.tables, tables),
+                    std::mem::replace(&mut self.sheets, sheets),
+                ));
                 if self.undo.len() > HISTORY_LIMIT {
                     self.undo.remove(0);
                 }
@@ -100,8 +128,8 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
-            Command::OpenProject { document } => {
-                *tables = storage::decode(document)?;
+            Command::OpenProject { .. } | Command::AddSheet | Command::RenameSheet { .. } => {
+                return Err("プロジェクト操作は共通操作から実行してください。".into());
             }
             Command::Rename {
                 id,
@@ -278,11 +306,20 @@ impl Project {
                 }
             }
             Command::AddTable | Command::AddNode { .. } => {
-                let (kind, position) = if let Command::AddNode { kind, position } = command {
-                    (kind, position)
+                let (kind, position, sheet_id) = if let Command::AddNode {
+                    kind,
+                    position,
+                    sheet_id,
+                } = command
+                {
+                    (kind, position, sheet_id)
                 } else {
-                    (Kind::Input, None)
+                    (Kind::Input, None, None)
                 };
+                let sheet_id = sheet_id.unwrap_or_else(crate::sheets::default_sheet_id);
+                if !self.sheets.iter().any(|s| s.id == sheet_id) {
+                    return Err("シートが見つかりません。".into());
+                }
                 if position
                     .as_ref()
                     .is_some_and(|p| !p.x.is_finite() || !p.y.is_finite())
@@ -303,6 +340,10 @@ impl Project {
                     format!("table-{}", self.next_id),
                     tables.len(),
                 ));
+                tables
+                    .last_mut()
+                    .ok_or("ノードを作成できません。")?
+                    .sheet_id = sheet_id;
                 if kind != Kind::Input {
                     let t = tables.last_mut().ok_or("ノードを作成できません。")?;
                     t.kind = kind;

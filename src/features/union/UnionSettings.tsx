@@ -1,3 +1,4 @@
+import { sourceLabel } from "../sheets/model";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
@@ -53,10 +54,22 @@ export function UnionSettings({ table }: { table: TableData }) {
             {sources.map((source, index) => (
               <div className="union-input-row" key={source}>
                 <span
-                  title={project?.tables.find((t) => t.id === source)?.title}
+                  title={
+                    project?.tables.find((t) => t.id === source)
+                      ? sourceLabel(
+                          project,
+                          project.tables.find((t) => t.id === source)!,
+                        )
+                      : source
+                  }
                 >
                   {index + 1}.{" "}
-                  {project?.tables.find((t) => t.id === source)?.title}
+                  {project?.tables.find((t) => t.id === source)
+                    ? sourceLabel(
+                        project,
+                        project.tables.find((t) => t.id === source)!,
+                      )
+                    : source}
                 </span>
                 <button
                   disabled={pending > 0 || index === 0}
@@ -95,7 +108,7 @@ export function UnionSettings({ table }: { table: TableData }) {
               <option value="">表を選択（端子への接続でも追加）</option>
               {candidates.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.title}
+                  {sourceLabel(project, t)}
                 </option>
               ))}
             </select>

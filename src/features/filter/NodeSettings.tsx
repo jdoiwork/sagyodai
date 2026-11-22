@@ -1,3 +1,4 @@
+import { sourceLabel } from "../sheets/model";
 import { filterInputError, createsCycle } from "../../validation/input";
 import { Icon } from "../../components/Icon";
 import { useEffect, useRef, useState } from "react";
@@ -72,7 +73,7 @@ export function NodeSettings({ table }: { table: TableData }) {
                 value={t.id}
                 disabled={createsCycle(project!.tables, table.id, t.id)}
               >
-                {t.title}
+                {sourceLabel(project, t)}
                 {createsCycle(project!.tables, table.id, t.id)
                   ? "（循環するため接続不可）"
                   : ""}

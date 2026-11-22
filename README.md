@@ -40,3 +40,5 @@ npm run format:check
 ```
 
 `check` は TypeScript の型検査、画面のビルド、Vitest、Rust のテスト、Clippy を実行します。UI の IME や操作感の確認手順は試作ドキュメントに記載しています。
+
+シートの追加・表示切り替えと、別シートのノードの参照に対応する。詳細は[シートとシート間参照](docs/sheets.md)を参照。

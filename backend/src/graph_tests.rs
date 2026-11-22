@@ -29,6 +29,7 @@ fn flow() -> Project {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Filter,
             position: None,
         },
@@ -37,6 +38,7 @@ fn flow() -> Project {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Display,
             position: None,
         },
@@ -80,6 +82,7 @@ fn propagation_branching_read_only_and_shared_undo() {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Display,
             position: None,
         },
@@ -187,6 +190,7 @@ fn cycles_invalid_sources_and_corrupt_saved_graphs_are_atomic() {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Filter,
             position: None,
         },
@@ -258,6 +262,7 @@ fn node_creation_uses_requested_position_and_undo_restores_it() {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Filter,
             position: Some(crate::domain::Position {
                 x: -1200.5,

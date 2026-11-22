@@ -15,6 +15,7 @@ fn setup() -> Project {
         run(
             &mut p,
             Command::AddNode {
+                sheet_id: None,
                 kind,
                 position: None,
             },
@@ -168,6 +169,7 @@ fn multi_input_cycles_duplicates_and_missing_sources_are_atomic() {
     run(
         &mut p,
         Command::AddNode {
+            sheet_id: None,
             kind: Kind::Filter,
             position: None,
         },

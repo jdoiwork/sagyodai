@@ -1,3 +1,5 @@
+import { SheetBar } from "../features/sheets/SheetBar";
+import { sheetOf, sheetsOf } from "../features/sheets/model";
 import { unionInputHandle } from "../features/union/ports";
 import { colorValue } from "../features/canvas/colors";
 import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
@@ -26,6 +28,13 @@ function Canvas() {
     dispatch,
     pending,
   );
+  const [selectedSheet, setSelectedSheet] = useState("sheet-1");
+  const activeSheet = sheetsOf(project).some((s) => s.id === selectedSheet)
+    ? selectedSheet
+    : sheetsOf(project)[0].id;
+  const visibleTables =
+    project?.tables.filter((t) => sheetOf(t) === activeSheet) ?? [];
+  const visibleIds = new Set(visibleTables.map((t) => t.id));
   const [edgeMenu, setEdgeMenu] = useState<{
     x: number;
     y: number;
@@ -36,8 +45,22 @@ function Canvas() {
   const connectionFromInput = useRef(false);
   const [connectionColor, setConnectionColor] = useState<string>();
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
-  const { zoomTo, fitView, screenToFlowPosition } = useReactFlow();
+  const { zoomTo, fitView, screenToFlowPosition, getViewport, setViewport } =
+    useReactFlow();
   const { zoom } = useViewport();
+  const viewports = useRef(
+    new Map<string, { x: number; y: number; zoom: number }>(),
+  );
+  const previousSheet = useRef(activeSheet);
+  useEffect(() => {
+    if (previousSheet.current === activeSheet) return;
+    viewports.current.set(previousSheet.current, getViewport());
+    previousSheet.current = activeSheet;
+    void setViewport(
+      viewports.current.get(activeSheet) ?? { x: 0, y: 0, zoom: 1 },
+    );
+    setEdgeMenu(null);
+  }, [activeSheet, getViewport, setViewport]);
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
@@ -75,7 +98,7 @@ function Canvas() {
       y: top + Math.max(0, (rect.bottom - 80 - top - height) / 2),
     });
     adding.current = { kind, ids: new Set(project.tables.map((t) => t.id)) };
-    dispatch({ type: "addNode", kind, position });
+    dispatch({ type: "addNode", kind, position, sheetId: activeSheet });
   }
   return (
     <div className="workspace">
@@ -149,7 +172,17 @@ function Canvas() {
         )}
       <main ref={canvas} className="canvas-shell">
         <ReactFlow
-          nodes={nodes}
+          // 非表示シートの入力途中の値を保持するため、ノードをアンマウントしない。
+          nodes={nodes.map((node) => ({
+            ...node,
+            selected: visibleIds.has(node.id) && node.selected,
+            draggable: visibleIds.has(node.id),
+            selectable: visibleIds.has(node.id),
+            style: {
+              ...node.style,
+              visibility: visibleIds.has(node.id) ? "visible" : "hidden",
+            },
+          }))}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           deleteKeyCode={null}
@@ -192,30 +225,33 @@ function Canvas() {
               source: connection.source,
             })
           }
-          edges={(project?.tables ?? []).flatMap((t) => {
+          edges={visibleTables.flatMap((t) => {
             const inputs =
               t.kind === "union"
                 ? (t.unionInputs ?? [])
                 : t.source
                   ? [{ source: t.source, color: t.edgeColor }]
                   : [];
-            return inputs.map((input) => ({
-              id: `edge-${t.id}-${input.source}`,
-              source: input.source,
-              target: t.id,
-              sourceHandle: "out",
-              targetHandle:
-                t.kind === "union" ? unionInputHandle(input.source) : "in",
-              type: "smoothstep",
-              reconnectable:
-                t.kind === "union" ? (false as const) : ("source" as const),
-              style: {
-                stroke:
-                  colorValue(input.color) ?? (t.stale ? "#bd9147" : "#386e61"),
-                strokeDasharray: t.stale ? "6 4" : undefined,
-                strokeWidth: 2.5,
-              },
-            }));
+            return inputs
+              .filter((input) => visibleIds.has(input.source))
+              .map((input) => ({
+                id: `edge-${t.id}-${input.source}`,
+                source: input.source,
+                target: t.id,
+                sourceHandle: "out",
+                targetHandle:
+                  t.kind === "union" ? unionInputHandle(input.source) : "in",
+                type: "smoothstep",
+                reconnectable:
+                  t.kind === "union" ? (false as const) : ("source" as const),
+                style: {
+                  stroke:
+                    colorValue(input.color) ??
+                    (t.stale ? "#bd9147" : "#386e61"),
+                  strokeDasharray: t.stale ? "6 4" : undefined,
+                  strokeWidth: 2.5,
+                },
+              }));
           })}
           isValidConnection={(connection) =>
             !!project &&
@@ -425,7 +461,15 @@ function Canvas() {
             <Icon name="plus" />
           </button>
           <div className="toolbar-separator" />
-          <button onClick={() => fitView({ padding: 0.2, maxZoom: 1 })}>
+          <button
+            onClick={() =>
+              fitView({
+                nodes: visibleTables.map((t) => ({ id: t.id })),
+                padding: 0.2,
+                maxZoom: 1,
+              })
+            }
+          >
             <Icon name="fit" />
             全体表示
           </button>
@@ -434,6 +478,7 @@ function Canvas() {
           出力 → 入力へドラッグで接続 · 余白で移動 · ピンチでズーム
         </div>
       </main>
+      <SheetBar active={activeSheet} onSelect={setSelectedSheet} />
       <footer className="statusbar">
         <span>
           <i className={error ? "status-dot error" : "status-dot"} />
@@ -448,8 +493,8 @@ function Canvas() {
                 : "接続中"}
         </span>
         <span>
-          {project?.tables.length ?? 0} 個のノード
-          <span className="status-separator">/</span>
+          {visibleTables.length} 個のノード（全体 {project?.tables.length ?? 0}
+          ）<span className="status-separator">/</span>
           セル編集はフォーカス移動時に反映
         </span>
         <span>CANVAS PROTOTYPE · 01</span>

@@ -1,3 +1,4 @@
+import { sheetOf, sourceLabel } from "../sheets/model";
 import { unionInputHandle, unionPortTop } from "../union/ports";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useProject } from "../../app/ProjectContext";
@@ -10,6 +11,11 @@ import type { TableData } from "../../api/project";
 export function NodePorts({ table }: { table: TableData }) {
   const { project, dispatch, pending } = useProject();
   const updateNodeInternals = useUpdateNodeInternals();
+  const sourceTable = project?.tables.find((t) => t.id === table.source);
+  const externalSource =
+    sourceTable && sheetOf(sourceTable) !== sheetOf(table)
+      ? sourceLabel(project, sourceTable)
+      : null;
   const inputOrder = (table.unionInputs ?? [])
     .map((input) => input.source)
     .join("\0");
@@ -82,9 +88,12 @@ export function NodePorts({ table }: { table: TableData }) {
       )}
       {table.kind === "union" &&
         (table.unionInputs ?? []).map((input, index) => {
-          const title =
-            project?.tables.find((t) => t.id === input.source)?.title ??
-            input.source;
+          const source = project?.tables.find((t) => t.id === input.source);
+          const title = source
+            ? sheetOf(source) !== sheetOf(table)
+              ? sourceLabel(project, source)
+              : source.title
+            : input.source;
           return (
             <Handle
               key={input.source}
@@ -127,8 +136,13 @@ export function NodePorts({ table }: { table: TableData }) {
               : "入力：出力端子からドラッグして接続（入力から逆向きにも接続できます）"
           }
         >
-          <span className="port-label">
-            {table.kind === "union" ? "＋ 入力" : "入力"}
+          <span
+            className={
+              externalSource ? "port-label union-source-label" : "port-label"
+            }
+            title={externalSource ?? undefined}
+          >
+            {table.kind === "union" ? "＋ 入力" : (externalSource ?? "入力")}
           </span>
         </Handle>
       )}

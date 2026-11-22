@@ -1112,3 +1112,45 @@ button.action-danger:hover {
   text-overflow: ellipsis;
   line-height: 18px;
 }
+
+.sheet-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 20px;
+  background: #f5f8f5;
+  border-top: 1px solid #d9e3dd;
+  position: relative;
+  flex-shrink: 0;
+}
+.sheet-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+.sheet-tabs button {
+  white-space: nowrap;
+}
+.sheet-tabs [aria-selected="true"] {
+  background: #28634f;
+  color: white;
+}
+.sheet-rename {
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 600px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #c5d6cc;
+  border-radius: 8px;
+  box-shadow: 0 5px 24px #23433222;
+}
+.sheet-rename [role="alert"] {
+  color: #a33131;
+  width: 100%;
+}

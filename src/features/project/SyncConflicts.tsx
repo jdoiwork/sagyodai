@@ -21,7 +21,8 @@ export function SyncConflicts() {
                 : item.command.type === "removeRows" ||
                     item.command.type === "removeColumns"
                   ? `選択した${item.command.indices.length}${item.command.type === "removeRows" ? "行" : "列"}の削除（表示を確認して選択し直してください）`
-                  : item.command.type === "rename"
+                  : item.command.type === "rename" ||
+                      item.command.type === "renameSheet"
                     ? item.command.title
                     : item.command.type === "removeRow"
                       ? `${item.command.row + 1}行の削除（表示を確認して削除し直してください）`
@@ -42,7 +43,8 @@ export function SyncConflicts() {
                 この入力は再適用できません。操作を破棄して列名を入力し直してください。
               </p>
             )}
-          {item.command.type === "rename" &&
+          {(item.command.type === "rename" ||
+            item.command.type === "renameSheet") &&
             nodeTitleError(item.command.title) && (
               <p>
                 この入力は再適用できません。操作を破棄してタイトルを入力し直してください。
@@ -59,7 +61,8 @@ export function SyncConflicts() {
               !!commandInputError(item.command) ||
               (item.command.type === "renameColumn" &&
                 !!columnNameError(item.command.name)) ||
-              (item.command.type === "rename" &&
+              ((item.command.type === "rename" ||
+                item.command.type === "renameSheet") &&
                 !!nodeTitleError(item.command.title))
             }
             onClick={() => resolveConflict(item.id, true)}

@@ -26,6 +26,7 @@ export const filterSchema = z.object({
 });
 export type FilterConfig = z.infer<typeof filterSchema>;
 const tableSchema = z.object({
+  sheetId: z.string().optional(),
   edgeColor: paletteColorSchema.nullable().optional(),
   inputColor: paletteColorSchema.nullable().optional(),
   outputColor: paletteColorSchema.nullable().optional(),
@@ -55,6 +56,7 @@ const tableSchema = z.object({
   height: z.number(),
 });
 const snapshotSchema = z.object({
+  sheets: z.array(z.object({ id: z.string(), title: z.string() })).optional(),
   revision: z.number(),
   tables: z.array(tableSchema),
   canUndo: z.boolean(),
@@ -63,9 +65,12 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "addSheet" }
+  | { type: "renameSheet"; id: string; title: string; expectedTitle: string }
   | { type: "addTable" | "undo" | "redo" }
   | {
       type: "addNode";
+      sheetId?: string;
       kind: "input" | "filter" | "display" | "union";
       position?: { x: number; y: number };
     }

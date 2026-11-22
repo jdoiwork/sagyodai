@@ -15,13 +15,23 @@ pub struct ProjectFile {
     pub format: String,
     pub format_version: u32,
     pub tables: Vec<Table>,
+    #[serde(default = "crate::sheets::default_sheets")]
+    pub sheets: Vec<crate::sheets::Sheet>,
 }
 
+#[cfg(test)]
 pub fn encode(tables: &[Table]) -> Result<Vec<u8>, String> {
+    encode_project(tables, &crate::sheets::default_sheets())
+}
+pub fn encode_project(
+    tables: &[Table],
+    sheets: &[crate::sheets::Sheet],
+) -> Result<Vec<u8>, String> {
     let file = ProjectFile {
         format: "sagyodai".into(),
         format_version: FORMAT_VERSION,
         tables: tables.to_vec(),
+        sheets: sheets.to_vec(),
     };
     let bytes = serde_json::to_vec_pretty(&file).map_err(|_| "ファイルを生成できませんでした。")?;
     if bytes.len() > MAX_FILE_BYTES {
@@ -30,7 +40,11 @@ pub fn encode(tables: &[Table]) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
+#[cfg(test)]
 pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
+    Ok(decode_project(value)?.tables)
+}
+pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
     if value.get("format").and_then(|v| v.as_str()) != Some("sagyodai") {
         return Err("作業台のプロジェクトファイルではありません。".into());
     }
@@ -81,10 +95,11 @@ pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
             return Err("表の位置またはサイズが不正です。".into());
         }
     }
+    crate::sheets::validate(&file.sheets, &file.tables)?;
     crate::graph::order(&file.tables)?;
     // 開けるのに再保存できないデータを受け入れない。
-    encode(&file.tables)?;
-    Ok(file.tables)
+    encode_project(&file.tables, &file.sheets)?;
+    Ok(file)
 }
 
 pub fn valid_layout(x: f64, y: f64, width: f64, height: f64) -> bool {

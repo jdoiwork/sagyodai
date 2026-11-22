@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default = "crate::sheets::default_sheet_id")]
+    pub sheet_id: String,
     #[serde(default)]
     pub edge_color: Option<PaletteColor>,
     #[serde(default)]
@@ -104,6 +106,7 @@ pub struct Filter {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
+    pub sheets: Vec<crate::sheets::Sheet>,
     pub revision: u64,
     pub tables: Vec<Table>,
     pub can_undo: bool,
@@ -118,9 +121,16 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    AddSheet,
+    RenameSheet {
+        id: String,
+        title: String,
+        expected_title: String,
+    },
     AddTable,
     AddNode {
         kind: Kind,
+        sheet_id: Option<String>,
         position: Option<Position>,
     },
     ConnectFromPort {
@@ -288,6 +298,7 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,
         input_color: None,
         output_color: None,
