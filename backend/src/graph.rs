@@ -38,7 +38,11 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
         }
         if let Some(f) = &t.filter
             && (f.column >= crate::storage::MAX_COLS
-                || f.value.len() > crate::storage::MAX_CELL_BYTES)
+                || f.value.len() > crate::storage::MAX_CELL_BYTES
+                || f.values.len() > crate::storage::MAX_ROWS
+                || f.values
+                    .iter()
+                    .any(|v| v.len() > crate::storage::MAX_CELL_BYTES))
         {
             return Err("フィルタ条件が上限を超えています。".into());
         }
@@ -79,12 +83,15 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
     } else {
         None
     };
+    let selected: std::collections::HashSet<&str> =
+        filter.values.iter().map(String::as_str).collect();
     Ok(source
         .rows
         .iter()
         .filter(|row| {
             let value = &row[filter.column];
             match filter.operator {
+                Operator::In => selected.contains(value.as_str()),
                 Operator::Equals => value == &filter.value,
                 Operator::NotEquals => value != &filter.value,
                 Operator::Contains => value.contains(&filter.value),

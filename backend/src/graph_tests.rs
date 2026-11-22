@@ -15,6 +15,7 @@ fn configure(p: &mut Project, operator: Operator, value: &str, manual: bool) {
         Command::Configure {
             id: "table-2".into(),
             filter: Some(Filter {
+                values: vec![],
                 column: 1,
                 operator,
                 value: value.into(),
@@ -244,6 +245,7 @@ fn japanese_string_filters_and_empty_match() {
             Command::Configure {
                 id: "table-2".into(),
                 filter: Some(Filter {
+                    values: vec![],
                     column: 2,
                     operator,
                     value: value.into(),
@@ -1439,4 +1441,67 @@ fn footer_uses_manual_cached_rows_and_does_not_feed_downstream() {
         p.snapshot().tables[2].footer_totals[1].as_deref(),
         Some("32")
     );
+}
+
+#[test]
+fn in_filter_matches_exact_values_propagates_and_preserves_manual_cache() {
+    let mut p = flow();
+    run(
+        &mut p,
+        Command::Paste {
+            id: "table-1".into(),
+            row: 0,
+            col: 0,
+            values: vec![
+                vec!["食品".into()],
+                vec!["文房具".into()],
+                vec!["食品".into()],
+                vec!["".into()],
+                vec![" 食品".into()],
+            ],
+            expected_values: None,
+        },
+    )
+    .unwrap();
+    let make = |values: Vec<&str>, manual| Command::Configure {
+        id: "table-2".into(),
+        filter: Some(Filter {
+            column: 0,
+            operator: Operator::In,
+            value: "".into(),
+            values: values.into_iter().map(String::from).collect(),
+        }),
+        manual,
+    };
+    run(&mut p, make(vec!["食品", ""], false)).unwrap();
+    let s = p.snapshot();
+    assert_eq!(
+        s.tables[1]
+            .rows
+            .iter()
+            .map(|r| r[0].as_str())
+            .collect::<Vec<_>>(),
+        ["食品", "食品", "", ""]
+    );
+    assert_eq!(s.tables[2].rows, s.tables[1].rows);
+    let file = p.export().unwrap();
+    let restored = storage::decode(serde_json::from_slice(&file).unwrap()).unwrap();
+    assert_eq!(restored[1].filter, s.tables[1].filter);
+    assert_eq!(restored[2].rows, s.tables[2].rows);
+    run(&mut p, make(vec!["文房具", "消えた値"], true)).unwrap();
+    assert_eq!(p.snapshot().tables[1].rows, s.tables[1].rows);
+    assert!(p.snapshot().tables[1].stale);
+    run(
+        &mut p,
+        Command::Run {
+            id: "table-2".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].rows.len(), 1);
+    run(&mut p, make(vec![], false)).unwrap();
+    assert!(p.snapshot().tables[1].rows.is_empty());
+    assert!(p.snapshot().tables[2].rows.is_empty());
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[1].rows.len(), 1);
 }

@@ -87,6 +87,7 @@ pub enum Kind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Operator {
+    In,
     NumberEquals,
     NumberNotEquals,
     Equals,
@@ -100,6 +101,8 @@ pub enum Operator {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Filter {
+    #[serde(default)]
+    pub values: Vec<String>,
     pub column: usize,
     pub operator: Operator,
     pub value: String,

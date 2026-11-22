@@ -12,6 +12,7 @@ export type PaletteColor = z.infer<typeof paletteColorSchema>;
 export const filterSchema = z.object({
   column: z.number().int().nonnegative(),
   operator: z.enum([
+    "in",
     "equals",
     "notEquals",
     "contains",
@@ -23,6 +24,7 @@ export const filterSchema = z.object({
     "numberNotEquals",
   ]),
   value: z.string(),
+  values: z.array(z.string()).optional(),
 });
 export type FilterConfig = z.infer<typeof filterSchema>;
 export const columnViewSchema = z.object({

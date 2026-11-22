@@ -1,3 +1,4 @@
+import { InValues } from "./InValues";
 import { sourceLabel } from "../sheets/model";
 import { filterInputError, createsCycle } from "../../validation/input";
 import { Icon } from "../../components/Icon";
@@ -6,6 +7,7 @@ import type { FilterConfig, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 const operators: [FilterConfig["operator"], string][] = [
   ["equals", "文字列が一致"],
+  ["in", "いずれかに一致（IN）"],
   ["notEquals", "文字列が不一致"],
   ["contains", "文字列を含む"],
   ["numberEquals", "数値 ="],
@@ -33,7 +35,9 @@ export function NodeSettings({ table }: { table: TableData }) {
     draft != null &&
     (draft.column !== table.filter?.column ||
       draft.operator !== table.filter?.operator ||
-      draft.value !== table.filter?.value);
+      draft.value !== table.filter?.value ||
+      JSON.stringify(draft.values ?? []) !==
+        JSON.stringify(table.filter?.values ?? []));
   return (
     <div
       className={`node-settings nodrag nopan${table.kind === "filter" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
@@ -48,7 +52,11 @@ export function NodeSettings({ table }: { table: TableData }) {
           {source?.columns[table.filter.column] ??
             `列 ${table.filter.column + 1}`}{" "}
           {operators.find(([op]) => op === table.filter?.operator)?.[1]}{" "}
-          {JSON.stringify(table.filter.value)}
+          {JSON.stringify(
+            table.filter.operator === "in"
+              ? (table.filter.values ?? [])
+              : table.filter.value,
+          )}
         </div>
       )}
       <label hidden={table.compact}>
@@ -99,12 +107,18 @@ export function NodeSettings({ table }: { table: TableData }) {
             });
           }}
         >
-          <div className="condition-fields">
+          <div
+            className={`condition-fields${draft.operator === "in" ? " condition-fields-in" : ""}`}
+          >
             <select
               aria-label={`${table.title} 対象列`}
               value={draft.column}
               onChange={(e) =>
-                setDraft({ ...draft, column: Number(e.target.value) })
+                setDraft({
+                  ...draft,
+                  column: Number(e.target.value),
+                  ...(draft.operator === "in" ? { values: [] } : {}),
+                })
               }
             >
               {!source?.columns.length && (
@@ -132,15 +146,25 @@ export function NodeSettings({ table }: { table: TableData }) {
                 </option>
               ))}
             </select>
-            <input
-              aria-label={`${table.title} 比較値`}
-              aria-invalid={!!inputError}
-              title={inputError || undefined}
-              placeholder="比較する値"
-              value={draft.value}
-              onChange={(e) => setDraft({ ...draft, value: e.target.value })}
-            />
+            {draft.operator !== "in" && (
+              <input
+                aria-label={`${table.title} 比較値`}
+                aria-invalid={!!inputError}
+                title={inputError || undefined}
+                placeholder="比較する値"
+                value={draft.value}
+                onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+              />
+            )}
           </div>
+          {draft.operator === "in" && (
+            <InValues
+              label={table.title}
+              values={source?.rows?.map((row) => row[draft.column] ?? "") ?? []}
+              selected={draft.values ?? []}
+              onChange={(values) => setDraft({ ...draft, values })}
+            />
+          )}
           {inputError && (
             <div className="inline-error" role="alert">
               {inputError}

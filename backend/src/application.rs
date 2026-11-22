@@ -414,6 +414,7 @@ impl Project {
                     t.stale = true;
                     if kind == Kind::Filter {
                         t.filter = Some(Filter {
+                            values: vec![],
                             column: 0,
                             operator: Operator::Equals,
                             value: String::new(),

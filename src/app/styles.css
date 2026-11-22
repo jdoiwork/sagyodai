@@ -1311,3 +1311,53 @@ button.action-danger:hover {
   background: #28634f;
   color: white;
 }
+
+.in-values {
+  margin-top: 8px;
+  min-width: 0;
+}
+.in-value-actions {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+.in-value-options {
+  max-height: 136px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.in-value-options label {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+}
+.in-value-options label span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.in-value-options input {
+  flex: 0 0 auto;
+}
+.condition-fields-in {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.in-values-menu {
+  position: fixed;
+  z-index: 10000;
+  width: 320px;
+  max-height: 352px;
+  overflow: auto;
+  padding: 12px;
+  background: white;
+  border: 1px solid #c9d8d0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #173f3026;
+  font-size: 13px;
+}
+.in-values-menu > input {
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 6px;
+  border: 1px solid #c9d8d0;
+  border-radius: 5px;
+}
