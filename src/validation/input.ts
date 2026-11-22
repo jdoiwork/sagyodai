@@ -25,7 +25,7 @@ export function pasteInputError(
     : "";
 }
 export function filterInputError(filter: FilterConfig): string {
-  if (filter.operator === "in")
+  if (filter.operator === "in" || filter.operator === "notIn")
     return (filter.values?.length ?? 0) > MAX_ROWS ||
       filter.values?.some((v) => cellInputError(v))
       ? "選択値は5000個以内、各100000バイト以内にしてください。"

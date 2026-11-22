@@ -92,6 +92,7 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
             let value = &row[filter.column];
             match filter.operator {
                 Operator::In => selected.contains(value.as_str()),
+                Operator::NotIn => !selected.contains(value.as_str()),
                 Operator::Equals => value == &filter.value,
                 Operator::NotEquals => value != &filter.value,
                 Operator::Contains => value.contains(&filter.value),

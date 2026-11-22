@@ -13,6 +13,7 @@ export const filterSchema = z.object({
   column: z.number().int().nonnegative(),
   operator: z.enum([
     "in",
+    "notIn",
     "equals",
     "notEquals",
     "contains",

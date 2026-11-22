@@ -90,3 +90,31 @@ it("INの複数選択は適用するまで送らず、空欄と0件を指定で�
     }),
   );
 });
+
+it("INからNOT INへ選択を保持して切り替え、除外条件を適用できる", () => {
+  const ui = render(
+    <NodeSettings
+      table={{
+        ...table,
+        filter: { column: 0, operator: "in", value: "", values: ["食品", ""] },
+      }}
+    />,
+  );
+  fireEvent.change(ui.getByLabelText("条件 比較方法"), {
+    target: { value: "notIn" },
+  });
+  expect(ui.getByText("未適用の変更あり")).toBeTruthy();
+  fireEvent.click(ui.getByLabelText("条件 NOT INの値を選択"));
+  expect(ui.getByText("除外する値を選択")).toBeTruthy();
+  expect(
+    (ui.getByRole("checkbox", { name: "食品 2" }) as HTMLInputElement).checked,
+  ).toBe(true);
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByLabelText("NOT INの候補を閉じる"));
+  fireEvent.click(ui.getByRole("button", { name: "条件を適用" }));
+  expect(dispatch).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filter: { column: 0, operator: "notIn", value: "", values: ["食品", ""] },
+    }),
+  );
+});

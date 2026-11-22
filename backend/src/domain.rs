@@ -88,6 +88,7 @@ pub enum Kind {
 #[serde(rename_all = "camelCase")]
 pub enum Operator {
     In,
+    NotIn,
     NumberEquals,
     NumberNotEquals,
     Equals,

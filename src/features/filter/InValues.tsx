@@ -4,15 +4,19 @@ import { createPortal } from "react-dom";
 // 入力に今は存在しない選択値も残し、再出現したときに同じ条件で抽出する。
 export function InValues({
   label,
+  exclude = false,
   values,
   selected,
   onChange,
 }: {
   label: string;
+  exclude?: boolean;
   values: string[];
   selected: string[];
   onChange: (values: string[]) => void;
 }) {
+  const mode = exclude ? "NOT IN" : "IN";
+  const action = exclude ? "除外する値" : "一致させる値";
   const [position, setPosition] = useState<{ x: number; y: number } | null>(
     null,
   );
@@ -42,14 +46,14 @@ export function InValues({
       <button
         type="button"
         ref={trigger}
-        aria-label={`${label} INの値を選択`}
+        aria-label={`${label} ${mode}の値を選択`}
         aria-expanded={!!position}
         onClick={() => {
           const r = trigger.current?.getBoundingClientRect();
           if (r) setPosition(position ? null : { x: r.left, y: r.bottom + 4 });
         }}
       >
-        {selected.length} 個の値を選択（IN） ▾
+        {selected.length} 個の値を選択（{mode}） ▾
       </button>
       {position &&
         createPortal(
@@ -57,7 +61,7 @@ export function InValues({
             ref={menu}
             tabIndex={-1}
             role="dialog"
-            aria-label={`${label} INの候補`}
+            aria-label={`${label} ${mode}の候補`}
             className="in-values-menu nodrag nopan nowheel"
             style={{
               left: Math.max(8, Math.min(position.x, window.innerWidth - 328)),
@@ -77,7 +81,7 @@ export function InValues({
                 e.preventDefault();
             }}
           >
-            <strong>一致させる値を選択</strong>
+            <strong>{action}を選択</strong>
             <input
               aria-label={`${label} 選択候補を検索`}
               placeholder="候補を検索"
@@ -96,7 +100,7 @@ export function InValues({
               </button>
               <button
                 type="button"
-                aria-label="INの候補を閉じる"
+                aria-label={`${mode}の候補を閉じる`}
                 onClick={() => {
                   setPosition(null);
                   trigger.current?.focus();
@@ -107,7 +111,7 @@ export function InValues({
             </div>
             <div
               className="in-value-options nowheel"
-              aria-label={`${label} 一致させる値`}
+              aria-label={`${label} ${action}`}
             >
               {[...counts]
                 .filter(([v]) =>
@@ -136,7 +140,9 @@ export function InValues({
               {!counts.size && <span>入力元に値がありません</span>}
             </div>
             <small>
-              文字列の完全一致 · 未選択は0件 · 条件を適用すると出力に反映
+              文字列の完全一致 ·{" "}
+              {exclude ? "選択した値を除外・未選択は全行" : "未選択は0件"} ·
+              条件を適用すると出力に反映
             </small>
           </div>,
           document.body,

@@ -1505,3 +1505,44 @@ fn in_filter_matches_exact_values_propagates_and_preserves_manual_cache() {
     run(&mut p, Command::Undo).unwrap();
     assert_eq!(p.snapshot().tables[1].rows.len(), 1);
 }
+
+#[test]
+fn not_in_excludes_exact_values_and_empty_selection_passes_all_rows() {
+    let mut p = flow();
+    let original = p.snapshot().tables[0].rows.clone();
+    let make = |values: Vec<&str>, manual| Command::Configure {
+        id: "table-2".into(),
+        filter: Some(Filter {
+            column: 2,
+            operator: Operator::NotIn,
+            value: "".into(),
+            values: values.into_iter().map(String::from).collect(),
+        }),
+        manual,
+    };
+    run(&mut p, make(vec!["文房具", "", "存在しない値"], false)).unwrap();
+    let rows = p.snapshot().tables[1].rows.clone();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0][2], "食品");
+    assert_eq!(p.snapshot().tables[2].rows, rows);
+    let file = p.export().unwrap();
+    let restored = storage::decode(serde_json::from_slice(&file).unwrap()).unwrap();
+    assert_eq!(restored[1].filter, p.snapshot().tables[1].filter);
+    assert_eq!(restored[2].rows, rows);
+    run(&mut p, make(vec![], true)).unwrap();
+    assert!(p.snapshot().tables[1].stale);
+    assert_eq!(p.snapshot().tables[1].rows, rows);
+    run(
+        &mut p,
+        Command::Run {
+            id: "table-2".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[1].rows, original);
+    assert_eq!(p.snapshot().tables[2].rows, original);
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(p.snapshot().tables[1].rows, rows);
+    run(&mut p, make(vec!["文房具", "食品", ""], false)).unwrap();
+    assert!(p.snapshot().tables[1].rows.is_empty());
+}

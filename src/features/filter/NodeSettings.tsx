@@ -8,6 +8,7 @@ import { useProject } from "../../app/ProjectContext";
 const operators: [FilterConfig["operator"], string][] = [
   ["equals", "文字列が一致"],
   ["in", "いずれかに一致（IN）"],
+  ["notIn", "いずれにも一致しない（NOT IN）"],
   ["notEquals", "文字列が不一致"],
   ["contains", "文字列を含む"],
   ["numberEquals", "数値 ="],
@@ -53,7 +54,7 @@ export function NodeSettings({ table }: { table: TableData }) {
             `列 ${table.filter.column + 1}`}{" "}
           {operators.find(([op]) => op === table.filter?.operator)?.[1]}{" "}
           {JSON.stringify(
-            table.filter.operator === "in"
+            table.filter.operator === "in" || table.filter.operator === "notIn"
               ? (table.filter.values ?? [])
               : table.filter.value,
           )}
@@ -108,7 +109,7 @@ export function NodeSettings({ table }: { table: TableData }) {
           }}
         >
           <div
-            className={`condition-fields${draft.operator === "in" ? " condition-fields-in" : ""}`}
+            className={`condition-fields${draft.operator === "in" || draft.operator === "notIn" ? " condition-fields-in" : ""}`}
           >
             <select
               aria-label={`${table.title} 対象列`}
@@ -117,7 +118,9 @@ export function NodeSettings({ table }: { table: TableData }) {
                 setDraft({
                   ...draft,
                   column: Number(e.target.value),
-                  ...(draft.operator === "in" ? { values: [] } : {}),
+                  ...(draft.operator === "in" || draft.operator === "notIn"
+                    ? { values: [] }
+                    : {}),
                 })
               }
             >
@@ -146,7 +149,7 @@ export function NodeSettings({ table }: { table: TableData }) {
                 </option>
               ))}
             </select>
-            {draft.operator !== "in" && (
+            {draft.operator !== "in" && draft.operator !== "notIn" && (
               <input
                 aria-label={`${table.title} 比較値`}
                 aria-invalid={!!inputError}
@@ -157,8 +160,9 @@ export function NodeSettings({ table }: { table: TableData }) {
               />
             )}
           </div>
-          {draft.operator === "in" && (
+          {(draft.operator === "in" || draft.operator === "notIn") && (
             <InValues
+              exclude={draft.operator === "notIn"}
               label={table.title}
               values={source?.rows?.map((row) => row[draft.column] ?? "") ?? []}
               selected={draft.values ?? []}
