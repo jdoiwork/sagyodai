@@ -379,6 +379,13 @@ function Canvas() {
               フィルタ
             </button>
             <button
+              disabled={!project || project.tables.length >= 20 || pending > 0}
+              onClick={() => addNode("sort")}
+            >
+              <Icon name="sort" />
+              ソート
+            </button>
+            <button
               disabled={!project || project.tables.length >= 20}
               title={
                 project && project.tables.length >= 20
@@ -399,13 +406,6 @@ function Canvas() {
             >
               <Icon name="union" />
               結合
-            </button>
-            <button
-              disabled={!project || project.tables.length >= 20 || pending > 0}
-              onClick={() => addNode("sort")}
-            >
-              <Icon name="sort" />
-              ソート
             </button>
             <button
               disabled={!project || project.tables.length >= 20 || pending > 0}
