@@ -93,7 +93,12 @@ export function OutputColumns({
             e.preventDefault();
             if (error) return;
             editing.current = false;
-            dispatch({ type: "setProjection", id: table.id, config: draft });
+            dispatch(
+              { type: "setProjection", id: table.id, config: draft },
+              (succeeded) => {
+                if (succeeded) onClose();
+              },
+            );
           }}
         >
           <div className="output-column-settings-scroll nowheel">

@@ -28,18 +28,21 @@ it("列の選択・順序・名前をまとめて出力設定として適用す�
   fireEvent.click(ui.getByLabelText("結果表 出力列2を上へ移動"));
   expect(dispatch).not.toHaveBeenCalled();
   fireEvent.click(ui.getByText("出力列を適用"));
-  expect(dispatch).toHaveBeenCalledWith({
-    type: "setProjection",
-    id: "d",
-    config: {
-      schema: source.columns,
-      columns: [
-        { column: 1, name: "個数", visible: true },
-        { column: 0, name: "", visible: true },
-        { column: 2, name: "", visible: false },
-      ],
+  expect(dispatch).toHaveBeenCalledWith(
+    {
+      type: "setProjection",
+      id: "d",
+      config: {
+        schema: source.columns,
+        columns: [
+          { column: 1, name: "個数", visible: true },
+          { column: 0, name: "", visible: true },
+          { column: 2, name: "", visible: false },
+        ],
+      },
     },
-  });
+    expect.any(Function),
+  );
 });
 it("重複する列名・全列非表示を防ぎ、修正すれば適用できる", () => {
   const ui = render(
@@ -62,4 +65,18 @@ it("重複する列名・全列非表示を防ぎ、修正すれば適用でき�
   fireEvent.click(ui.getByLabelText("結果表 品名 を出力"));
   fireEvent.click(ui.getByText("出力列を適用"));
   expect(dispatch).toHaveBeenCalledTimes(1);
+});
+
+it("適用の完了を待ち、成功した場合だけ設定パネルを閉じる", () => {
+  const onClose = vi.fn();
+  const ui = render(
+    <OutputColumns table={table} source={source} open onClose={onClose} />,
+  );
+  fireEvent.click(ui.getByText("出力列を適用"));
+  expect(onClose).not.toHaveBeenCalled();
+  dispatch.mock.calls[0][1](false);
+  expect(onClose).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByText("出力列を適用"));
+  dispatch.mock.calls[1][1](true);
+  expect(onClose).toHaveBeenCalledTimes(1);
 });
