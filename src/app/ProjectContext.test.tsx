@@ -132,3 +132,29 @@ it("失敗した入力を保持し、明示的な再適用まで送信せず保�
   await waitFor(() => expect(result.current.project?.revision).toBe(1));
   expect(result.current.conflicts).toHaveLength(0);
 });
+
+it("再接続後の取得失敗も再試行し、取得成功後に同期状態へ戻る", async () => {
+  const { result } = renderHook(useProject, { wrapper: ProjectProvider });
+  await waitFor(() => expect(result.current.project).toEqual(initial));
+  const [notify, status] = api.subscribeProject.mock.calls[0];
+  vi.useFakeTimers();
+  try {
+    api.loadProject
+      .mockRejectedValueOnce(new Error("503"))
+      .mockResolvedValueOnce({ ...initial, revision: 2 });
+    await act(async () => {
+      status(true);
+      notify();
+    });
+    expect(result.current.connected).toBe(false);
+    expect(result.current.error).not.toBe("");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(result.current.connected).toBe(true);
+    expect(result.current.project?.revision).toBe(2);
+    expect(result.current.error).toBe("");
+  } finally {
+    vi.useRealTimers();
+  }
+});

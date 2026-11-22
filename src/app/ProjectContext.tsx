@@ -63,9 +63,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const dirty = !!project && project.revision !== exportedRevision;
   useEffect(() => {
     alive.current = true;
+    let streamConnected = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let disposed = false;
     let refreshing = false,
       again = false;
     async function refresh() {
+      clearTimeout(retry);
       if (refreshing) {
         again = true;
         return;
@@ -74,9 +78,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       do {
         again = false;
         try {
-          accept(await loadProject());
-          if (alive.current) setError("");
+          const next = await loadProject();
+          if (disposed) return;
+          accept(next);
+          if (alive.current) {
+            setError("");
+            setConnected(streamConnected);
+          }
         } catch {
+          if (disposed) return;
+          retry = setTimeout(() => void refresh(), 1500);
           if (alive.current) {
             setConnected(false);
             setError(
@@ -88,7 +99,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       refreshing = false;
     }
     void refresh();
-    const unsubscribe = subscribeProject(() => void refresh(), setConnected);
+    const unsubscribe = subscribeProject(
+      () => void refresh(),
+      (connected) => {
+        streamConnected = connected;
+        if (!connected) setConnected(false);
+      },
+    );
     const focus = (event: FocusEvent) => {
       editing.current =
         event.target instanceof HTMLElement &&
@@ -110,6 +127,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     document.addEventListener("focusout", blur);
     return () => {
       alive.current = false;
+      disposed = true;
+      clearTimeout(retry);
       unsubscribe();
       document.removeEventListener("focusin", focus);
       document.removeEventListener("focusout", blur);

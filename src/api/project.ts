@@ -370,11 +370,31 @@ export function subscribeProject(
   onChange: () => void,
   onConnection: (connected: boolean) => void,
 ) {
-  const events = new EventSource("/api/project/events");
-  events.onmessage = () => {
-    onConnection(true);
-    onChange();
+  let stopped = false;
+  let events: EventSource | undefined;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  function connect() {
+    if (stopped) return;
+    const source = new EventSource("/api/project/events");
+    events = source;
+    source.onmessage = () => {
+      if (stopped || events !== source) return;
+      onConnection(true);
+      onChange();
+    };
+    source.onerror = () => {
+      if (stopped || events !== source) return;
+      // プロキシの503などでEventSourceが終了状態になっても、明示的に再接続する。
+      source.close();
+      events = undefined;
+      onConnection(false);
+      retry = setTimeout(connect, 1500);
+    };
+  }
+  connect();
+  return () => {
+    stopped = true;
+    clearTimeout(retry);
+    events?.close();
   };
-  events.onerror = () => onConnection(false);
-  return () => events.close();
 }
