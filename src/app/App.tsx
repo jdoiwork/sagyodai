@@ -1,3 +1,4 @@
+import { AddSourceMenu } from "../features/canvas/AddSourceMenu";
 import { NodeNavigation } from "../features/canvas/NodeActions";
 import { nodeSize } from "../features/canvas/layout";
 import { SheetBar } from "../features/sheets/SheetBar";
@@ -399,31 +400,12 @@ function Canvas() {
                 </span>
               </div>
             )}
-            <button
-              className="primary"
-              disabled={!project || project.tables.length >= MAX_NODES}
-              title={
-                project && project.tables.length >= MAX_NODES
-                  ? `上限の${MAX_NODES}ノードに達しています`
-                  : undefined
-              }
-              aria-disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("input")}
-            >
-              <Icon name="plus" />
-              表を追加
-            </button>
-            <button
+            <AddSourceMenu
               disabled={
                 !project || project.tables.length >= MAX_NODES || pending > 0
               }
-              onClick={() => addNode("csv")}
-            >
-              <Icon name="folder" />
-              CSV
-            </button>
+              onAdd={addNode}
+            />
             <button
               disabled={!project || project.tables.length >= MAX_NODES}
               title={
@@ -489,15 +471,6 @@ function Canvas() {
             >
               <Icon name="replace" />
               置換
-            </button>
-            <button
-              disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("note")}
-            >
-              <Icon name="note" />
-              メモ
             </button>
             <div className="toolbar-history">
               <div className="toolbar-separator" />
