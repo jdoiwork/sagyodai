@@ -35,8 +35,13 @@ export function NodeSettings({ table }: { table: TableData }) {
       draft.value !== table.filter?.value);
   return (
     <div
-      className={`node-settings nodrag nopan${table.kind === "filter" ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${table.kind === "filter" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
+      {table.compact && table.kind === "display" && (
+        <div className="compact-condition">
+          {table.columns.length} 列 · 読み取り専用
+        </div>
+      )}
       {table.compact && table.filter && (
         <div className="compact-condition" title="適用済みの条件">
           {source?.columns[table.filter.column] ??

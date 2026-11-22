@@ -377,16 +377,6 @@ fn compact_filter_preserves_data_dimensions_and_survives_save_and_undo() {
     assert!(!p.snapshot().tables[1].compact);
     run(&mut p, Command::Redo).unwrap();
     assert!(p.snapshot().tables[1].compact);
-    assert!(
-        run(
-            &mut p,
-            Command::SetCompact {
-                id: "table-1".into(),
-                compact: true
-            }
-        )
-        .is_err()
-    );
 }
 
 #[test]
@@ -1263,4 +1253,44 @@ fn dragging_a_connection_copies_the_start_port_color_atomically() {
         .is_err()
     );
     assert_eq!(p.export().unwrap(), before);
+}
+
+#[test]
+fn input_and_display_compact_preserves_contents_and_expanded_size() {
+    let mut p = flow();
+    for index in [0, 2] {
+        let original = p.snapshot().tables[index].clone();
+        run(
+            &mut p,
+            Command::SetCompact {
+                id: original.id.clone(),
+                compact: true,
+            },
+        )
+        .unwrap();
+        let compact = p.snapshot().tables[index].clone();
+        assert!(compact.compact);
+        assert_eq!(compact.rows, original.rows);
+        assert_eq!(compact.columns, original.columns);
+        assert_eq!(
+            (compact.width, compact.height),
+            (original.width, original.height)
+        );
+        let restored =
+            storage::decode(serde_json::from_slice(&p.export().unwrap()).unwrap()).unwrap();
+        assert!(restored[index].compact);
+        run(&mut p, Command::Undo).unwrap();
+        assert!(!p.snapshot().tables[index].compact);
+        run(&mut p, Command::Redo).unwrap();
+        assert!(p.snapshot().tables[index].compact);
+        run(
+            &mut p,
+            Command::SetCompact {
+                id: original.id,
+                compact: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(p.snapshot().tables[index].rows, original.rows);
+    }
 }

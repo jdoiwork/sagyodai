@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { TableData } from "../../api/project";
-export const COMPACT_FILTER_SIZE = { width: 380, height: 102 };
+export const COMPACT_NODE_SIZE = { width: 380, height: 102 };
 export type Layout = Pick<TableData, "x" | "y" | "width" | "height">;
 export type TableFlowNode = Node<
   {
@@ -39,10 +39,9 @@ export function reconcileNodes(
               : Number(old.style?.height ?? table.height),
           }
         : (pending.get(table.id) ?? table);
-    const size =
-      table.kind === "filter" && table.compact
-        ? COMPACT_FILTER_SIZE
-        : { width: local.width, height: local.height };
+    const size = table.compact
+      ? COMPACT_NODE_SIZE
+      : { width: local.width, height: local.height };
     return {
       ...old,
       // リサイズで設定される node.width/height は style より優先される。

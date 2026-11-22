@@ -76,23 +76,21 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                   : "結果の表示"}
             </span>
           </div>
-          {table.kind === "filter" && (
-            <button
-              className="nodrag nopan"
-              aria-label={`${table.title} ${table.compact ? "展開" : "コンパクト表示"}`}
-              aria-expanded={!table.compact}
-              onClick={() =>
-                dispatch({
-                  type: "setCompact",
-                  id: table.id,
-                  compact: !table.compact,
-                })
-              }
-            >
-              <Icon name={table.compact ? "expand" : "collapse"} />
-              {table.compact ? "展開" : "縮小"}
-            </button>
-          )}
+          <button
+            className="nodrag nopan"
+            aria-label={`${table.title} ${table.compact ? "展開" : "コンパクト表示"}`}
+            aria-expanded={!table.compact}
+            onClick={() =>
+              dispatch({
+                type: "setCompact",
+                id: table.id,
+                compact: !table.compact,
+              })
+            }
+          >
+            <Icon name={table.compact ? "expand" : "collapse"} />
+            {table.compact ? "展開" : "縮小"}
+          </button>
           <span className="editable-badge" hidden={table.compact}>
             {table.kind === "input" ? "編集可能" : "読み取り専用"}
           </span>
@@ -100,7 +98,14 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             ⠿
           </span>
         </header>
-        {table.kind === "input" ? (
+        {table.kind === "input" && table.compact ? (
+          <div className="node-settings node-settings-compact">
+            <span className="compact-condition">
+              {table.rows.length} 行 × {table.columns.length} 列
+            </span>
+            <span className="node-status">編集可能</span>
+          </div>
+        ) : table.kind === "input" ? (
           <>
             <div className="table-actions nodrag nopan">
               <span className="table-mode">文字列の表</span>
@@ -167,7 +172,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         ) : (
           <>
             <NodeSettings table={table} />
-            {table.kind === "display" && (
+            {table.kind === "display" && !table.compact && (
               <TableGrid
                 table={table}
                 readOnly

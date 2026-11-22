@@ -72,38 +72,41 @@ it("操作が確定した後は Undo の配置を受け入れる", () => {
     { x: 200, y: 400 },
   ]);
 });
-it("折りたたんだフィルタの移動後も、展開すると元のサイズへ戻る", () => {
-  const filter: TableData = { ...tables[0], kind: "filter", compact: true };
-  const compact = reconcileNodes(
-    [filter],
-    [],
-    new Set(),
-    new Map(),
-    noop,
-    noop,
-  );
-  expect(compact[0].style).toMatchObject({ width: 380, height: 102 });
-  compact[0].position = { x: 500, y: 600 };
-  const dragging = reconcileNodes(
-    [filter],
-    compact,
-    new Set([filter.id]),
-    new Map(),
-    noop,
-    noop,
-  );
-  expect(dragging[0].position).toEqual({ x: 500, y: 600 });
-  const expanded = reconcileNodes(
-    [{ ...filter, compact: false, x: 500, y: 600 }],
-    dragging,
-    new Set(),
-    new Map(),
-    noop,
-    noop,
-  );
-  expect(expanded[0].style).toMatchObject({ width: 760, height: 390 });
-  expect(expanded[0].position).toEqual({ x: 500, y: 600 });
-});
+it.each(["input", "filter", "display"] as const)(
+  "%s の折りたたみ中の移動後も元のサイズへ戻る",
+  (kind) => {
+    const filter: TableData = { ...tables[0], kind, compact: true };
+    const compact = reconcileNodes(
+      [filter],
+      [],
+      new Set(),
+      new Map(),
+      noop,
+      noop,
+    );
+    expect(compact[0].style).toMatchObject({ width: 380, height: 102 });
+    compact[0].position = { x: 500, y: 600 };
+    const dragging = reconcileNodes(
+      [filter],
+      compact,
+      new Set([filter.id]),
+      new Map(),
+      noop,
+      noop,
+    );
+    expect(dragging[0].position).toEqual({ x: 500, y: 600 });
+    const expanded = reconcileNodes(
+      [{ ...filter, compact: false, x: 500, y: 600 }],
+      dragging,
+      new Set(),
+      new Map(),
+      noop,
+      noop,
+    );
+    expect(expanded[0].style).toMatchObject({ width: 760, height: 390 });
+    expect(expanded[0].position).toEqual({ x: 500, y: 600 });
+  },
+);
 
 it("リサイズで設定されたノード寸法も折りたたみ・展開に追従する", () => {
   const filter: TableData = {
