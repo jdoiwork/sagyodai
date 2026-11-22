@@ -1,3 +1,4 @@
+import { SummaryFooter } from "./SummaryFooter";
 import { pasteInputError } from "../../validation/input";
 import { useRowReorder } from "./useRowReorder";
 import { useHeaderSelection } from "./useHeaderSelection";
@@ -272,7 +273,8 @@ export function TableGrid({
           if (e.key === "Escape") headers.clear();
         }}
         onPaste={(e) => {
-          if (readOnly || (e.target as HTMLElement).closest("thead")) return;
+          if (readOnly || (e.target as HTMLElement).closest("thead, tfoot"))
+            return;
           const text = e.clipboardData.getData("text/plain");
           if (!/[\t\r\n]/.test(text)) return;
           e.preventDefault();
@@ -310,7 +312,9 @@ export function TableGrid({
         onCopy={(e) => {
           if (
             readOnly ||
-            (e.target as HTMLElement).closest("thead textarea, thead input")
+            (e.target as HTMLElement).closest(
+              "thead textarea, thead input, tfoot",
+            )
           )
             return;
           if (headers.selection) {
@@ -537,6 +541,7 @@ export function TableGrid({
             })}
             {spacer(table.rows.length - (renderedRows.at(-1) ?? -1) - 1)}
           </tbody>
+          <SummaryFooter table={table} />
         </table>
       </div>
       {readOnly && table.rows.length === 0 && (
@@ -547,6 +552,18 @@ export function TableGrid({
         </div>
       )}
       <div className="table-footer nodrag nopan">
+        <button
+          onClick={() =>
+            dispatch({
+              type: "setFooter",
+              id: table.id,
+              columns: table.footer ? null : table.columns.map(() => false),
+              expectedColumns: table.columns,
+            })
+          }
+        >
+          {table.footer ? "フッターを削除" : "＋ フッター行"}
+        </button>
         <span>
           {table.rows.length.toLocaleString()} 行 × {table.columns.length} 列
         </span>

@@ -1,3 +1,4 @@
+mod aggregation;
 mod application;
 mod autosave;
 mod domain;

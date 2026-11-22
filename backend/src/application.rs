@@ -42,7 +42,15 @@ impl Project {
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
             revision: self.revision,
-            tables: self.tables.clone(),
+            tables: self
+                .tables
+                .iter()
+                .cloned()
+                .map(|mut table| {
+                    table.footer_totals = crate::aggregation::totals(&table);
+                    table
+                })
+                .collect(),
             can_undo: !self.undo.is_empty(),
             can_redo: !self.redo.is_empty(),
         }
@@ -158,6 +166,27 @@ impl Project {
                     }
                     _ => return Err("色を変更する接続線または端子がありません。".into()),
                 }
+            }
+            Command::SetFooter {
+                id,
+                columns,
+                expected_columns,
+            } => {
+                let table = table_mut(tables, &id)?;
+                if table.kind == Kind::Filter {
+                    return Err("フッターは手入力の表と結果表で使用できます。".into());
+                }
+                if table.columns != expected_columns
+                    || columns
+                        .as_ref()
+                        .is_some_and(|c| c.len() != table.columns.len())
+                {
+                    return Err(
+                        "列構成が変更されています。表示を確認して集計を設定し直してください。"
+                            .into(),
+                    );
+                }
+                table.footer = columns;
             }
             Command::SetCompact { id, compact } => {
                 let table = tables

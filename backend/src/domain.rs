@@ -9,6 +9,10 @@ pub struct Table {
     pub input_color: Option<PaletteColor>,
     #[serde(default)]
     pub output_color: Option<PaletteColor>,
+    #[serde(default)]
+    pub footer: Option<Vec<bool>>,
+    #[serde(default, skip_deserializing, skip_serializing_if = "Vec::is_empty")]
+    pub footer_totals: Vec<Option<String>>,
     pub kind: Kind,
     pub source: Option<String>,
     pub filter: Option<Filter>,
@@ -117,6 +121,11 @@ pub enum Command {
         id: String,
         target: ColorTarget,
         color: Option<PaletteColor>,
+    },
+    SetFooter {
+        id: String,
+        columns: Option<Vec<bool>>,
+        expected_columns: Vec<String>,
     },
     SetCompact {
         id: String,
@@ -251,6 +260,8 @@ pub fn sample_table(id: String, index: usize) -> Table {
         edge_color: None,
         input_color: None,
         output_color: None,
+        footer: None,
+        footer_totals: vec![],
         kind: Kind::Input,
         source: None,
         filter: None,

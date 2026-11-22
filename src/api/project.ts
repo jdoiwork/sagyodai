@@ -29,6 +29,8 @@ const tableSchema = z.object({
   edgeColor: paletteColorSchema.nullable().optional(),
   inputColor: paletteColorSchema.nullable().optional(),
   outputColor: paletteColorSchema.nullable().optional(),
+  footer: z.array(z.boolean()).nullable().optional(),
+  footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
   kind: z.enum(["input", "filter", "display"]),
   source: z.string().nullable(),
@@ -67,6 +69,12 @@ export type Command =
       id: string;
       target: "edge" | "input" | "output";
       color: PaletteColor | null;
+    }
+  | {
+      type: "setFooter";
+      id: string;
+      columns: boolean[] | null;
+      expectedColumns: string[];
     }
   | { type: "setCompact"; id: string; compact: boolean }
   | { type: "connectFromPort"; id: string; source: string; fromInput: boolean }

@@ -1029,3 +1029,41 @@ button.action-danger:hover {
   outline: 2px solid #263e34;
   outline-offset: 2px;
 }
+
+.data-grid .summary-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+}
+.data-grid .summary-footer th,
+.data-grid .summary-footer td {
+  background: #edf5ef;
+  border-top: 2px solid #95b7a6;
+  padding: 5px 8px;
+  vertical-align: top;
+}
+.summary-footer select {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  padding: 2px;
+}
+.summary-footer output {
+  display: block;
+  text-align: right;
+  padding-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.table-footer button {
+  font-size: 11px;
+  padding: 2px 6px;
+  min-height: 24px;
+}
+.summary-footer select {
+  color: #314d3c;
+  background: #fff;
+  border: 1px solid #c5d7cc;
+  border-radius: 4px;
+}

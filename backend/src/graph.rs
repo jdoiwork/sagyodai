@@ -135,6 +135,9 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         match result {
             Ok((columns, rows)) => {
                 node.column_widths.truncate(columns.len());
+                if let Some(footer) = &mut node.footer {
+                    footer.resize(columns.len(), false);
+                }
                 node.columns = columns;
                 node.rows = rows;
                 node.stale = false;

@@ -94,6 +94,11 @@ pub fn remove_column(
         }
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
+        if let Some(footer) = &mut t.footer
+            && col < footer.len()
+        {
+            footer.remove(col);
+        }
         if col < t.column_widths.len() {
             t.column_widths.remove(col);
         }
@@ -171,6 +176,12 @@ pub fn move_columns(
         new_index[*old] = new;
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
+        if let Some(footer) = &mut t.footer {
+            *footer = order
+                .iter()
+                .map(|old| footer.get(*old).copied().unwrap_or(false))
+                .collect();
+        }
         t.column_widths = order
             .iter()
             .map(|old| t.column_widths.get(*old).copied().unwrap_or(160.0))
@@ -297,6 +308,10 @@ pub fn insert(
         }
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
+        if let Some(footer) = &mut t.footer {
+            footer.resize(columns.len(), false);
+            footer.splice(at..at, vec![false; count]);
+        }
         t.column_widths.resize(columns.len(), 160.0);
         t.column_widths.splice(at..at, vec![160.0; count]);
         if let Some(f) = &mut t.filter

@@ -1294,3 +1294,144 @@ fn input_and_display_compact_preserves_contents_and_expanded_size() {
         assert_eq!(p.snapshot().tables[index].rows, original.rows);
     }
 }
+
+#[test]
+fn sum_footer_follows_edits_filters_column_changes_and_history() {
+    let mut p = flow();
+    for id in ["table-1", "table-3"] {
+        let columns = p
+            .snapshot()
+            .tables
+            .iter()
+            .find(|t| t.id == id)
+            .unwrap()
+            .columns
+            .clone();
+        run(
+            &mut p,
+            Command::SetFooter {
+                id: id.into(),
+                columns: Some(vec![false, true, false, false]),
+                expected_columns: columns,
+            },
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        p.snapshot().tables[0].footer_totals[1].as_deref(),
+        Some("17")
+    );
+    configure(&mut p, Operator::Greater, "2", false);
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[1].as_deref(),
+        Some("15")
+    );
+    let columns = p.snapshot().tables[0].columns.clone();
+    let rows = p.snapshot().tables[0].rows.clone();
+    run(
+        &mut p,
+        Command::MoveColumn {
+            id: "table-1".into(),
+            from: 1,
+            to: 0,
+            expected_columns: columns,
+            expected_rows: rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        p.snapshot().tables[0].footer_totals[0].as_deref(),
+        Some("17")
+    );
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[0].as_deref(),
+        Some("15")
+    );
+    let current = p.snapshot().tables[0].clone();
+    run(
+        &mut p,
+        Command::InsertColumns {
+            id: current.id,
+            at: 0,
+            count: 1,
+            expected_columns: current.columns,
+            expected_rows: current.rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        p.snapshot().tables[0].footer_totals[1].as_deref(),
+        Some("17")
+    );
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[1].as_deref(),
+        Some("15")
+    );
+    let restored =
+        Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
+    assert_eq!(
+        restored.snapshot().tables[2].footer_totals[1].as_deref(),
+        Some("15")
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[0].as_deref(),
+        Some("15")
+    );
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[1].as_deref(),
+        Some("15")
+    );
+}
+
+#[test]
+fn footer_uses_manual_cached_rows_and_does_not_feed_downstream() {
+    let mut p = flow();
+    configure(&mut p, Operator::Greater, "2", false);
+    let cols = p.snapshot().tables[2].columns.clone();
+    run(
+        &mut p,
+        Command::SetFooter {
+            id: "table-3".into(),
+            columns: Some(vec![false, true, false, false]),
+            expected_columns: cols,
+        },
+    )
+    .unwrap();
+    run(
+        &mut p,
+        Command::Configure {
+            id: "table-3".into(),
+            filter: None,
+            manual: true,
+        },
+    )
+    .unwrap();
+    run(
+        &mut p,
+        Command::Paste {
+            id: "table-1".into(),
+            row: 0,
+            col: 1,
+            values: vec![vec!["20".into()]],
+            expected_values: None,
+        },
+    )
+    .unwrap();
+    let t = &p.snapshot().tables[2];
+    assert!(t.stale);
+    assert_eq!(t.footer_totals[1].as_deref(), Some("15"));
+    assert_eq!(t.rows.len(), 2);
+    run(
+        &mut p,
+        Command::Run {
+            id: "table-3".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        p.snapshot().tables[2].footer_totals[1].as_deref(),
+        Some("32")
+    );
+}
