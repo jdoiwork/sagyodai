@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection: Option<crate::projection::Projection>,
     #[serde(default)]
     pub group: Option<crate::group::GroupConfig>,
     #[serde(default)]
@@ -133,6 +135,10 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetProjection {
+        id: String,
+        config: Option<crate::projection::Projection>,
+    },
     SetGroup {
         id: String,
         config: crate::group::GroupConfig,
@@ -341,6 +347,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         union_distinct: false,
         sort_keys: vec![],
         group: None,
+        projection: None,
         footer: None,
         footer_totals: vec![],
         kind: Kind::Input,

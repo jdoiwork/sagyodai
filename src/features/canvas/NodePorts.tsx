@@ -146,7 +146,7 @@ export function NodePorts({ table }: { table: TableData }) {
           </span>
         </Handle>
       )}
-      {table.kind !== "display" && (
+      {
         <Handle
           type="source"
           position={Position.Right}
@@ -159,7 +159,7 @@ export function NodePorts({ table }: { table: TableData }) {
         >
           <span className="port-label">出力</span>
         </Handle>
-      )}
+      }
     </>
   );
 }

@@ -203,6 +203,17 @@ impl Project {
                 }
                 crate::graph::order(tables)?;
             }
+            Command::SetProjection { id, config } => {
+                if let Some(config) = &config {
+                    config.validate()?;
+                }
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Display {
+                    return Err("結果表ではありません。".into());
+                }
+                table.projection = config;
+                table.view = Default::default();
+            }
             Command::SetGroup { id, config } => {
                 crate::group::validate(&config)?;
                 let table = table_mut(tables, &id)?;
@@ -233,9 +244,7 @@ impl Project {
                 match target {
                     ColorTarget::Edge if table.source.is_some() => table.edge_color = color,
                     ColorTarget::Input if table.kind != Kind::Input => table.input_color = color,
-                    ColorTarget::Output if table.kind != Kind::Display => {
-                        table.output_color = color
-                    }
+                    ColorTarget::Output => table.output_color = color,
                     _ => return Err("色を変更する接続線または端子がありません。".into()),
                 }
             }

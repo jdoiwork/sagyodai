@@ -6,6 +6,12 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut done = HashSet::new();
     let mut result = vec![];
     for t in tables {
+        if let Some(config) = &t.projection {
+            if t.kind != Kind::Display {
+                return Err("出力列設定は結果表にのみ指定できます。".into());
+            }
+            config.validate()?;
+        }
         if (t.kind == Kind::Aggregate) != t.group.is_some() {
             return Err("集計設定とノードの種類が一致しません。".into());
         }
@@ -40,13 +46,10 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("結合設定とノードの種類が一致しません。".into());
         }
         for source in t.sources() {
-            let source = tables
+            tables
                 .iter()
                 .find(|n| &n.id == source)
                 .ok_or("接続元が見つかりません。")?;
-            if source.kind == Kind::Display {
-                return Err("結果表は出力に接続できません。".into());
-            }
         }
         if let Some(f) = &t.filter
             && (f.column >= crate::storage::MAX_COLS
@@ -139,6 +142,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                 || n.filter != tables[i].filter
                 || n.sort_keys != tables[i].sort_keys
                 || n.group != tables[i].group
+                || n.projection != tables[i].projection
                 || n.union_distinct != tables[i].union_distinct
         }) || inputs.iter().any(|current| {
             previous
@@ -164,6 +168,11 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                 Some(s) if s.stale || s.error.is_some() => {
                     Err("入力が更新待ちです。上流ノードを確認してください。".to_string())
                 }
+                Some(s) if node.kind == Kind::Display && node.projection.is_some() => node
+                    .projection
+                    .as_ref()
+                    .ok_or_else(|| "出力列設定がありません。".into())
+                    .and_then(|config| config.evaluate(&s)),
                 Some(s) if node.kind == Kind::Aggregate => node
                     .group
                     .as_ref()

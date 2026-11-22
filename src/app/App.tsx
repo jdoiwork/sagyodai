@@ -293,9 +293,7 @@ function Canvas() {
             })}
             isValidConnection={(connection) =>
               !!project &&
-              project.tables.some(
-                (t) => t.id === connection.source && t.kind !== "display",
-              ) &&
+              project.tables.some((t) => t.id === connection.source) &&
               project.tables.some(
                 (t) =>
                   t.id === connection.target &&

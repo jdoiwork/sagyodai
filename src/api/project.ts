@@ -69,7 +69,19 @@ export const groupConfigSchema = z.object({
   count: z.boolean(),
 });
 export type GroupConfig = z.infer<typeof groupConfigSchema>;
+export const projectionSchema = z.object({
+  schema: z.array(z.string()),
+  columns: z.array(
+    z.object({
+      column: z.number().int().nonnegative(),
+      name: z.string(),
+      visible: z.boolean(),
+    }),
+  ),
+});
+export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
+  projection: projectionSchema.nullable().optional(),
   view: tableViewSchema.optional(),
   sheetId: z.string().optional(),
   edgeColor: paletteColorSchema.nullable().optional(),
@@ -112,6 +124,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setProjection"; id: string; config: Projection | null }
   | { type: "setGroup"; id: string; config: GroupConfig }
   | { type: "setSort"; id: string; keys: SortKey[] }
   | { type: "setViewQuery"; id: string; query: string; expectedQuery: string }

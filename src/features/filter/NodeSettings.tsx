@@ -1,3 +1,4 @@
+import { OutputColumns } from "../projection/OutputColumns";
 import { GroupConditions } from "../group/GroupConditions";
 import { SortConditions } from "../sort/SortConditions";
 import { InValues } from "./InValues";
@@ -43,7 +44,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         JSON.stringify(table.filter?.values ?? []));
   return (
     <div
-      className={`node-settings nodrag nopan${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${table.kind === "display" && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
       {table.compact && table.kind === "display" && (
         <div className="compact-condition">
@@ -77,7 +78,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         >
           <option value="">未接続</option>
           {project?.tables
-            .filter((t) => t.id !== table.id && t.kind !== "display")
+            .filter((t) => t.id !== table.id)
             .map((t) => (
               <option
                 key={t.id}
@@ -92,6 +93,9 @@ export function NodeSettings({ table }: { table: TableData }) {
             ))}
         </select>
       </label>
+      {table.kind === "display" && (
+        <OutputColumns table={table} source={source} />
+      )}
       {table.kind === "aggregate" && (
         <GroupConditions table={table} source={source} />
       )}
