@@ -1436,3 +1436,10 @@ button.action-danger:hover {
 .group-output-name {
   margin-top: 8px;
 }
+
+.group-output-order {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 6px;
+}

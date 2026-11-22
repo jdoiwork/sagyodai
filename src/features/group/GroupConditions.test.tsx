@@ -82,3 +82,54 @@ it("既存の集計を出力列として表示し、件数へ変更すると対�
     { function: "count", column: null, name: "" },
   ]);
 });
+
+it("未適用の列名を含めて上下に移動し、境界では移動不可にする", () => {
+  const ui = render(
+    <GroupConditions
+      table={{
+        ...table,
+        group: {
+          groupBy: [0],
+          sums: [],
+          count: false,
+          outputs: [
+            { function: "count", column: null, name: "件数" },
+            { function: "average", column: 1, name: "平均" },
+            { function: "max", column: 1, name: "最大" },
+          ],
+        },
+      }}
+      source={source}
+    />,
+  );
+  expect(
+    (ui.getByLabelText("出力列1を上へ移動") as HTMLButtonElement).disabled,
+  ).toBe(true);
+  expect(
+    (ui.getByLabelText("出力列3を下へ移動") as HTMLButtonElement).disabled,
+  ).toBe(true);
+  fireEvent.change(ui.getByLabelText("出力列2の列名"), {
+    target: { value: "平均数量" },
+  });
+  fireEvent.click(ui.getByLabelText("出力列2を上へ移動"));
+  expect((ui.getByLabelText("出力列1の列名") as HTMLInputElement).value).toBe(
+    "平均数量",
+  );
+  expect(
+    (ui.getByLabelText("出力列1の集約関数") as HTMLSelectElement).value,
+  ).toBe("average");
+  fireEvent.click(ui.getByLabelText("出力列2を下へ移動"));
+  expect(dispatch).not.toHaveBeenCalled();
+  expect(ui.getByText("未適用の変更あり")).toBeTruthy();
+  fireEvent.click(ui.getByText("条件を適用"));
+  expect(dispatch.mock.calls[0][0].config).toEqual({
+    groupBy: [0],
+    sums: [],
+    count: false,
+    outputs: [
+      { function: "average", column: 1, name: "平均数量" },
+      { function: "max", column: 1, name: "最大" },
+      { function: "count", column: null, name: "件数" },
+    ],
+  });
+});

@@ -46,6 +46,13 @@ export function GroupConditions({
       outputs.map((o, i) => (i === index ? { ...o, ...patch } : o)),
     );
   }
+  function move(index: number, delta: -1 | 1) {
+    const destination = index + delta;
+    if (destination < 0 || destination >= outputs.length) return;
+    const next = [...outputs];
+    [next[index], next[destination]] = [next[destination], next[index]];
+    changeOutputs(next);
+  }
   return (
     <>
       {table.compact && (
@@ -91,6 +98,28 @@ export function GroupConditions({
           {outputs.map((output, i) => (
             <fieldset className="group-output" key={i}>
               <legend>出力列 {i + 1}</legend>
+              <div className="group-output-order">
+                <button
+                  type="button"
+                  aria-label={`出力列${i + 1}を上へ移動`}
+                  title="上へ移動"
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
+                  <Icon name="collapse" />
+                  上へ
+                </button>
+                <button
+                  type="button"
+                  aria-label={`出力列${i + 1}を下へ移動`}
+                  title="下へ移動"
+                  disabled={i === outputs.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  <Icon name="expand" />
+                  下へ
+                </button>
+              </div>
               <div className="group-output-fields">
                 <label>
                   集約関数
