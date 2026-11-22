@@ -121,6 +121,11 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    MoveNodeToSheet {
+        id: String,
+        sheet_id: String,
+        expected_sheet_id: String,
+    },
     AddSheet,
     RenameSheet {
         id: String,

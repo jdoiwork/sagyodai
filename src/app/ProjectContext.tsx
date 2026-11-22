@@ -226,6 +226,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             ),
           ),
         });
+      } else if (command.type === "moveNodeToSheet") {
+        const table = current.current?.tables.find((t) => t.id === command.id);
+        dispatch({
+          ...command,
+          expectedSheetId: table?.sheetId ?? command.expectedSheetId,
+        });
       } else if (command.type === "renameSheet") {
         const title = current.current?.sheets?.find(
           (s) => s.id === command.id,

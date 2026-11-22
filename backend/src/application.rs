@@ -282,6 +282,21 @@ impl Project {
                 }
                 table.footer = columns;
             }
+            Command::MoveNodeToSheet {
+                id,
+                sheet_id,
+                expected_sheet_id,
+            } => {
+                if !self.sheets.iter().any(|s| s.id == sheet_id) {
+                    return Err("移動先のシートが見つかりません。".into());
+                }
+                let table = table_mut(tables, &id)?;
+                if table.sheet_id != expected_sheet_id {
+                    return Err("ノードの所属シートが別の操作で変更されました。".into());
+                }
+                // 所属だけを変え、入力・出力のID参照や配置、キャッシュは維持する。
+                table.sheet_id = sheet_id;
+            }
             Command::SetCompact { id, compact } => {
                 let table = tables
                     .iter_mut()

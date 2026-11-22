@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
 import { sheetsOf } from "./model";
@@ -7,7 +7,9 @@ import { nodeTitleError } from "../canvas/nodeTitleValidation";
 export function SheetBar({
   active,
   onSelect,
+  children,
 }: {
+  children?: ReactNode;
   active: string;
   onSelect: (id: string) => void;
 }) {
@@ -59,6 +61,7 @@ export function SheetBar({
         <Icon name="plus" />
         シート
       </button>
+      {children}
       {editing && (
         <form
           className="sheet-rename"

@@ -1154,3 +1154,25 @@ button.action-danger:hover {
   color: #a33131;
   width: 100%;
 }
+
+.node-sheet-move {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.node-sheet-move > span {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.node-sheet-move select {
+  max-width: 160px;
+  min-width: 120px;
+}
+.sheet-bar {
+  flex-wrap: wrap;
+}

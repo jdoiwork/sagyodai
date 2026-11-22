@@ -65,6 +65,12 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | {
+      type: "moveNodeToSheet";
+      id: string;
+      sheetId: string;
+      expectedSheetId: string;
+    }
   | { type: "addSheet" }
   | { type: "renameSheet"; id: string; title: string; expectedTitle: string }
   | { type: "addTable" | "undo" | "redo" }

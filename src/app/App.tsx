@@ -1,3 +1,4 @@
+import { NodeSheetMove } from "../features/sheets/NodeSheetMove";
 import { SheetBar } from "../features/sheets/SheetBar";
 import { sheetOf, sheetsOf } from "../features/sheets/model";
 import { unionInputHandle } from "../features/union/ports";
@@ -478,7 +479,38 @@ function Canvas() {
           出力 → 入力へドラッグで接続 · 余白で移動 · ピンチでズーム
         </div>
       </main>
-      <SheetBar active={activeSheet} onSelect={setSelectedSheet} />
+      <SheetBar active={activeSheet} onSelect={setSelectedSheet}>
+        {nodes
+          .filter((n) => n.selected && visibleIds.has(n.id))
+          .slice(0, 1)
+          .map((node) => (
+            <NodeSheetMove
+              key={node.id}
+              table={node.data.table}
+              onMoved={(table) => {
+                // 移動先の保存済み座標を維持しつつ、このタブの表示だけをノードに合わせる。
+                const rect = canvas.current?.getBoundingClientRect();
+                const width = Number(node.style?.width ?? table.width);
+                const height = Number(node.style?.height ?? table.height);
+                const zoom = Math.max(
+                  0.4,
+                  Math.min(
+                    1,
+                    (rect?.width ?? 900) / (width + 100),
+                    (rect?.height ?? 600) / (height + 140),
+                  ),
+                );
+                viewports.current.set(sheetOf(table), {
+                  x: (rect?.width ?? 900) / 2 - (table.x + width / 2) * zoom,
+                  y: (rect?.height ?? 600) / 2 - (table.y + height / 2) * zoom,
+                  zoom,
+                });
+                setSelectedSheet(sheetOf(table));
+                selectNode(table.id);
+              }}
+            />
+          ))}
+      </SheetBar>
       <footer className="statusbar">
         <span>
           <i className={error ? "status-dot error" : "status-dot"} />
