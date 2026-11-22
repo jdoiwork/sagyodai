@@ -23,7 +23,9 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const error =
     new TextEncoder().encode(draft).length > 100000
       ? "メモは100000バイト以内にしてください。"
-      : "";
+      : draft.split("\n").length > 5000
+        ? "メモの出力は5000行以内にしてください（空行も含みます）。"
+        : "";
   function save() {
     if (error || pending) return;
     if (draft === original) {

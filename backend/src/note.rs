@@ -1,4 +1,4 @@
-//! 保存済みのメモ本文を、Markdown原文のまま1列1行で出力する。
+//! 保存済みのメモ本文を、Markdown原文を改行ごとに分け、1列の表として出力する。
 use crate::domain::{Kind, Table};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -9,6 +9,9 @@ pub struct Note {
 pub fn validate_text(text: &str) -> Result<(), String> {
     if text.len() > 100_000 {
         return Err("メモは100000バイト以内にしてください。".into());
+    }
+    if text.split('\n').count() > crate::storage::MAX_ROWS {
+        return Err("メモの出力は5000行以内にしてください（空行も含みます）。".into());
     }
     Ok(())
 }
@@ -29,7 +32,11 @@ pub fn validate(table: &Table) -> Result<(), String> {
 pub fn refresh(table: &mut Table) {
     if let Some(note) = &table.note {
         table.columns = vec!["本文".into()];
-        table.rows = vec![vec![note.text.clone()]];
+        table.rows = note
+            .text
+            .split('\n')
+            .map(|line| vec![line.strip_suffix('\r').unwrap_or(line).to_string()])
+            .collect();
         table.stale = false;
         table.error = None;
     }
@@ -47,6 +54,26 @@ mod tests {
             expected_revision: p.snapshot().revision,
             command,
         })
+    }
+    #[test]
+    fn split_lines_preserves_blank_lines_and_handles_crlf_and_limits() {
+        let mut table = crate::domain::sample_table("note".into(), 0);
+        for (text, expected) in [
+            ("", vec![""]),
+            ("一行", vec!["一行"]),
+            ("一行\n\n三行\n", vec!["一行", "", "三行", ""]),
+            ("一行\r\n二行\r\n", vec!["一行", "二行", ""]),
+        ] {
+            table.note = Some(Note { text: text.into() });
+            refresh(&mut table);
+            assert_eq!(table.columns, ["本文"]);
+            assert_eq!(
+                table.rows,
+                expected.into_iter().map(|s| vec![s]).collect::<Vec<_>>()
+            );
+        }
+        assert!(validate_text(&"\n".repeat(4999)).is_ok());
+        assert!(validate_text(&"\n".repeat(5000)).is_err());
     }
     #[test]
     fn note_output_propagates_through_filter_and_respects_manual_cache() {
@@ -98,7 +125,14 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(p.snapshot().tables[3].rows, vec![vec![text.clone()]]);
+        assert_eq!(p.snapshot().tables[3].rows, vec![vec!["# 重要"]]);
+        let mut saved: serde_json::Value = serde_json::from_slice(&p.export().unwrap()).unwrap();
+        saved["tables"][1]["rows"] = serde_json::json!([[text]]);
+        saved["tables"][2]["rows"] = serde_json::json!([[text]]);
+        saved["tables"][3]["rows"] = serde_json::json!([[text]]);
+        let reopened = Project::restore(saved, 0).unwrap();
+        assert_eq!(reopened.snapshot().tables[1].rows.len(), 2);
+        assert_eq!(reopened.snapshot().tables[3].rows, vec![vec!["# 重要"]]);
         run(
             &mut p,
             Command::Configure {
@@ -119,11 +153,11 @@ mod tests {
         .unwrap();
         assert!(p.snapshot().tables[2].rows.is_empty());
         assert!(p.snapshot().tables[3].stale);
-        assert_eq!(p.snapshot().tables[3].rows, vec![vec![text.clone()]]);
+        assert_eq!(p.snapshot().tables[3].rows, vec![vec!["# 重要"]]);
         let restored =
             Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
         assert_eq!(restored.snapshot().tables[1].rows, vec![vec!["対象外"]]);
-        assert_eq!(restored.snapshot().tables[3].rows, vec![vec![text]]);
+        assert_eq!(restored.snapshot().tables[3].rows, vec![vec!["# 重要"]]);
         run(
             &mut p,
             Command::Run {
@@ -215,7 +249,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(p.snapshot().tables[2].columns, ["本文"]);
-        assert_eq!(p.snapshot().tables[2].rows, vec![vec![text.clone()]]);
+        assert_eq!(
+            p.snapshot().tables[2].rows,
+            vec![
+                vec!["# 手順"],
+                vec![""],
+                vec!["- 日本語のメモ"],
+                vec!["- **重要**"]
+            ]
+        );
         assert!(
             run(
                 &mut p,

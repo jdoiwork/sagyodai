@@ -31,8 +31,15 @@ impl Default for Project {
 impl Project {
     pub fn restore(document: serde_json::Value, revision: u64) -> Result<Self, String> {
         let mut file = storage::decode_project(document)?;
+        let previous = file.tables.clone();
         for table in &mut file.tables {
             crate::note::refresh(table);
+        }
+        // メモの出力を再構成した場合、自動ノードも更新する。手動ノードは旧結果を保持する。
+        if file.tables.iter().zip(&previous).any(|(now, old)| {
+            now.note.is_some() && (now.columns != old.columns || now.rows != old.rows)
+        }) {
+            crate::graph::evaluate(&mut file.tables, &previous, None)?;
         }
         Ok(Self {
             tables: file.tables,
