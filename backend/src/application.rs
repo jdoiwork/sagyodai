@@ -203,6 +203,14 @@ impl Project {
                 }
                 crate::graph::order(tables)?;
             }
+            Command::SetSort { id, keys } => {
+                crate::sort::validate(&keys)?;
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Sort {
+                    return Err("ソートノードではありません。".into());
+                }
+                table.sort_keys = keys;
+            }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
                 if t.kind == Kind::Input {
@@ -394,6 +402,8 @@ impl Project {
                         "{} {}",
                         if kind == Kind::Filter {
                             "フィルタ"
+                        } else if kind == Kind::Sort {
+                            "ソート"
                         } else if kind == Kind::Union {
                             "結合"
                         } else {
@@ -406,6 +416,7 @@ impl Project {
                     t.width = match kind {
                         Kind::Display => 760.0,
                         Kind::Union => 440.0,
+                        Kind::Sort => 520.0,
                         _ => 400.0,
                     };
                     t.height = if kind == Kind::Display { 390.0 } else { 360.0 };

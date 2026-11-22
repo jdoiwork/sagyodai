@@ -92,9 +92,11 @@ pub fn remove_column(
             if tables[n].manual {
                 return Err("接続先に手動更新のノードがあります。自動更新に切り替えてから列を削除してください。".into());
             }
-            if tables[n].filter.as_ref().is_some_and(|f| f.column == col) {
+            if tables[n].filter.as_ref().is_some_and(|f| f.column == col)
+                || tables[n].sort_keys.iter().any(|k| k.column == col)
+            {
                 return Err(format!(
-                    "「{}」がこの列を参照しています。フィルタの対象列を変更するか接続を外してください。",
+                    "「{}」がこの列を参照しています。フィルタ・ソートの対象列を変更するか接続を外してください。",
                     tables[n].title
                 ));
             }
@@ -114,6 +116,11 @@ pub fn remove_column(
             && f.column > col
         {
             f.column -= 1;
+        }
+        for key in &mut t.sort_keys {
+            if key.column > col {
+                key.column -= 1;
+            }
         }
     }
     tables[i].columns.remove(col);
@@ -204,6 +211,9 @@ pub fn move_columns(
             .collect();
         if let Some(f) = &mut t.filter {
             f.column = new_index[f.column];
+        }
+        for key in &mut t.sort_keys {
+            key.column = new_index[key.column];
         }
     }
     tables[i].columns = order.iter().map(|old| columns[*old].clone()).collect();
@@ -342,6 +352,11 @@ pub fn insert(
             && f.column >= at
         {
             f.column += count;
+        }
+        for key in &mut t.sort_keys {
+            if key.column >= at {
+                key.column += count;
+            }
         }
     }
     let mut names = Vec::new();

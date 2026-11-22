@@ -1361,3 +1361,25 @@ button.action-danger:hover {
   border: 1px solid #c9d8d0;
   border-radius: 5px;
 }
+.sort-key-list {
+  max-height: 180px;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+.sort-key-row {
+  display: grid;
+  grid-template-columns: 16px minmax(60px, 1fr) 62px 80px 26px 26px 28px;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.sort-key-row > * {
+  min-width: 0;
+}
+.sort-key-row button {
+  padding: 4px;
+}
+.sort-hint {
+  color: #657d70;
+  font-size: 11px;
+}

@@ -57,22 +57,26 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             title={
               table.kind === "input"
                 ? "手入力の表"
-                : table.kind === "filter"
-                  ? "フィルタ"
-                  : table.kind === "union"
-                    ? "結合"
-                    : "結果表"
+                : table.kind === "sort"
+                  ? "ソート"
+                  : table.kind === "filter"
+                    ? "フィルタ"
+                    : table.kind === "union"
+                      ? "結合"
+                      : "結果表"
             }
           >
             <Icon
               name={
                 table.kind === "input"
                   ? "editableTable"
-                  : table.kind === "filter"
-                    ? "filter"
-                    : table.kind === "union"
-                      ? "union"
-                      : "table"
+                  : table.kind === "sort"
+                    ? "sort"
+                    : table.kind === "filter"
+                      ? "filter"
+                      : table.kind === "union"
+                        ? "union"
+                        : "table"
               }
             />
           </div>
@@ -81,11 +85,13 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             <span>
               {table.kind === "input"
                 ? "入力ソース"
-                : table.kind === "filter"
-                  ? "行の絞り込み"
-                  : table.kind === "union"
-                    ? "表の結合"
-                    : "結果の表示"}
+                : table.kind === "sort"
+                  ? "行の並べ替え"
+                  : table.kind === "filter"
+                    ? "行の絞り込み"
+                    : table.kind === "union"
+                      ? "表の結合"
+                      : "結果の表示"}
             </span>
           </div>
           <button

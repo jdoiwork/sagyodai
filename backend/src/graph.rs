@@ -6,6 +6,11 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut done = HashSet::new();
     let mut result = vec![];
     for t in tables {
+        crate::sort::validate(&t.sort_keys)?;
+        if t.kind != Kind::Sort && !t.sort_keys.is_empty() {
+            return Err("ソート設定とノードの種類が一致しません。".into());
+        }
+
         if t.kind == Kind::Input && (t.source.is_some() || t.filter.is_some() || t.manual) {
             return Err("手入力の表には入力接続や加工設定を指定できません。".into());
         }
@@ -125,6 +130,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         let changed = old.is_none_or(|n| {
             n.sources() != tables[i].sources()
                 || n.filter != tables[i].filter
+                || n.sort_keys != tables[i].sort_keys
                 || n.union_distinct != tables[i].union_distinct
         }) || inputs.iter().any(|current| {
             previous
@@ -151,9 +157,13 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                     Err("入力が更新待ちです。上流ノードを確認してください。".to_string())
                 }
                 Some(s) => {
-                    let rows = match &node.filter {
-                        Some(f) => filter_rows(&s, f),
-                        None => Ok(s.rows.clone()),
+                    let rows = if node.kind == Kind::Sort {
+                        crate::sort::rows(&s, &node.sort_keys)
+                    } else {
+                        match &node.filter {
+                            Some(f) => filter_rows(&s, f),
+                            None => Ok(s.rows.clone()),
+                        }
                     };
                     rows.map(|rows| (s.columns, rows))
                 }

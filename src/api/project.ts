@@ -47,6 +47,12 @@ export const emptyTableView = {
   query: "",
   columns: { schema: "", values: {}, sort: null },
 };
+export const sortKeySchema = z.object({
+  column: z.number().int().nonnegative(),
+  direction: z.enum(["asc", "desc"]),
+  mode: z.enum(["number", "text"]),
+});
+export type SortKey = z.infer<typeof sortKeySchema>;
 const tableSchema = z.object({
   view: tableViewSchema.optional(),
   sheetId: z.string().optional(),
@@ -62,7 +68,8 @@ const tableSchema = z.object({
   footer: z.array(z.boolean()).nullable().optional(),
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
-  kind: z.enum(["input", "filter", "display", "union"]),
+  kind: z.enum(["input", "filter", "display", "union", "sort"]),
+  sortKeys: z.array(sortKeySchema).optional(),
   source: z.string().nullable(),
   filter: filterSchema.nullable(),
   manual: z.boolean(),
@@ -88,6 +95,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setSort"; id: string; keys: SortKey[] }
   | { type: "setViewQuery"; id: string; query: string; expectedQuery: string }
   | {
       type: "setViewColumns";
@@ -107,7 +115,7 @@ export type Command =
   | {
       type: "addNode";
       sheetId?: string;
-      kind: "input" | "filter" | "display" | "union";
+      kind: "input" | "filter" | "display" | "union" | "sort";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }

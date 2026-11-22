@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default)]
+    pub sort_keys: Vec<crate::sort::SortKey>,
+    #[serde(default)]
     pub view: crate::table_view::TableView,
     #[serde(default = "crate::sheets::default_sheet_id")]
     pub sheet_id: String,
@@ -83,6 +85,7 @@ pub enum Kind {
     Filter,
     Display,
     Union,
+    Sort,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -127,6 +130,10 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetSort {
+        id: String,
+        keys: Vec<crate::sort::SortKey>,
+    },
     SetViewQuery {
         id: String,
         query: String,
@@ -325,6 +332,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         output_color: None,
         union_inputs: vec![],
         union_distinct: false,
+        sort_keys: vec![],
         footer: None,
         footer_totals: vec![],
         kind: Kind::Input,

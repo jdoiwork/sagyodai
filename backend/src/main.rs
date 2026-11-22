@@ -8,6 +8,7 @@ mod graph_tests;
 #[cfg(test)]
 mod sheet_move_tests;
 mod sheets;
+mod sort;
 mod storage;
 mod table_edit;
 mod table_view;
