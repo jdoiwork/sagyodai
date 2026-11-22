@@ -1812,3 +1812,40 @@ button.action-danger:hover {
   border-color: #87b49f;
   color: #245f4d;
 }
+
+.json-tree {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+.json-tree-children {
+  margin-left: 16px;
+  padding-left: 8px;
+  border-left: 1px solid #dbe4de;
+}
+.json-tree-toggle {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 3px 0;
+  text-align: left;
+  height: auto;
+  white-space: normal;
+}
+.json-tree-leaf {
+  padding: 3px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.json-tree-key {
+  color: #45675a;
+}
+.json-tree-string {
+  color: #245f4d;
+}
+.json-tree-number {
+  color: #175a96;
+}
+.json-tree-boolean,
+.json-tree-null {
+  color: #8052a0;
+}

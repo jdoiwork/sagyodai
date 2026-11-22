@@ -16,7 +16,9 @@ import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
 export function TableNode(props: NodeProps<TableFlowNode>) {
-  return ["note", "text", "textDisplay"].includes(props.data.table.kind) ? (
+  return ["note", "text", "textDisplay", "treeDisplay"].includes(
+    props.data.table.kind,
+  ) ? (
     <NoteNode {...props} />
   ) : (
     <DataNode {...props} />

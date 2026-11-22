@@ -552,6 +552,8 @@ impl Project {
                             "メモ"
                         } else if kind == Kind::Replace {
                             "置換"
+                        } else if kind == Kind::TreeDisplay {
+                            "結果ツリー"
                         } else if kind == Kind::TextDisplay {
                             "結果テキスト"
                         } else if kind == Kind::Text {
@@ -589,7 +591,7 @@ impl Project {
                     t.x = next_x;
                     t.y = 100.0;
                     t.stale = kind != Kind::Note;
-                    if kind == Kind::TextDisplay {
+                    if matches!(kind, Kind::TextDisplay | Kind::TreeDisplay) {
                         t.width = 520.0;
                         t.height = 480.0;
                         t.text_display = crate::text_source::TextDisplay::Plain;

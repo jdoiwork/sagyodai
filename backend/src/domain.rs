@@ -116,6 +116,7 @@ pub enum Kind {
     Filter,
     Display,
     TextDisplay,
+    TreeDisplay,
     Union,
     Sort,
     Aggregate,

@@ -1,3 +1,4 @@
+import { JsonTree } from "../tree/JsonTree";
 import { NodeSettings } from "../filter/NodeSettings";
 import { TextSettings } from "../text/TextSettings";
 import { NodePorts } from "../canvas/NodePorts";
@@ -14,7 +15,8 @@ import { useProject } from "../../app/ProjectContext";
 export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, pending, project } = useProject();
   const table = data.table;
-  const isResult = table.kind === "textDisplay";
+  const isTree = table.kind === "treeDisplay";
+  const isResult = table.kind === "textDisplay" || isTree;
   const isViewer = isResult || table.kind === "text";
   const isFile = table.kind === "text";
   const text = isResult
@@ -79,16 +81,26 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
         <header className="table-drag-handle">
           <div
             className="table-icon"
-            title={isResult ? "結果テキスト" : isFile ? "テキスト入力" : "メモ"}
+            title={
+              isTree
+                ? "結果ツリー"
+                : isResult
+                  ? "結果テキスト"
+                  : isFile
+                    ? "テキスト入力"
+                    : "メモ"
+            }
           >
-            <Icon name="note" />
+            <Icon name={isTree ? "tree" : "note"} />
           </div>
           <div>
             <NodeTitle table={table} />
             <span>
-              {isViewer
-                ? `${isResult ? "結果テキスト" : "テキストファイル"} · ${plainText ? "テキスト" : "Markdown"}`
-                : "メモ · Markdown"}
+              {isTree
+                ? "結果ツリー · JSON"
+                : isViewer
+                  ? `${isResult ? "結果テキスト" : "テキストファイル"} · ${plainText ? "テキスト" : "Markdown"}`
+                  : "メモ · Markdown"}
             </span>
           </div>
           {isViewer && (
@@ -158,7 +170,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             </button>
           </div>
         )}
-        {isViewer && !table.compact && (
+        {isViewer && !isTree && !table.compact && (
           <div
             className="note-actions nodrag nopan"
             role="group"
@@ -213,7 +225,9 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             hidden={isViewer && table.compact}
             aria-label={`${table.title} 閲覧`}
           >
-            {text ? (
+            {isTree ? (
+              <JsonTree text={text} />
+            ) : text ? (
               isViewer && plainText ? (
                 <pre className="text-file-plain">{text}</pre>
               ) : (

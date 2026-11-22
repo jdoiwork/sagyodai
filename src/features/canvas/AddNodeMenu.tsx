@@ -16,6 +16,7 @@ const processingChoices = [
 const outputChoices = [
   { kind: "display", label: "結果表", icon: "table" },
   { kind: "textDisplay", label: "結果テキスト", icon: "note" },
+  { kind: "treeDisplay", label: "結果ツリー", icon: "tree" },
 ] as const;
 const categories = {
   source: { label: "入力", choices: sourceChoices },

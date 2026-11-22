@@ -49,7 +49,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         JSON.stringify(table.filter?.values ?? []));
   return (
     <div
-      className={`node-settings nodrag nopan${(table.kind === "display" || table.kind === "textDisplay") && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.kind === "replace" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${(table.kind === "display" || table.kind === "textDisplay" || table.kind === "treeDisplay") && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.kind === "replace" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
       {table.compact && table.kind === "display" && (
         <div className="compact-condition">

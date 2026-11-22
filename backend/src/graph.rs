@@ -201,6 +201,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                     .as_ref()
                     .ok_or_else(|| "出力列設定がありません。".into())
                     .and_then(|config| config.evaluate(&s)),
+                Some(s) if node.kind == Kind::TreeDisplay => crate::tree_display::evaluate(&s),
                 Some(s) if node.kind == Kind::Aggregate => node
                     .group
                     .as_ref()
