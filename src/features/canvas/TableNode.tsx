@@ -1,3 +1,4 @@
+import { unionPortHeight } from "../union/ports";
 import { UnionSettings } from "../union/UnionSettings";
 import { NodePorts } from "./NodePorts";
 import { emptyRowIndices } from "../table/emptyRows";
@@ -33,7 +34,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
         <NodeResizer
           isVisible={selected && !table.compact}
           minWidth={380}
-          minHeight={240}
+          minHeight={Math.max(240, unionPortHeight(table))}
           maxWidth={2400}
           maxHeight={1600}
           onResizeStart={data.onLayoutStart}

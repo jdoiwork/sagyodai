@@ -1090,3 +1090,25 @@ button.action-danger:hover {
   min-height: 26px;
   padding: 2px 7px;
 }
+
+.react-flow__handle.union-input-port {
+  cursor: default;
+  pointer-events: all;
+}
+.union-port-number {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: white;
+  pointer-events: none;
+}
+.table-port .union-source-label {
+  top: -2px;
+  right: 27px;
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 18px;
+}

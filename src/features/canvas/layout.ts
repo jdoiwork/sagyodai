@@ -1,6 +1,17 @@
+import { unionPortHeight } from "../union/ports";
 import type { Node } from "@xyflow/react";
 import type { TableData } from "../../api/project";
 export const COMPACT_NODE_SIZE = { width: 380, height: 102 };
+export function nodeSize(
+  table: TableData,
+  layout: Pick<TableData, "width" | "height"> = table,
+) {
+  const size = table.compact ? COMPACT_NODE_SIZE : layout;
+  return {
+    width: size.width,
+    height: Math.max(size.height, unionPortHeight(table)),
+  };
+}
 export type Layout = Pick<TableData, "x" | "y" | "width" | "height">;
 export type TableFlowNode = Node<
   {
@@ -39,9 +50,7 @@ export function reconcileNodes(
               : Number(old.style?.height ?? table.height),
           }
         : (pending.get(table.id) ?? table);
-    const size = table.compact
-      ? COMPACT_NODE_SIZE
-      : { width: local.width, height: local.height };
+    const size = nodeSize(table, local);
     return {
       ...old,
       // リサイズで設定される node.width/height は style より優先される。

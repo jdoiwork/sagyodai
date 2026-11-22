@@ -1,3 +1,4 @@
+import { unionInputHandle } from "../features/union/ports";
 import { colorValue } from "../features/canvas/colors";
 import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
 import { createsCycle } from "../validation/input";
@@ -203,7 +204,8 @@ function Canvas() {
               source: input.source,
               target: t.id,
               sourceHandle: "out",
-              targetHandle: "in",
+              targetHandle:
+                t.kind === "union" ? unionInputHandle(input.source) : "in",
               type: "smoothstep",
               reconnectable:
                 t.kind === "union" ? (false as const) : ("source" as const),
@@ -221,7 +223,10 @@ function Canvas() {
               (t) => t.id === connection.source && t.kind !== "display",
             ) &&
             project.tables.some(
-              (t) => t.id === connection.target && t.kind !== "input",
+              (t) =>
+                t.id === connection.target &&
+                t.kind !== "input" &&
+                (t.kind !== "union" || connection.targetHandle === "in"),
             ) &&
             !createsCycle(project.tables, connection.target, connection.source)
           }

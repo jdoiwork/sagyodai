@@ -158,3 +158,27 @@ it("リサイズで設定されたノード寸法も折りたたみ・展開に�
     style: { width: 900, height: 600 },
   });
 });
+
+it("結合の全入力端子と追加端子が縮小中もノード内に収まる", () => {
+  const union: TableData = {
+    ...tables[0],
+    kind: "union",
+    compact: true,
+    unionInputs: Array.from({ length: 19 }, (_, index) => ({
+      source: `input-${index}`,
+      color: null,
+    })),
+  };
+  const compact = reconcileNodes([union], [], new Set(), new Map(), noop, noop);
+  expect(compact[0].height).toBeGreaterThan(32 + 19 * 36 + 20);
+  const expanded = reconcileNodes(
+    [{ ...union, compact: false, width: 900, height: 800 }],
+    compact,
+    new Set(),
+    new Map(),
+    noop,
+    noop,
+  );
+  expect(expanded[0].width).toBe(900);
+  expect(expanded[0].height).toBe(800);
+});
