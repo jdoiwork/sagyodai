@@ -1766,11 +1766,11 @@ button.action-danger:hover {
   color: #60796d;
 }
 
-.add-source {
+.add-node {
   position: relative;
   flex-shrink: 0;
 }
-.add-source-menu {
+.add-node-menu {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
@@ -1784,7 +1784,7 @@ button.action-danger:hover {
   box-shadow: 0 6px 20px #163d2420;
   z-index: 6;
 }
-.add-source-menu button {
+.add-node-menu button {
   justify-content: flex-start;
   width: 100%;
 }

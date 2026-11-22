@@ -1,4 +1,4 @@
-import { AddSourceMenu } from "../features/canvas/AddSourceMenu";
+import { AddNodeMenu } from "../features/canvas/AddNodeMenu";
 import { NodeNavigation } from "../features/canvas/NodeActions";
 import { nodeSize } from "../features/canvas/layout";
 import { SheetBar } from "../features/sheets/SheetBar";
@@ -400,7 +400,15 @@ function Canvas() {
                 </span>
               </div>
             )}
-            <AddSourceMenu
+            <AddNodeMenu
+              category="source"
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
+              onAdd={addNode}
+            />
+            <AddNodeMenu
+              category="processing"
               disabled={
                 !project || project.tables.length >= MAX_NODES || pending > 0
               }
@@ -416,61 +424,10 @@ function Canvas() {
               aria-disabled={
                 !project || project.tables.length >= MAX_NODES || pending > 0
               }
-              onClick={() => addNode("filter")}
-            >
-              <Icon name="filter" />
-              フィルタ
-            </button>
-            <button
-              disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("sort")}
-            >
-              <Icon name="sort" />
-              ソート
-            </button>
-            <button
-              disabled={!project || project.tables.length >= MAX_NODES}
-              title={
-                project && project.tables.length >= MAX_NODES
-                  ? `上限の${MAX_NODES}ノードに達しています`
-                  : undefined
-              }
-              aria-disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
               onClick={() => addNode("display")}
             >
               <Icon name="table" />
               結果表
-            </button>
-            <button
-              disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("union")}
-            >
-              <Icon name="union" />
-              結合
-            </button>
-            <button
-              disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("aggregate")}
-            >
-              <Icon name="aggregate" />
-              集計
-            </button>
-            <button
-              disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("replace")}
-            >
-              <Icon name="replace" />
-              置換
             </button>
             <div className="toolbar-history">
               <div className="toolbar-separator" />

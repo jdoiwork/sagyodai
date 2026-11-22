@@ -1,17 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../components/Icon";
-const choices = [
+const sourceChoices = [
   { kind: "input", label: "表を追加", icon: "editableTable" },
   { kind: "csv", label: "CSV", icon: "folder" },
   { kind: "note", label: "メモ", icon: "note" },
 ] as const;
-export function AddSourceMenu({
+const processingChoices = [
+  { kind: "filter", label: "フィルタ", icon: "filter" },
+  { kind: "sort", label: "ソート", icon: "sort" },
+  { kind: "union", label: "結合", icon: "union" },
+  { kind: "aggregate", label: "集計", icon: "aggregate" },
+  { kind: "replace", label: "置換", icon: "replace" },
+] as const;
+export function AddNodeMenu({
+  category,
   disabled,
   onAdd,
 }: {
+  category: "source" | "processing";
   disabled: boolean;
-  onAdd: (kind: "input" | "csv" | "note") => void;
+  onAdd: (
+    kind:
+      | (typeof sourceChoices)[number]["kind"]
+      | (typeof processingChoices)[number]["kind"],
+  ) => void;
 }) {
+  const choices = category === "source" ? sourceChoices : processingChoices;
+  const label = category === "source" ? "入力を追加" : "加工を追加";
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -30,7 +45,7 @@ export function AddSourceMenu({
   }, [open]);
   return (
     <div
-      className="add-source"
+      className="add-node"
       ref={root}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null))
@@ -39,7 +54,7 @@ export function AddSourceMenu({
     >
       <button
         ref={trigger}
-        className="primary"
+        className={category === "source" ? "primary" : undefined}
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open && !disabled}
@@ -52,14 +67,17 @@ export function AddSourceMenu({
         }}
       >
         <Icon name="plus" />
-        入力を追加<span aria-hidden="true">▾</span>
+        {label}
+        <span aria-hidden="true">▾</span>
       </button>
       {open && !disabled && (
         <div
           ref={menu}
-          className="add-source-menu"
+          className="add-node-menu"
           role="menu"
-          aria-label="入力ノードを追加"
+          aria-label={
+            category === "source" ? "入力ノードを追加" : "加工ノードを追加"
+          }
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
