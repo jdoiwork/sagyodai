@@ -21,6 +21,8 @@ npm run dev
 
 ## 試せること
 
+- UTF-8の[テキストファイル入力](docs/text-input.md)に対応し、改行ごとに1列の表として後続ノードへ出力できる。
+
 - [Markdownで表示できるメモノード](docs/notes.md)。
 
 - [文字列・正規表現による置換](docs/replacement.md)。

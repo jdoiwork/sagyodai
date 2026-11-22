@@ -97,6 +97,10 @@ const tableSchema = z.object({
   replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
   outputSide: portSideSchema.nullable().optional(),
+  textSource: z
+    .object({ fileName: z.string(), text: z.string() })
+    .nullable()
+    .optional(),
   csv: z
     .object({
       sourceText: z.string().nullable().optional(),
@@ -135,6 +139,7 @@ const tableSchema = z.object({
   kind: z.enum([
     "input",
     "csv",
+    "text",
     "filter",
     "display",
     "union",
@@ -185,6 +190,7 @@ export type Command =
       skipEmptyRows: boolean;
       skipEmptyColumns: boolean;
     }
+  | { type: "importText"; id: string; fileName: string; text: string }
   | {
       type: "importCsv";
       id: string;
@@ -225,6 +231,7 @@ export type Command =
       kind:
         | "input"
         | "csv"
+        | "text"
         | "filter"
         | "display"
         | "union"

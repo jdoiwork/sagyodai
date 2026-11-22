@@ -14,6 +14,8 @@ pub struct Table {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub csv: Option<crate::csv_source::CsvSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_source: Option<crate::text_source::TextSource>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub projection: Option<crate::projection::Projection>,
     #[serde(default)]
     pub group: Option<crate::group::GroupConfig>,
@@ -108,6 +110,7 @@ pub enum Kind {
     Replace,
     Input,
     Csv,
+    Text,
     Filter,
     Display,
     Union,
@@ -181,6 +184,11 @@ pub enum Command {
         has_headers: bool,
         skip_empty_rows: bool,
         skip_empty_columns: bool,
+    },
+    ImportText {
+        id: String,
+        file_name: String,
+        text: String,
     },
     ImportCsv {
         id: String,
@@ -405,6 +413,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         input_side: None,
         output_side: None,
         csv: None,
+        text_source: None,
         sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,
         input_color: None,

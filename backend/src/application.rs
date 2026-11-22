@@ -169,7 +169,10 @@ impl Project {
             Command::SetPortSide { id, input, side } => {
                 let table = table_mut(tables, &id)?;
                 if input {
-                    if matches!(table.kind, Kind::Input | Kind::Csv | Kind::Note) {
+                    if matches!(
+                        table.kind,
+                        Kind::Input | Kind::Csv | Kind::Text | Kind::Note
+                    ) {
                         return Err("このノードに入力端子はありません。".into());
                     }
                     table.input_side = Some(side);
@@ -221,6 +224,13 @@ impl Project {
                     skip_empty_rows,
                     skip_empty_columns,
                 )?;
+            }
+            Command::ImportText {
+                id,
+                file_name,
+                text,
+            } => {
+                crate::text_source::import(table_mut(tables, &id)?, file_name, text)?;
             }
             Command::ImportCsv {
                 id,
@@ -291,7 +301,7 @@ impl Project {
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Note) {
+                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note) {
                     return Err("入力ソースには接続できません。".into());
                 }
                 if t.kind == Kind::Union {
@@ -346,7 +356,7 @@ impl Project {
             }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Note) {
+                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note) {
                     return Err("入力ソースには加工設定を指定できません。".into());
                 }
                 t.filter = filter;
@@ -535,6 +545,8 @@ impl Project {
                             "メモ"
                         } else if kind == Kind::Replace {
                             "置換"
+                        } else if kind == Kind::Text {
+                            "テキスト"
                         } else if kind == Kind::Csv {
                             "CSV"
                         } else if kind == Kind::Filter {
@@ -553,14 +565,14 @@ impl Project {
                     t.columns.clear();
                     t.rows.clear();
                     t.width = match kind {
-                        Kind::Display | Kind::Csv => 760.0,
+                        Kind::Display | Kind::Csv | Kind::Text => 760.0,
                         Kind::Union => 440.0,
                         Kind::Sort | Kind::Aggregate | Kind::Replace => 520.0,
                         _ => 400.0,
                     };
                     t.height = if matches!(kind, Kind::Aggregate | Kind::Replace) {
                         480.0
-                    } else if matches!(kind, Kind::Display | Kind::Csv) {
+                    } else if matches!(kind, Kind::Display | Kind::Csv | Kind::Text) {
                         390.0
                     } else {
                         360.0

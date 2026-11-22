@@ -21,7 +21,8 @@ export function PortSideMenu({
       </button>
       {[true, false]
         .filter(
-          (input) => !input || !["input", "csv", "note"].includes(table.kind),
+          (input) =>
+            !input || !["input", "csv", "text", "note"].includes(table.kind),
         )
         .map((input) => (
           <div key={String(input)}>

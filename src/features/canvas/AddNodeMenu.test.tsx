@@ -11,6 +11,7 @@ it("入力元をメニューから選択し、選択後に閉じる", () => {
   for (const [label, kind] of [
     ["表を追加", "input"],
     ["CSV", "csv"],
+    ["テキスト", "text"],
     ["メモ", "note"],
   ]) {
     fireEvent.click(ui.getByRole("button", { name: "入力を追加" }));

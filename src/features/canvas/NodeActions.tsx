@@ -192,7 +192,7 @@ export function NodeActions({ table }: { table: TableData }) {
                 >
                   端子の位置<span aria-hidden="true"> ›</span>
                 </button>
-                {["input", "csv", "display"].includes(table.kind) && (
+                {["input", "csv", "text", "display"].includes(table.kind) && (
                   <button
                     role="menuitem"
                     disabled={pending > 0 || !filterCount}

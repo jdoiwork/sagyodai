@@ -18,6 +18,7 @@ mod sort;
 mod storage;
 mod table_edit;
 mod table_view;
+mod text_source;
 mod union;
 #[cfg(test)]
 mod union_tests;

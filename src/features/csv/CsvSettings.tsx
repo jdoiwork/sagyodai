@@ -4,7 +4,7 @@ import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
 
 export function CsvSettings({ table }: { table: TableData }) {
-  const { importCsv, dispatch, project, pending } = useProject();
+  const { importSource, dispatch, project, pending } = useProject();
   const fileInput = useRef<HTMLInputElement>(null);
   const [hasHeaders, setHasHeaders] = useState(table.csv?.hasHeaders ?? true);
   const [skipEmptyRows, setSkipEmptyRows] = useState(
@@ -36,7 +36,7 @@ export function CsvSettings({ table }: { table: TableData }) {
     setBusy(true);
     setError("");
     try {
-      await importCsv({
+      await importSource({
         type: "setCsvOptions",
         id: table.id,
         hasHeaders: headers,
@@ -68,7 +68,7 @@ export function CsvSettings({ table }: { table: TableData }) {
           "UTF-8のCSVファイルを選んでください。文字コードを確認してください。",
         );
       }
-      await importCsv({
+      await importSource({
         type: "importCsv",
         id: table.id,
         fileName: file.name,

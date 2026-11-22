@@ -71,6 +71,7 @@ function Canvas() {
     kind:
       | "input"
       | "csv"
+      | "text"
       | "filter"
       | "display"
       | "union"
@@ -94,6 +95,7 @@ function Canvas() {
     kind:
       | "input"
       | "csv"
+      | "text"
       | "filter"
       | "display"
       | "union"
@@ -327,6 +329,7 @@ function Canvas() {
                   t.id === connection.target &&
                   t.kind !== "input" &&
                   t.kind !== "csv" &&
+                  t.kind !== "text" &&
                   t.kind !== "note" &&
                   (t.kind !== "union" || connection.targetHandle === "in"),
               ) &&

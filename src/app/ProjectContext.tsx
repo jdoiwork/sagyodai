@@ -25,8 +25,11 @@ type ProjectContextValue = {
   error: string;
   pending: number;
   openProject: (document: unknown) => Promise<void>;
-  importCsv: (
-    command: Extract<Command, { type: "importCsv" | "setCsvOptions" }>,
+  importSource: (
+    command: Extract<
+      Command,
+      { type: "importCsv" | "setCsvOptions" | "importText" }
+    >,
   ) => Promise<void>;
   prepareExport: () => Promise<{ blob: Blob; revision: number }>;
   markExported: (revision: number) => void;
@@ -222,8 +225,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       () => onSettled?.(false),
     );
   }
-  async function importCsv(
-    command: Extract<Command, { type: "importCsv" | "setCsvOptions" }>,
+  async function importSource(
+    command: Extract<
+      Command,
+      { type: "importCsv" | "setCsvOptions" | "importText" }
+    >,
   ) {
     await enqueue(command, false);
   }
@@ -300,7 +306,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         error,
         pending,
         openProject,
-        importCsv,
+        importSource,
         prepareExport,
         markExported: setExportedRevision,
         dirty,

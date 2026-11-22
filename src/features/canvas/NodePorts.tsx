@@ -24,6 +24,7 @@ export function NodePorts({ table }: { table: TableData }) {
       inputSide === outputSide &&
       table.kind !== "input" &&
       table.kind !== "csv" &&
+      table.kind !== "text" &&
       table.kind !== "note";
     const count =
       table.kind === "union" ? (table.unionInputs?.length ?? 0) + 1 : 1;
@@ -150,6 +151,7 @@ export function NodePorts({ table }: { table: TableData }) {
         })}
       {table.kind !== "input" &&
         table.kind !== "csv" &&
+        table.kind !== "text" &&
         table.kind !== "note" && (
           <Handle
             type="target"

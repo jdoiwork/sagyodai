@@ -7,6 +7,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut result = vec![];
     for t in tables {
         crate::csv_source::validate(t)?;
+        crate::text_source::validate(t)?;
         crate::note::validate(t)?;
         if (t.kind == Kind::Replace) != t.replacement.is_some() {
             return Err("置換設定とノードの種類が一致しません。".into());
@@ -32,7 +33,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("ソート設定とノードの種類が一致しません。".into());
         }
 
-        if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Note)
+        if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note)
             && (t.source.is_some() || t.filter.is_some() || t.manual)
         {
             return Err("入力ソースには入力接続や加工設定を指定できません。".into());
@@ -151,7 +152,10 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
 pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> Result<(), String> {
     for i in order(tables)? {
         crate::note::refresh(&mut tables[i]);
-        if matches!(tables[i].kind, Kind::Input | Kind::Csv | Kind::Note) {
+        if matches!(
+            tables[i].kind,
+            Kind::Input | Kind::Csv | Kind::Text | Kind::Note
+        ) {
             continue;
         }
         let old = previous.iter().find(|n| n.id == tables[i].id);

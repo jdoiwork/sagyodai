@@ -789,7 +789,7 @@ export function TableGrid({
         </div>
       )}
       <div className="table-footer nodrag nopan">
-        {table.kind !== "csv" && (
+        {table.kind !== "csv" && table.kind !== "text" && (
           <button
             onClick={() =>
               dispatch({

@@ -1,3 +1,4 @@
+import { TextSettings } from "../text/TextSettings";
 import { NoteNode } from "../note/NoteNode";
 import { CsvSettings } from "../csv/CsvSettings";
 import { useTableView } from "../table/useTableView";
@@ -66,38 +67,42 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
             title={
               table.kind === "input"
                 ? "手入力の表"
-                : table.kind === "csv"
-                  ? "CSV入力"
-                  : table.kind === "replace"
-                    ? "置換"
-                    : table.kind === "aggregate"
-                      ? "集計"
-                      : table.kind === "sort"
-                        ? "ソート"
-                        : table.kind === "filter"
-                          ? "フィルタ"
-                          : table.kind === "union"
-                            ? "結合"
-                            : "結果表"
+                : table.kind === "text"
+                  ? "テキスト入力"
+                  : table.kind === "csv"
+                    ? "CSV入力"
+                    : table.kind === "replace"
+                      ? "置換"
+                      : table.kind === "aggregate"
+                        ? "集計"
+                        : table.kind === "sort"
+                          ? "ソート"
+                          : table.kind === "filter"
+                            ? "フィルタ"
+                            : table.kind === "union"
+                              ? "結合"
+                              : "結果表"
             }
           >
             <Icon
               name={
                 table.kind === "input"
                   ? "editableTable"
-                  : table.kind === "csv"
-                    ? "folder"
-                    : table.kind === "replace"
-                      ? "replace"
-                      : table.kind === "aggregate"
-                        ? "aggregate"
-                        : table.kind === "sort"
-                          ? "sort"
-                          : table.kind === "filter"
-                            ? "filter"
-                            : table.kind === "union"
-                              ? "union"
-                              : "table"
+                  : table.kind === "text"
+                    ? "note"
+                    : table.kind === "csv"
+                      ? "folder"
+                      : table.kind === "replace"
+                        ? "replace"
+                        : table.kind === "aggregate"
+                          ? "aggregate"
+                          : table.kind === "sort"
+                            ? "sort"
+                            : table.kind === "filter"
+                              ? "filter"
+                              : table.kind === "union"
+                                ? "union"
+                                : "table"
               }
             />
           </div>
@@ -106,19 +111,21 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
             <span>
               {table.kind === "input"
                 ? "入力ソース"
-                : table.kind === "csv"
-                  ? "CSVファイルの読み込み"
-                  : table.kind === "replace"
-                    ? "文字列の加工"
-                    : table.kind === "aggregate"
-                      ? "グループ集計"
-                      : table.kind === "sort"
-                        ? "行の並べ替え"
-                        : table.kind === "filter"
-                          ? "行の絞り込み"
-                          : table.kind === "union"
-                            ? "表の結合"
-                            : "結果の表示"}
+                : table.kind === "text"
+                  ? "テキストファイルの読み込み"
+                  : table.kind === "csv"
+                    ? "CSVファイルの読み込み"
+                    : table.kind === "replace"
+                      ? "文字列の加工"
+                      : table.kind === "aggregate"
+                        ? "グループ集計"
+                        : table.kind === "sort"
+                          ? "行の並べ替え"
+                          : table.kind === "filter"
+                            ? "行の絞り込み"
+                            : table.kind === "union"
+                              ? "表の結合"
+                              : "結果の表示"}
             </span>
           </div>
           <button
@@ -227,14 +234,18 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           </>
         ) : (
           <>
-            {table.kind === "csv" ? (
+            {table.kind === "text" ? (
+              <TextSettings table={table} />
+            ) : table.kind === "csv" ? (
               <CsvSettings table={table} />
             ) : table.kind === "union" ? (
               <UnionSettings table={table} />
             ) : (
               <NodeSettings table={table} />
             )}
-            {(table.kind === "display" || table.kind === "csv") &&
+            {(table.kind === "display" ||
+              table.kind === "csv" ||
+              table.kind === "text") &&
               !table.compact && (
                 <TableGrid
                   table={table}
