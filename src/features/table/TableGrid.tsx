@@ -576,7 +576,11 @@ export function TableGrid({
                   <span className="column-letter">
                     {String.fromCharCode(65 + c)}
                   </span>
-                  {readOnly ? name : <ColumnHeader table={table} col={c} />}
+                  {canReorderColumns ? (
+                    <ColumnHeader table={table} col={c} />
+                  ) : (
+                    name
+                  )}
                   <ColumnValueFilter
                     key={`${schema}-${c}`}
                     label={`${table.title} ${name}`}

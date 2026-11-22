@@ -910,3 +910,32 @@ it("結果表の列ヘッダーの文字からドラッグして出力列を移�
     container.querySelector('[data-column="0"]')!.getAttribute("draggable"),
   ).toBeNull();
 });
+
+it("結果表の列名をダブルクリックで変更し、空欄や重複は編集時に防ぐ", () => {
+  const t = {
+    ...table,
+    kind: "display" as const,
+    columns: ["分類", "個数"],
+    rows: [["文房具", "3"]],
+  };
+  const ui = render(<TableGrid table={t} readOnly />);
+  fireEvent.doubleClick(ui.getByLabelText("表 2列の名前を編集"));
+  const input = ui.getByLabelText("表 2列の名前");
+  fireEvent.change(input, { target: { value: "分類" } });
+  fireEvent.blur(input);
+  expect(ui.getByRole("alert").textContent).toContain("重複");
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.blur(input);
+  expect(ui.getByRole("alert").textContent).toContain("入力してください");
+  fireEvent.change(input, { target: { value: "数量" } });
+  fireEvent.blur(input);
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+    type: "renameColumn",
+    id: t.id,
+    col: 1,
+    name: "数量",
+    expectedColumns: t.columns,
+  });
+  expect(ui.queryByLabelText("表 2列の名前")).toBeNull();
+});

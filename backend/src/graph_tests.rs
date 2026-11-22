@@ -488,7 +488,7 @@ fn structural_edits_reject_readonly_and_last_row_or_column() {
         run(
             &mut p,
             Command::RenameColumn {
-                id: output.id.clone(),
+                id: "table-2".into(),
                 col: 0,
                 name: "変更".into(),
                 expected_columns: output.columns.clone()

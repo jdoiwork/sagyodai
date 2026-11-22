@@ -165,6 +165,63 @@ pub fn move_columns(
     Ok(())
 }
 
+pub fn rename_column(
+    tables: &mut [Table],
+    id: &str,
+    col: usize,
+    name: String,
+    expected: &[String],
+) -> Result<(), String> {
+    let i = tables
+        .iter()
+        .position(|t| t.id == id)
+        .ok_or("結果表が見つかりません。")?;
+    let table = &tables[i];
+    if table.stale || table.error.is_some() {
+        return Err("結果表を更新してから列名を変更してください。".into());
+    }
+    if table.columns != expected || col >= table.columns.len() {
+        return Err(
+            "列の構成が変更されています。表示を確認して列名の編集をやり直してください。".into(),
+        );
+    }
+    if name.trim().is_empty() {
+        return Err("列名を入力してください。".into());
+    }
+    let source = table
+        .source
+        .as_ref()
+        .and_then(|id| tables.iter().find(|t| &t.id == id))
+        .ok_or("入力が未接続です。")?;
+    let mut config = table.projection.clone().unwrap_or_else(|| Projection {
+        schema: source.columns.clone(),
+        columns: source
+            .columns
+            .iter()
+            .enumerate()
+            .map(|(column, _)| OutputColumn {
+                column,
+                name: String::new(),
+                visible: true,
+            })
+            .collect(),
+    });
+    if config.evaluate(source)?.0 != table.columns {
+        return Err("入力の列構成が変わりました。結果表を更新してください。".into());
+    }
+    let target = config
+        .columns
+        .iter_mut()
+        .filter(|c| c.visible)
+        .nth(col)
+        .ok_or("対象の列が見つかりません。")?;
+    target.name = name;
+    config.validate()?;
+    tables[i].projection = Some(config);
+    tables[i].view = Default::default();
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -417,6 +474,105 @@ mod tests {
             p.snapshot().tables[1].columns,
             ["数量", "分類", "メモ", "品名"]
         );
+    }
+    #[test]
+    fn header_rename_updates_alias_and_downstream_without_touching_source() {
+        let mut p = Project::default();
+        for _ in 0..2 {
+            run(
+                &mut p,
+                Command::AddNode {
+                    kind: Kind::Display,
+                    sheet_id: None,
+                    position: None,
+                },
+            );
+        }
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-2".into(),
+                source: Some("table-1".into()),
+            },
+        );
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-3".into(),
+                source: Some("table-2".into()),
+            },
+        );
+        let original = p.snapshot().tables[0].clone();
+        run(
+            &mut p,
+            Command::RenameColumn {
+                id: "table-2".into(),
+                col: 1,
+                name: "個数".into(),
+                expected_columns: original.columns.clone(),
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns[1], "個数");
+        assert_eq!(p.snapshot().tables[0].columns, original.columns);
+        let cfg = config(&original);
+        run(
+            &mut p,
+            Command::SetProjection {
+                id: "table-2".into(),
+                config: Some(cfg),
+            },
+        );
+        let before = p.snapshot().tables[1].clone();
+        run(
+            &mut p,
+            Command::RenameColumn {
+                id: "table-2".into(),
+                col: 0,
+                name: "数量合計".into(),
+                expected_columns: before.columns.clone(),
+            },
+        );
+        let snap = p.snapshot();
+        assert_eq!(snap.tables[2].columns, ["数量合計", "品名"]);
+        assert_eq!(
+            snap.tables[1].projection.as_ref().unwrap().columns[0].column,
+            1
+        );
+        assert_eq!(
+            snap.tables[1].projection.as_ref().unwrap().columns[0].name,
+            "数量合計"
+        );
+        let restored =
+            storage::decode(serde_json::from_slice(&p.export().unwrap()).unwrap()).unwrap();
+        assert_eq!(restored[1].projection, snap.tables[1].projection);
+        for name in ["", "品名"] {
+            assert!(
+                p.apply(Request {
+                    expected_revision: p.snapshot().revision,
+                    command: Command::RenameColumn {
+                        id: "table-2".into(),
+                        col: 0,
+                        name: name.into(),
+                        expected_columns: snap.tables[1].columns.clone()
+                    }
+                })
+                .is_err()
+            );
+        }
+        assert!(
+            p.apply(Request {
+                expected_revision: p.snapshot().revision,
+                command: Command::RenameColumn {
+                    id: "table-2".into(),
+                    col: 0,
+                    name: "別名".into(),
+                    expected_columns: before.columns.clone()
+                }
+            })
+            .is_err()
+        );
+        run(&mut p, Command::Undo);
+        assert_eq!(p.snapshot().tables[2].columns, before.columns);
     }
     #[test]
     fn rejects_missing_duplicate_and_empty_output_columns() {

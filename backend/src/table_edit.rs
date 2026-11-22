@@ -38,6 +38,9 @@ pub fn rename_column(
     name: String,
     expected: &[String],
 ) -> Result<(), String> {
+    if tables.iter().any(|t| t.id == id && t.kind == Kind::Display) {
+        return crate::projection::rename_column(tables, id, col, name, expected);
+    }
     let t = &mut tables[input_index(tables, id)?];
     if t.columns != expected || col >= t.columns.len() {
         return Err(

@@ -14,6 +14,14 @@ export function ColumnHeader({
   const { dispatch } = useProject();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
+  function validate(name: string) {
+    if (table.kind !== "display") return columnNameError(name);
+    if (!name.trim()) return "列名を入力してください。";
+    if ([...name].length > 240) return "出力列名は240文字以内にしてください。";
+    if (table.columns.some((value, i) => i !== col && value === name.trim()))
+      return "出力列名が重複しています。別の名前を指定してください。";
+    return "";
+  }
   return (
     <div className="column-heading">
       {editing ? (
@@ -22,7 +30,7 @@ export function ColumnHeader({
           onChangeCapture={() => setError("")}
           onBlur={(event) => {
             if (!(event.target instanceof HTMLTextAreaElement)) return;
-            const message = columnNameError(event.target.value);
+            const message = validate(event.target.value);
             setError(message);
             if (!message) setEditing(false);
           }}
@@ -35,7 +43,7 @@ export function ColumnHeader({
             onSelect={() => {}}
             onNavigate={() => (document.activeElement as HTMLElement)?.blur()}
             onCommit={(name, original) => {
-              if (columnNameError(name)) return;
+              if (validate(name)) return;
               dispatch({
                 type: "renameColumn",
                 id: table.id,
