@@ -1,3 +1,4 @@
+import { TextSettings } from "../text/TextSettings";
 import { NodePorts } from "../canvas/NodePorts";
 import { useEffect, useState } from "react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
@@ -12,8 +13,11 @@ import { useProject } from "../../app/ProjectContext";
 export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, pending, project } = useProject();
   const table = data.table;
-  const text = table.note?.text ?? "";
-  const [editing, setEditing] = useState(!text);
+  const isFile = table.kind === "text";
+  const text = isFile
+    ? (table.textSource?.text ?? "")
+    : (table.note?.text ?? "");
+  const [editing, setEditing] = useState(!isFile && !text);
   const [draft, setDraft] = useState(text);
   const [original, setOriginal] = useState(text);
   // 競合の再適用で自分の本文が保存された場合も、次の保存を競合にしない。
@@ -60,57 +64,80 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
           }
         />
         <header className="table-drag-handle">
-          <div className="table-icon" title="メモ">
+          <div className="table-icon" title={isFile ? "テキスト入力" : "メモ"}>
             <Icon name="note" />
           </div>
           <div>
             <NodeTitle table={table} />
-            <span>メモ · Markdown</span>
+            <span>
+              {isFile ? "テキストファイル · Markdown" : "メモ · Markdown"}
+            </span>
           </div>
+          {isFile && (
+            <button
+              className="nodrag nopan"
+              aria-label={`${table.title} ${table.compact ? "展開" : "コンパクト表示"}`}
+              aria-expanded={!table.compact}
+              onClick={() =>
+                dispatch({
+                  type: "setCompact",
+                  id: table.id,
+                  compact: !table.compact,
+                })
+              }
+            >
+              <Icon name={table.compact ? "expand" : "collapse"} />
+              {table.compact ? "展開" : "縮小"}
+            </button>
+          )}
           <NodeActions table={table} />
           <span className="grip" aria-hidden="true">
             ⠿
           </span>
         </header>
-        <div className="note-actions nodrag nopan">
-          {editing ? (
-            <>
-              <button disabled={!!error || pending > 0} onClick={save}>
-                <Icon name="check" />
-                保存して閲覧
-              </button>
+        {isFile ? (
+          <TextSettings table={table} />
+        ) : (
+          <div className="note-actions nodrag nopan">
+            {editing ? (
+              <>
+                <button disabled={!!error || pending > 0} onClick={save}>
+                  <Icon name="check" />
+                  保存して閲覧
+                </button>
+                <button
+                  disabled={pending > 0}
+                  onClick={() => {
+                    setDraft(text);
+                    setOriginal(text);
+                    setEditing(false);
+                  }}
+                >
+                  キャンセル
+                </button>
+              </>
+            ) : (
               <button
-                disabled={pending > 0}
                 onClick={() => {
                   setDraft(text);
                   setOriginal(text);
-                  setEditing(false);
+                  setEditing(true);
                 }}
               >
-                キャンセル
+                <Icon name="edit" />
+                編集
               </button>
-            </>
-          ) : (
+            )}
             <button
-              onClick={() => {
-                setDraft(text);
-                setOriginal(text);
-                setEditing(true);
-              }}
+              className="action-danger"
+              disabled={pending > 0 || project?.tables.length === 1}
+              onClick={() => dispatch({ type: "removeNode", id: table.id })}
             >
-              <Icon name="edit" />
-              編集
+              <Icon name="trash" />
+              削除
             </button>
-          )}
-          <button
-            className="action-danger"
-            disabled={pending > 0 || project?.tables.length === 1}
-            onClick={() => dispatch({ type: "removeNode", id: table.id })}
-          >
-            <Icon name="trash" />
-            削除
-          </button>
-        </div>
+          </div>
+        )}
         {editing ? (
           <>
             {draft !== original && (
@@ -141,6 +168,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
         ) : (
           <div
             className="note-preview nodrag nopan nowheel"
+            hidden={isFile && table.compact}
             aria-label={`${table.title} 閲覧`}
           >
             {text ? (
@@ -164,7 +192,11 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
               </Markdown>
             ) : (
               <p className="note-empty">
-                メモは空です。「編集」から入力できます。
+                {isFile
+                  ? table.textSource
+                    ? "ファイルは空です。"
+                    : "ファイルを選択すると本文を表示します。"
+                  : "メモは空です。「編集」から入力できます。"}
               </p>
             )}
           </div>

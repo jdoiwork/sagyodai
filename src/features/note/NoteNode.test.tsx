@@ -63,3 +63,19 @@ it("本文を編集して保存し、編集中の外部更新で下書きを失�
   fireEvent.click(ui.getByRole("button", { name: "保存して閲覧" }));
   expect(ui.getByRole("heading", { name: "自分の本文" })).toBeTruthy();
 });
+
+it("テキストファイルもメモと同じMarkdown閲覧表示にし、編集操作は表示しない", () => {
+  const node = props("");
+  node.data.table = {
+    ...node.data.table,
+    kind: "text",
+    note: undefined,
+    textSource: { fileName: "sample.md", text: "# ファイル見出し\n\n**本文**" },
+  };
+  const ui = render(<NoteNode {...node} />);
+  expect(ui.getByRole("heading", { name: "ファイル見出し" })).toBeTruthy();
+  expect(ui.getByRole("button", { name: "ファイルを選び直す" })).toBeTruthy();
+  expect(ui.queryByRole("button", { name: /^編集$/ })).toBeNull();
+  expect(ui.queryByRole("table")).toBeNull();
+  expect(ui.queryByRole("searchbox")).toBeNull();
+});

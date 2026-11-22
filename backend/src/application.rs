@@ -565,14 +565,14 @@ impl Project {
                     t.columns.clear();
                     t.rows.clear();
                     t.width = match kind {
-                        Kind::Display | Kind::Csv | Kind::Text => 760.0,
+                        Kind::Display | Kind::Csv => 760.0,
                         Kind::Union => 440.0,
                         Kind::Sort | Kind::Aggregate | Kind::Replace => 520.0,
                         _ => 400.0,
                     };
                     t.height = if matches!(kind, Kind::Aggregate | Kind::Replace) {
                         480.0
-                    } else if matches!(kind, Kind::Display | Kind::Csv | Kind::Text) {
+                    } else if matches!(kind, Kind::Display | Kind::Csv) {
                         390.0
                     } else {
                         360.0

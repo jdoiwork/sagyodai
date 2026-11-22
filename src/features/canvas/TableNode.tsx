@@ -1,4 +1,3 @@
-import { TextSettings } from "../text/TextSettings";
 import { NoteNode } from "../note/NoteNode";
 import { CsvSettings } from "../csv/CsvSettings";
 import { useTableView } from "../table/useTableView";
@@ -17,7 +16,7 @@ import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
 export function TableNode(props: NodeProps<TableFlowNode>) {
-  return props.data.table.kind === "note" ? (
+  return ["note", "text"].includes(props.data.table.kind) ? (
     <NoteNode {...props} />
   ) : (
     <DataNode {...props} />
@@ -234,9 +233,7 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           </>
         ) : (
           <>
-            {table.kind === "text" ? (
-              <TextSettings table={table} />
-            ) : table.kind === "csv" ? (
+            {table.kind === "csv" ? (
               <CsvSettings table={table} />
             ) : table.kind === "union" ? (
               <UnionSettings table={table} />

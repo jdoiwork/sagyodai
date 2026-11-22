@@ -1788,3 +1788,11 @@ button.action-danger:hover {
   justify-content: flex-start;
   width: 100%;
 }
+
+.text-file-actions {
+  margin: 0 16px 8px;
+}
+.text-file-actions .csv-file-name {
+  display: block;
+  margin-bottom: 8px;
+}

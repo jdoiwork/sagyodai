@@ -40,9 +40,7 @@ export function TextSettings({ table }: { table: TableData }) {
     }
   }
   return (
-    <div
-      className={`node-settings nodrag nopan nowheel${table.compact ? " node-settings-compact" : " display-settings"}`}
-    >
+    <div className="text-file-actions nodrag nopan">
       <span className="csv-file-name" title={table.textSource?.fileName}>
         {table.textSource?.fileName ?? "テキストファイル未選択"}
       </span>
@@ -79,21 +77,12 @@ export function TextSettings({ table }: { table: TableData }) {
             削除
           </button>
         </div>
-        <p className="sort-hint">
-          UTF-8／最大1
-          MiB・5000行・1行100000バイト。改行ごとに「本文」列へ出力し、空行も保持します。
-        </p>
       </div>
       {error && (
         <div className="inline-error" role="alert">
           {error}
         </div>
       )}
-      <span className="node-status">
-        {table.textSource
-          ? `${table.rows.length} 行 × 1 列`
-          : "ファイルを選択してください"}
-      </span>
     </div>
   );
 }
