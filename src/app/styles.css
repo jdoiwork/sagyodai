@@ -132,6 +132,17 @@ button:disabled {
 .canvas-toolbar {
   top: 20px;
   left: 24px;
+  max-width: calc(100% - 48px);
+  flex-wrap: wrap;
+}
+.toolbar-history {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.canvas-toolbar button {
+  flex-shrink: 0;
 }
 .canvas-toolbar button,
 .zoom-toolbar button {

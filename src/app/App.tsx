@@ -65,6 +65,7 @@ function Canvas() {
   }, [activeSheet, getViewport, setViewport]);
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
+  const toolbar = useRef<HTMLDivElement>(null);
   const adding = useRef<{
     kind:
       | "input"
@@ -111,7 +112,8 @@ function Canvas() {
     const guideRect = guide.current?.getBoundingClientRect();
     const right = guideRect?.width ? guideRect.left - 16 : rect.right - 24;
     const left = rect.left + 24,
-      top = rect.top + 88;
+      top =
+        (toolbar.current?.getBoundingClientRect().bottom ?? rect.top + 72) + 16;
     // 大きく拡大して全体が入らない場合も、見出しと設定の起点を画面内に残す。
     const width =
       (kind === "sort" || kind === "aggregate" || kind === "replace"
@@ -374,6 +376,7 @@ function Canvas() {
             />
           </ReactFlow>
           <div
+            ref={toolbar}
             className="canvas-toolbar"
             aria-busy={pending > 0}
             aria-describedby={
@@ -496,28 +499,30 @@ function Canvas() {
               <Icon name="note" />
               メモ
             </button>
-            <div className="toolbar-separator" />
-            <button
-              disabled={!project?.canUndo}
-              aria-disabled={!project?.canUndo || pending > 0}
-              onClick={() => {
-                if (!pending) dispatch({ type: "undo" });
-              }}
-              title="全タブ共通の履歴を戻します"
-              aria-label="元に戻す"
-            >
-              <Icon name="undo" />
-            </button>
-            <button
-              disabled={!project?.canRedo}
-              aria-disabled={!project?.canRedo || pending > 0}
-              onClick={() => {
-                if (!pending) dispatch({ type: "redo" });
-              }}
-              aria-label="やり直す"
-            >
-              <Icon name="redo" />
-            </button>
+            <div className="toolbar-history">
+              <div className="toolbar-separator" />
+              <button
+                disabled={!project?.canUndo}
+                aria-disabled={!project?.canUndo || pending > 0}
+                onClick={() => {
+                  if (!pending) dispatch({ type: "undo" });
+                }}
+                title="全タブ共通の履歴を戻します"
+                aria-label="元に戻す"
+              >
+                <Icon name="undo" />
+              </button>
+              <button
+                disabled={!project?.canRedo}
+                aria-disabled={!project?.canRedo || pending > 0}
+                onClick={() => {
+                  if (!pending) dispatch({ type: "redo" });
+                }}
+                aria-label="やり直す"
+              >
+                <Icon name="redo" />
+              </button>
+            </div>
           </div>
           {help && (
             <aside ref={guide} className="guide">
