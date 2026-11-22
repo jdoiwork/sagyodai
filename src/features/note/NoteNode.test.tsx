@@ -79,3 +79,23 @@ it("テキストファイルもメモと同じMarkdown閲覧表示にし、編�
   expect(ui.queryByRole("table")).toBeNull();
   expect(ui.queryByRole("searchbox")).toBeNull();
 });
+
+it("テキスト表示は記号・改行・空白を保持し、出力を変更せずMarkdownへ戻せる", () => {
+  const node = props("");
+  const text = "# 見出し\n\n  **本文**\n<script>test</script>\n";
+  node.data.table = {
+    ...node.data.table,
+    kind: "text",
+    note: undefined,
+    textSource: { fileName: "sample.txt", text },
+  };
+  const ui = render(<NoteNode {...node} />);
+  fireEvent.click(ui.getByRole("button", { name: /^テキスト$/ }));
+  expect(ui.container.querySelector("pre")?.textContent).toBe(text);
+  expect(ui.container.querySelector("script")).toBeNull();
+  expect(ui.queryByRole("heading", { name: "見出し" })).toBeNull();
+  fireEvent.click(ui.getByRole("button", { name: "Markdown" }));
+  expect(ui.getByRole("heading", { name: "見出し" })).toBeTruthy();
+  expect(ui.container.querySelector("pre")).toBeNull();
+  expect(dispatch).not.toHaveBeenCalled();
+});

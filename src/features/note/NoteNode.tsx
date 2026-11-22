@@ -17,6 +17,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const text = isFile
     ? (table.textSource?.text ?? "")
     : (table.note?.text ?? "");
+  const [plainText, setPlainText] = useState(false);
   const [editing, setEditing] = useState(!isFile && !text);
   const [draft, setDraft] = useState(text);
   const [original, setOriginal] = useState(text);
@@ -70,7 +71,9 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div>
             <NodeTitle table={table} />
             <span>
-              {isFile ? "テキストファイル · Markdown" : "メモ · Markdown"}
+              {isFile
+                ? `テキストファイル · ${plainText ? "テキスト" : "Markdown"}`
+                : "メモ · Markdown"}
             </span>
           </div>
           {isFile && (
@@ -138,6 +141,23 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             </button>
           </div>
         )}
+        {isFile && !table.compact && (
+          <div
+            className="note-actions nodrag nopan"
+            role="group"
+            aria-label={`${table.title} 表示形式`}
+          >
+            <button
+              aria-pressed={!plainText}
+              onClick={() => setPlainText(false)}
+            >
+              Markdown
+            </button>
+            <button aria-pressed={plainText} onClick={() => setPlainText(true)}>
+              テキスト
+            </button>
+          </div>
+        )}
         {editing ? (
           <>
             {draft !== original && (
@@ -172,24 +192,28 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             aria-label={`${table.title} 閲覧`}
           >
             {text ? (
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                skipHtml
-                components={{
-                  a: ({ children, href, title }) => (
-                    <a
-                      href={href}
-                      title={title}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {children}
-                    </a>
-                  ),
-                }}
-              >
-                {text}
-              </Markdown>
+              isFile && plainText ? (
+                <pre className="text-file-plain">{text}</pre>
+              ) : (
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  skipHtml
+                  components={{
+                    a: ({ children, href, title }) => (
+                      <a
+                        href={href}
+                        title={title}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {text}
+                </Markdown>
+              )
             ) : (
               <p className="note-empty">
                 {isFile

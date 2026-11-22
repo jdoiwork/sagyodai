@@ -1796,3 +1796,19 @@ button.action-danger:hover {
   display: block;
   margin-bottom: 8px;
 }
+
+.note-preview .text-file-plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.note-actions button[aria-pressed="true"] {
+  background: #e4f0e9;
+  border-color: #87b49f;
+  color: #245f4d;
+}
