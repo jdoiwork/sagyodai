@@ -185,13 +185,15 @@ export function NodeActions({ table }: { table: TableData }) {
               </>
             ) : (
               <>
-                <button
-                  role="menuitem"
-                  aria-haspopup="menu"
-                  onClick={() => setOpen({ ...open, ports: true })}
-                >
-                  端子の位置<span aria-hidden="true"> ›</span>
-                </button>
+                {table.kind !== "note" && (
+                  <button
+                    role="menuitem"
+                    aria-haspopup="menu"
+                    onClick={() => setOpen({ ...open, ports: true })}
+                  >
+                    端子の位置<span aria-hidden="true"> ›</span>
+                  </button>
+                )}
                 {["input", "csv", "display"].includes(table.kind) && (
                   <button
                     role="menuitem"

@@ -74,7 +74,8 @@ function Canvas() {
       | "union"
       | "sort"
       | "aggregate"
-      | "replace";
+      | "replace"
+      | "note";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -96,7 +97,8 @@ function Canvas() {
       | "union"
       | "sort"
       | "aggregate"
-      | "replace",
+      | "replace"
+      | "note",
   ) {
     if (
       !canvas.current ||
@@ -116,13 +118,17 @@ function Canvas() {
         ? 520
         : kind === "filter" || kind === "union"
           ? 440
-          : 760) * zoom;
+          : kind === "note"
+            ? 400
+            : 760) * zoom;
     const height =
       (kind === "aggregate" || kind === "replace"
         ? 480
         : kind === "filter" || kind === "union" || kind === "sort"
           ? 360
-          : 390) * zoom;
+          : kind === "note"
+            ? 360
+            : 390) * zoom;
     const position = screenToFlowPosition({
       x: left + Math.max(0, (right - left - width) / 2),
       y: top + Math.max(0, (rect.bottom - 80 - top - height) / 2),
@@ -312,12 +318,15 @@ function Canvas() {
             })}
             isValidConnection={(connection) =>
               !!project &&
-              project.tables.some((t) => t.id === connection.source) &&
+              project.tables.some(
+                (t) => t.id === connection.source && t.kind !== "note",
+              ) &&
               project.tables.some(
                 (t) =>
                   t.id === connection.target &&
                   t.kind !== "input" &&
                   t.kind !== "csv" &&
+                  t.kind !== "note" &&
                   (t.kind !== "union" || connection.targetHandle === "in"),
               ) &&
               !createsCycle(
@@ -479,6 +488,15 @@ function Canvas() {
             >
               <Icon name="replace" />
               置換
+            </button>
+            <button
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
+              onClick={() => addNode("note")}
+            >
+              <Icon name="note" />
+              メモ
             </button>
             <div className="toolbar-separator" />
             <button

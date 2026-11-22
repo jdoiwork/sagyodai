@@ -1,3 +1,4 @@
+import { NoteNode } from "../note/NoteNode";
 import { CsvSettings } from "../csv/CsvSettings";
 import { useTableView } from "../table/useTableView";
 import { NodeActions } from "./NodeActions";
@@ -14,7 +15,14 @@ import { NodeResizer, useReactFlow, type NodeProps } from "@xyflow/react";
 import type { TableFlowNode } from "./layout";
 import { useProject } from "../../app/ProjectContext";
 import { TableGrid } from "../table/TableGrid";
-export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
+export function TableNode(props: NodeProps<TableFlowNode>) {
+  return props.data.table.kind === "note" ? (
+    <NoteNode {...props} />
+  ) : (
+    <DataNode {...props} />
+  );
+}
+function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
   const { search, setSearch, columnFilters, setColumnFilters } =

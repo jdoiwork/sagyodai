@@ -8,6 +8,7 @@ mod graph;
 mod graph_tests;
 mod group;
 mod group_stats;
+mod note;
 mod projection;
 mod replacement;
 #[cfg(test)]

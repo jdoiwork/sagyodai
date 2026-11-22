@@ -24,6 +24,7 @@ export function UnionSettings({ table }: { table: TableData }) {
   const candidates =
     project?.tables.filter(
       (t) =>
+        t.kind !== "note" &&
         !sources.includes(t.id) &&
         !createsCycle(project.tables, table.id, t.id),
     ) ?? [];

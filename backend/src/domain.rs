@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<crate::note::Note>,
     #[serde(default)]
     pub replacement: Option<crate::replacement::Replacement>,
     #[serde(default)]
@@ -102,6 +104,7 @@ pub enum ColorTarget {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Kind {
+    Note,
     Replace,
     Input,
     Csv,
@@ -155,6 +158,11 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetNote {
+        id: String,
+        text: String,
+        expected_text: String,
+    },
     SetReplacement {
         id: String,
         config: crate::replacement::Replacement,
@@ -408,6 +416,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         projection: None,
         footer: None,
         footer_totals: vec![],
+        note: None,
         kind: Kind::Input,
         source: None,
         filter: None,

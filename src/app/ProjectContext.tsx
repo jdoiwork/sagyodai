@@ -280,6 +280,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           (s) => s.id === command.id,
         )?.title;
         dispatch({ ...command, expectedTitle: title ?? command.expectedTitle });
+      } else if (command.type === "setNote") {
+        const text = current.current?.tables.find((t) => t.id === command.id)
+          ?.note?.text;
+        dispatch({ ...command, expectedText: text ?? command.expectedText });
       } else if (command.type === "rename") {
         const title = current.current?.tables.find(
           (t) => t.id === command.id,

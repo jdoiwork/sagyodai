@@ -1,5 +1,6 @@
 // 装飾用のアイコン。操作名はボタンの文字・aria-label に任せる。
 const paths = {
+  note: "M4 3h16v14l-4 4H4ZM16 21v-4h4M8 7h8M8 11h8",
   replace: "M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4",
   search: "M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0",
   more: "M5 12h.01M12 12h.01M19 12h.01",

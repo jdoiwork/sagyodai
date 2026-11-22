@@ -1680,3 +1680,77 @@ button.action-danger:hover {
   min-width: 0;
   width: 100%;
 }
+
+.note-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 10px;
+  flex-wrap: wrap;
+}
+.note-message {
+  margin: 0 16px 8px;
+}
+.note-editor,
+.note-preview {
+  flex: 1;
+  min-height: 0;
+  margin: 0 16px 16px;
+  overflow: auto;
+}
+.note-editor {
+  resize: none;
+  padding: 12px;
+  border: 1px solid #cbd8d0;
+  border-radius: 6px;
+  background: white;
+  color: inherit;
+  font: inherit;
+  line-height: 1.6;
+}
+.note-preview {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.note-preview > :first-child {
+  margin-top: 0;
+}
+.note-preview h1,
+.note-preview h2,
+.note-preview h3 {
+  line-height: 1.4;
+}
+.note-preview a {
+  color: #236952;
+  text-decoration: underline;
+}
+.note-preview pre {
+  overflow: auto;
+  padding: 12px;
+  background: #edf2ef;
+  border-radius: 6px;
+}
+.note-preview code {
+  background: #edf2ef;
+  font-size: 0.95em;
+}
+.note-preview blockquote {
+  margin-left: 0;
+  padding-left: 12px;
+  border-left: 3px solid #b8c8bf;
+  color: #60796d;
+}
+.note-preview table {
+  border-collapse: collapse;
+}
+.note-preview th,
+.note-preview td {
+  padding: 5px 8px;
+  border: 1px solid #cbd8d0;
+}
+.note-preview img {
+  max-width: 100%;
+}
+.note-empty {
+  color: #60796d;
+}

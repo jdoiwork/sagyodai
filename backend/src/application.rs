@@ -132,6 +132,22 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetNote {
+                id,
+                text,
+                expected_text,
+            } => {
+                let table = table_mut(tables, &id)?;
+                let note = table.note.as_mut().ok_or("メモノードではありません。")?;
+                if note.text != expected_text {
+                    return Err(
+                        "メモが別の操作で変更されています。内容を確認して再適用してください。"
+                            .into(),
+                    );
+                }
+                crate::note::validate_text(&text)?;
+                note.text = text;
+            }
             Command::SetReplacement { id, config } => {
                 config.validate()?;
                 let table = table_mut(tables, &id)?;
@@ -143,7 +159,7 @@ impl Project {
             Command::SetPortSide { id, input, side } => {
                 let table = table_mut(tables, &id)?;
                 if input {
-                    if matches!(table.kind, Kind::Input | Kind::Csv) {
+                    if matches!(table.kind, Kind::Input | Kind::Csv | Kind::Note) {
                         return Err("このノードに入力端子はありません。".into());
                     }
                     table.input_side = Some(side);
@@ -265,7 +281,7 @@ impl Project {
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv) {
+                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Note) {
                     return Err("入力ソースには接続できません。".into());
                 }
                 if t.kind == Kind::Union {
@@ -320,7 +336,7 @@ impl Project {
             }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv) {
+                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Note) {
                     return Err("入力ソースには加工設定を指定できません。".into());
                 }
                 t.filter = filter;
@@ -505,7 +521,9 @@ impl Project {
                     t.kind = kind;
                     t.title = format!(
                         "{} {}",
-                        if kind == Kind::Replace {
+                        if kind == Kind::Note {
+                            "メモ"
+                        } else if kind == Kind::Replace {
                             "置換"
                         } else if kind == Kind::Csv {
                             "CSV"
@@ -539,7 +557,10 @@ impl Project {
                     };
                     t.x = next_x;
                     t.y = 100.0;
-                    t.stale = true;
+                    t.stale = kind != Kind::Note;
+                    if kind == Kind::Note {
+                        t.note = Some(Default::default());
+                    }
                     if kind == Kind::Replace {
                         t.replacement = Some(Default::default());
                     }

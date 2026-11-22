@@ -93,6 +93,7 @@ export const replacementSchema = z.object({
 });
 export type Replacement = z.infer<typeof replacementSchema>;
 const tableSchema = z.object({
+  note: z.object({ text: z.string() }).nullable().optional(),
   replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
   outputSide: portSideSchema.nullable().optional(),
@@ -140,6 +141,7 @@ const tableSchema = z.object({
     "sort",
     "aggregate",
     "replace",
+    "note",
   ]),
   group: groupConfigSchema.nullable().optional(),
   sortKeys: z.array(sortKeySchema).optional(),
@@ -168,6 +170,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setNote"; id: string; text: string; expectedText: string }
   | { type: "setReplacement"; id: string; config: Replacement }
   | { type: "setPortSide"; id: string; input: boolean; side: PortSide }
   | {
@@ -227,7 +230,8 @@ export type Command =
         | "union"
         | "sort"
         | "aggregate"
-        | "replace";
+        | "replace"
+        | "note";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }
