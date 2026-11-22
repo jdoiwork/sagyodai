@@ -124,6 +124,12 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | {
+      type: "hideOutputColumn";
+      id: string;
+      col: number;
+      expectedColumns: string[];
+    }
   | { type: "setProjection"; id: string; config: Projection | null }
   | { type: "setGroup"; id: string; config: GroupConfig }
   | { type: "setSort"; id: string; keys: SortKey[] }

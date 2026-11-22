@@ -135,6 +135,11 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    HideOutputColumn {
+        id: String,
+        col: usize,
+        expected_columns: Vec<String>,
+    },
     SetProjection {
         id: String,
         config: Option<crate::projection::Projection>,

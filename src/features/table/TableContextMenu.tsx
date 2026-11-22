@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "../../components/Icon";
 
 export function TableContextMenu({
+  hideOnly = false,
   x,
   y,
   targetLabel,
@@ -15,6 +16,7 @@ export function TableContextMenu({
   onInsert,
   onClose,
 }: {
+  hideOnly?: boolean;
   x: number;
   y: number;
   targetLabel: string;
@@ -64,27 +66,28 @@ export function TableContextMenu({
         if (!e.currentTarget.contains(e.relatedTarget)) onClose();
       }}
     >
-      {[false, true].map((after) => (
-        <button
-          key={String(after)}
-          role="menuitem"
-          disabled={insertDisabled}
-          onMouseEnter={() => onPreview(false)}
-          onClick={() => {
-            onInsert(after);
-            onClose();
-          }}
-        >
-          <Icon name="plus" />
-          {kind === "row" ? (after ? "下" : "上") : after ? "右" : "左"}に
-          {count}
-          {kind === "row" ? "行" : "列"}挿入
-        </button>
-      ))}
+      {!hideOnly &&
+        [false, true].map((after) => (
+          <button
+            key={String(after)}
+            role="menuitem"
+            disabled={insertDisabled}
+            onMouseEnter={() => onPreview(false)}
+            onClick={() => {
+              onInsert(after);
+              onClose();
+            }}
+          >
+            <Icon name="plus" />
+            {kind === "row" ? (after ? "下" : "上") : after ? "右" : "左"}に
+            {count}
+            {kind === "row" ? "行" : "列"}挿入
+          </button>
+        ))}
       <button
         autoFocus
         role="menuitem"
-        className="action-danger"
+        className={hideOnly ? undefined : "action-danger"}
         disabled={disabled}
         onMouseEnter={() => onPreview(!disabled)}
         onMouseLeave={() => onPreview(false)}
@@ -93,8 +96,8 @@ export function TableContextMenu({
           onClose();
         }}
       >
-        <Icon name="trash" />
-        {targetLabel}を削除
+        <Icon name={hideOnly ? "minus" : "trash"} />
+        {targetLabel}を{hideOnly ? "非表示" : "削除"}
       </button>
     </div>,
     document.body,

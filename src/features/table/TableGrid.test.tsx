@@ -939,3 +939,37 @@ it("結果表の列名をダブルクリックで変更し、空欄や重複は�
   });
   expect(ui.queryByLabelText("表 2列の名前")).toBeNull();
 });
+
+it("結果表の列メニューから出力列を非表示にし、最後の列は残す", () => {
+  const t = {
+    ...table,
+    kind: "display" as const,
+    columns: ["分類", "個数"],
+    rows: [["文房具", "3"]],
+  };
+  const ui = render(<TableGrid table={t} readOnly />);
+  fireEvent.contextMenu(ui.container.querySelector('[data-column="1"]')!);
+  expect(ui.queryByRole("menuitem", { name: /削除/ })).toBeNull();
+  expect(ui.queryByRole("menuitem", { name: /挿入/ })).toBeNull();
+  fireEvent.click(ui.getByRole("menuitem", { name: "「個数」列を非表示" }));
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+    type: "hideOutputColumn",
+    id: t.id,
+    col: 1,
+    expectedColumns: t.columns,
+  });
+  ui.rerender(
+    <TableGrid
+      table={{ ...t, columns: ["分類"], rows: [["文房具"]] }}
+      readOnly
+    />,
+  );
+  fireEvent.contextMenu(ui.container.querySelector('[data-column="0"]')!);
+  expect(
+    (
+      ui.getByRole("menuitem", {
+        name: "「分類」列を非表示",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+});

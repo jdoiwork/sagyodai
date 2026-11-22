@@ -222,6 +222,74 @@ pub fn rename_column(
     Ok(())
 }
 
+pub fn hide_column(
+    tables: &mut [Table],
+    id: &str,
+    col: usize,
+    expected: &[String],
+) -> Result<(), String> {
+    let i = tables
+        .iter()
+        .position(|t| t.id == id)
+        .ok_or("結果表が見つかりません。")?;
+    let table = &tables[i];
+    if table.kind != crate::domain::Kind::Display {
+        return Err("結果表ではありません。".into());
+    }
+    if table.stale || table.error.is_some() {
+        return Err("結果表を更新してから列を非表示にしてください。".into());
+    }
+    if table.columns != expected || col >= table.columns.len() {
+        return Err("列の構成が変更されています。表示を確認してやり直してください。".into());
+    }
+    if table.columns.len() <= 1 {
+        return Err("出力する列を1つ以上残してください。".into());
+    }
+    let source = table
+        .source
+        .as_ref()
+        .and_then(|id| tables.iter().find(|t| &t.id == id))
+        .ok_or("入力が未接続です。")?;
+    let mut config = table.projection.clone().unwrap_or_else(|| Projection {
+        schema: source.columns.clone(),
+        columns: source
+            .columns
+            .iter()
+            .enumerate()
+            .map(|(column, _)| OutputColumn {
+                column,
+                name: String::new(),
+                visible: true,
+            })
+            .collect(),
+    });
+    if config.evaluate(source)?.0 != table.columns {
+        return Err("入力の列構成が変わりました。結果表を更新してください。".into());
+    }
+    config
+        .columns
+        .iter_mut()
+        .filter(|c| c.visible)
+        .nth(col)
+        .ok_or("対象の列が見つかりません。")?
+        .visible = false;
+    config.validate()?;
+    let table = &mut tables[i];
+    table.projection = Some(config);
+    table.view = Default::default();
+    if !table.manual {
+        if col < table.column_widths.len() {
+            table.column_widths.remove(col);
+        }
+        if let Some(footer) = &mut table.footer
+            && col < footer.len()
+        {
+            footer.remove(col);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -573,6 +641,93 @@ mod tests {
         );
         run(&mut p, Command::Undo);
         assert_eq!(p.snapshot().tables[2].columns, before.columns);
+    }
+    #[test]
+    fn hiding_output_column_keeps_alias_and_can_be_restored() {
+        let mut p = Project::default();
+        for _ in 0..2 {
+            run(
+                &mut p,
+                Command::AddNode {
+                    kind: Kind::Display,
+                    sheet_id: None,
+                    position: None,
+                },
+            );
+        }
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-2".into(),
+                source: Some("table-1".into()),
+            },
+        );
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-3".into(),
+                source: Some("table-2".into()),
+            },
+        );
+        let source = p.snapshot().tables[0].clone();
+        run(
+            &mut p,
+            Command::SetProjection {
+                id: "table-2".into(),
+                config: Some(config(&source)),
+            },
+        );
+        let before = p.snapshot().tables[1].clone();
+        run(
+            &mut p,
+            Command::HideOutputColumn {
+                id: "table-2".into(),
+                col: 0,
+                expected_columns: before.columns.clone(),
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns, ["品名"]);
+        assert_eq!(p.snapshot().tables[2].rows[0], [source.rows[0][0].clone()]);
+        assert_eq!(p.snapshot().tables[0].columns, source.columns);
+        let restored =
+            storage::decode(serde_json::from_slice(&p.export().unwrap()).unwrap()).unwrap();
+        let mut config = restored[1].projection.clone().unwrap();
+        assert!(!config.columns[0].visible);
+        assert_eq!(config.columns[0].name, "個数");
+        assert!(
+            p.apply(Request {
+                expected_revision: p.snapshot().revision,
+                command: Command::HideOutputColumn {
+                    id: "table-2".into(),
+                    col: 0,
+                    expected_columns: vec!["品名".into()]
+                }
+            })
+            .is_err()
+        );
+        run(&mut p, Command::Undo);
+        assert_eq!(p.snapshot().tables[2].columns, before.columns);
+        run(&mut p, Command::Redo);
+        config.columns[0].visible = true;
+        run(
+            &mut p,
+            Command::SetProjection {
+                id: "table-2".into(),
+                config: Some(config),
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns, before.columns);
+        assert!(
+            p.apply(Request {
+                expected_revision: p.snapshot().revision,
+                command: Command::HideOutputColumn {
+                    id: "table-2".into(),
+                    col: 0,
+                    expected_columns: vec!["古い列".into()]
+                }
+            })
+            .is_err()
+        );
     }
     #[test]
     fn rejects_missing_duplicate_and_empty_output_columns() {

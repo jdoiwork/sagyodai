@@ -203,6 +203,13 @@ impl Project {
                 }
                 crate::graph::order(tables)?;
             }
+            Command::HideOutputColumn {
+                id,
+                col,
+                expected_columns,
+            } => {
+                crate::projection::hide_column(tables, &id, col, &expected_columns)?;
+            }
             Command::SetProjection { id, config } => {
                 if let Some(config) = &config {
                     config.validate()?;

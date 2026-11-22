@@ -313,9 +313,10 @@ export function TableGrid({
             : ""}
         </div>
       )}
-      {contextMenu && !readOnly && (
+      {contextMenu && (!readOnly || table.kind === "display") && (
         <TableContextMenu
           {...contextMenu}
+          hideOnly={readOnly}
           count={contextMenu.indices.length}
           insertDisabled={
             contextMenu.kind === "row"
@@ -353,6 +354,7 @@ export function TableGrid({
                 : `「${contextMenu.columns[contextMenu.index]}」列`
           }
           disabled={
+            (readOnly && (table.stale || !!table.error)) ||
             (contextMenu.kind === "row"
               ? contextMenu.rows.length
               : contextMenu.columns.length) <= contextMenu.indices.length
@@ -363,35 +365,42 @@ export function TableGrid({
           onClose={() => setContextMenu(null)}
           onDelete={() =>
             dispatch(
-              contextMenu.indices.length > 1
-                ? contextMenu.kind === "row"
-                  ? {
-                      type: "removeRows",
-                      id: table.id,
-                      indices: contextMenu.indices,
-                      expectedRows: contextMenu.rows,
-                    }
-                  : {
-                      type: "removeColumns",
-                      id: table.id,
-                      indices: contextMenu.indices,
-                      expectedRows: contextMenu.rows,
-                      expectedColumns: contextMenu.columns,
-                    }
-                : contextMenu.kind === "row"
-                  ? {
-                      type: "removeRow",
-                      id: table.id,
-                      row: contextMenu.index,
-                      expectedRows: contextMenu.rows,
-                    }
-                  : {
-                      type: "removeColumn",
-                      id: table.id,
-                      col: contextMenu.index,
-                      expectedRows: contextMenu.rows,
-                      expectedColumns: contextMenu.columns,
-                    },
+              readOnly
+                ? {
+                    type: "hideOutputColumn",
+                    id: table.id,
+                    col: contextMenu.index,
+                    expectedColumns: contextMenu.columns,
+                  }
+                : contextMenu.indices.length > 1
+                  ? contextMenu.kind === "row"
+                    ? {
+                        type: "removeRows",
+                        id: table.id,
+                        indices: contextMenu.indices,
+                        expectedRows: contextMenu.rows,
+                      }
+                    : {
+                        type: "removeColumns",
+                        id: table.id,
+                        indices: contextMenu.indices,
+                        expectedRows: contextMenu.rows,
+                        expectedColumns: contextMenu.columns,
+                      }
+                  : contextMenu.kind === "row"
+                    ? {
+                        type: "removeRow",
+                        id: table.id,
+                        row: contextMenu.index,
+                        expectedRows: contextMenu.rows,
+                      }
+                    : {
+                        type: "removeColumn",
+                        id: table.id,
+                        col: contextMenu.index,
+                        expectedRows: contextMenu.rows,
+                        expectedColumns: contextMenu.columns,
+                      },
             )
           }
         />
@@ -557,7 +566,7 @@ export function TableGrid({
                     headers.select("column", c, e);
                   }}
                   onContextMenu={(e) => {
-                    if (readOnly) return;
+                    if (readOnly && table.kind !== "display") return;
                     e.preventDefault();
                     e.stopPropagation();
                     setContextMenu({
