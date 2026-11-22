@@ -1495,3 +1495,11 @@ button.action-danger:hover {
 .node-settings.display-settings {
   max-height: max(100px, calc(100% - 240px));
 }
+
+.table-context-menu-heading {
+  margin-top: 6px;
+  padding: 8px 8px 4px;
+  border-top: 1px solid #cfdcd4;
+  color: #62786c;
+  font-size: 12px;
+}

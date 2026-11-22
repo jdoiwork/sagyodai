@@ -4,6 +4,8 @@ import { Icon } from "../../components/Icon";
 
 export function TableContextMenu({
   hideOnly = false,
+  hiddenColumns = [],
+  onShow,
   x,
   y,
   targetLabel,
@@ -17,6 +19,13 @@ export function TableContextMenu({
   onClose,
 }: {
   hideOnly?: boolean;
+  hiddenColumns?: {
+    column: number;
+    name: string;
+    disabled: boolean;
+    reason?: string;
+  }[];
+  onShow?: (column: number) => void;
   x: number;
   y: number;
   targetLabel: string;
@@ -37,7 +46,7 @@ export function TableContextMenu({
     const { width, height } = element.getBoundingClientRect();
     element.style.left = `${Math.max(8, Math.min(x, window.innerWidth - width - 8))}px`;
     element.style.top = `${Math.max(8, Math.min(y, window.innerHeight - height - 8))}px`;
-  }, [x, y, targetLabel, hideOnly, count]);
+  }, [x, y, targetLabel, hideOnly, count, hiddenColumns]);
   useEffect(() => {
     const outside = (e: PointerEvent) => {
       if (!menu.current?.contains(e.target as Node)) onClose();
@@ -113,6 +122,29 @@ export function TableContextMenu({
           {targetLabel}を{hideOnly ? "非表示" : "削除"}
         </span>
       </button>
+      {hideOnly && hiddenColumns.length > 0 && (
+        <>
+          <div className="table-context-menu-heading">非表示の列を再表示</div>
+          {hiddenColumns.map(({ column, name, disabled, reason }) => (
+            <button
+              key={column}
+              role="menuitem"
+              disabled={disabled}
+              title={reason}
+              onMouseEnter={() => onPreview(false)}
+              onClick={() => {
+                onShow?.(column);
+                onClose();
+              }}
+            >
+              <Icon name="plus" />
+              <span className="table-context-menu-label">
+                「{name}」列を再表示
+              </span>
+            </button>
+          ))}
+        </>
+      )}
     </div>,
     document.body,
   );

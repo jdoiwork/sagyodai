@@ -973,3 +973,78 @@ it("結果表の列メニューから出力列を非表示にし、最後の列�
     ).disabled,
   ).toBe(true);
 });
+
+it("結果表の列メニューから隠した列を元の順序・別名で再表示できる", () => {
+  const projection = {
+    schema: ["品名", "数量", "分類"],
+    columns: [
+      { column: 1, name: "個数", visible: false },
+      { column: 0, name: "", visible: true },
+      { column: 2, name: "", visible: false },
+    ],
+  };
+  const t = {
+    ...table,
+    kind: "display" as const,
+    projection,
+    columns: ["品名"],
+    rows: [["ペン"]],
+  };
+  const ui = render(<TableGrid table={t} readOnly />);
+  fireEvent.contextMenu(ui.container.querySelector('[data-column="0"]')!);
+  expect(
+    (
+      ui.getByRole("menuitem", {
+        name: "「品名」列を非表示",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+  expect(ui.getByRole("menuitem", { name: "「分類」列を再表示" })).toBeTruthy();
+  fireEvent.click(ui.getByRole("menuitem", { name: "「個数」列を再表示" }));
+  expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+    type: "setProjection",
+    id: t.id,
+    config: {
+      ...projection,
+      columns: [
+        { ...projection.columns[0], visible: true },
+        ...projection.columns.slice(1),
+      ],
+    },
+  });
+  expect(ui.queryByRole("menu")).toBeNull();
+  ui.rerender(<TableGrid table={{ ...t, stale: true }} readOnly />);
+  fireEvent.contextMenu(ui.container.querySelector('[data-column="0"]')!);
+  expect(
+    (
+      ui.getByRole("menuitem", {
+        name: "「個数」列を再表示",
+      }) as HTMLButtonElement
+    ).disabled,
+  ).toBe(true);
+});
+
+it("再表示で列名が重複する場合は設定での名前変更を案内する", () => {
+  const t = {
+    ...table,
+    kind: "display" as const,
+    columns: ["品名"],
+    rows: [["ペン"]],
+    projection: {
+      schema: ["品名", "数量"],
+      columns: [
+        { column: 0, name: "", visible: true },
+        { column: 1, name: "品名", visible: false },
+      ],
+    },
+  };
+  const ui = render(<TableGrid table={t} readOnly />);
+  fireEvent.contextMenu(ui.container.querySelector('[data-column="0"]')!);
+  const item = ui.getByRole("menuitem", {
+    name: "「品名」列を再表示",
+  }) as HTMLButtonElement;
+  expect(item.disabled).toBe(true);
+  expect(item.title).toContain("出力列の設定で名前を変更");
+  fireEvent.click(item);
+  expect(dispatch).not.toHaveBeenCalled();
+});

@@ -317,6 +317,41 @@ export function TableGrid({
         <TableContextMenu
           {...contextMenu}
           hideOnly={readOnly}
+          hiddenColumns={table.projection?.columns
+            .filter((c) => !c.visible)
+            .map((c) => {
+              const config = table.projection!;
+              const name = c.name.trim() || config.schema[c.column];
+              const duplicate = config.columns.some(
+                (other) =>
+                  other.visible &&
+                  (other.name.trim() || config.schema[other.column]) === name,
+              );
+              return {
+                column: c.column,
+                name,
+                disabled: table.stale || !!table.error || duplicate,
+                reason: duplicate
+                  ? "同名の出力列があります。出力列の設定で名前を変更してください。"
+                  : table.stale || table.error
+                    ? "結果を更新してから再表示してください。"
+                    : undefined,
+              };
+            })}
+          onShow={(column) => {
+            const config = table.projection;
+            if (!config) return;
+            dispatch({
+              type: "setProjection",
+              id: table.id,
+              config: {
+                ...config,
+                columns: config.columns.map((c) =>
+                  c.column === column ? { ...c, visible: true } : c,
+                ),
+              },
+            });
+          }}
           count={contextMenu.indices.length}
           insertDisabled={
             contextMenu.kind === "row"
