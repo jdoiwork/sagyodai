@@ -1224,3 +1224,78 @@ button.action-danger:hover {
 .quick-search input::-webkit-search-cancel-button {
   display: none;
 }
+
+.column-value-filter {
+  min-height: 22px;
+  padding: 2px 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.column-value-filter .action-icon {
+  width: 12px;
+  height: 12px;
+}
+.column-value-filter.active {
+  color: white;
+  background: #28634f;
+  border-color: #28634f;
+}
+.column-filter-menu {
+  position: fixed;
+  z-index: 1500;
+  width: 280px;
+  max-height: min(352px, calc(100dvh - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #cbd8d0;
+  border-radius: 8px;
+  box-shadow: 0 5px 24px #23433233;
+}
+.column-filter-hint {
+  color: #708578;
+  font-size: 11px;
+}
+.column-filter-actions {
+  display: flex;
+  gap: 5px;
+}
+.column-filter-actions button {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+.column-filter-values {
+  overflow-y: auto;
+  min-height: 0;
+}
+.column-filter-values label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+  cursor: pointer;
+}
+.column-filter-values label span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.column-filter-values small {
+  color: #708578;
+}
+.column-filter-values input {
+  color-scheme: light;
+  accent-color: #28634f;
+}
+.data-grid thead th[data-column] {
+  padding-right: 36px;
+}
+.column-value-filter {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
+}

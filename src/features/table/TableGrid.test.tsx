@@ -711,7 +711,7 @@ it("検索結果の範囲コピーは隠れた行を含めず、複数行の貼�
   fireEvent.paste(ui.getByLabelText("表 1行 1列"), {
     clipboardData: { getData: () => "a\nb" },
   });
-  expect(ui.getByRole("alert").textContent).toContain("検索を解除");
+  expect(ui.getByRole("alert").textContent).toContain("絞り込みを解除");
   expect(dispatch).not.toHaveBeenCalled();
 });
 it("検索した結果表は0件表示と検索解除に対応し、集計には元の表を渡す", () => {
@@ -747,4 +747,52 @@ it("検索後の遠い元行番号を空白行にせず仮想表示する", () =
   expect(ui.getByLabelText("表 1000行 1列")).toBeTruthy();
   expect(ui.container.querySelectorAll("textarea").length).toBe(1);
   expect(ui.container.querySelector("tbody td[aria-hidden]")).toBeNull();
+});
+
+it("列の値を複数選択して表示だけを絞り込み、検索とANDで組み合わせる", () => {
+  const source = {
+    ...table,
+    columns: ["品名", "分類"],
+    rows: [
+      ["赤ペン", "文房具"],
+      ["りんご", "食品"],
+      ["赤い袋", "日用品"],
+      ["コップ", "雑貨"],
+      ["青ペン", "文房具"],
+    ],
+  };
+  const ui = render(<TableGrid table={source} />);
+  fireEvent.click(ui.getByLabelText("表 分類 の表示を絞り込み"));
+  fireEvent.click(ui.getByRole("button", { name: "選択を解除" }));
+  expect(ui.queryByLabelText("表 1行 1列")).toBeNull();
+  fireEvent.click(ui.getByRole("checkbox", { name: /文房具/ }));
+  fireEvent.click(ui.getByRole("checkbox", { name: /日用品/ }));
+  expect(ui.getByLabelText("表 1行 1列")).toBeTruthy();
+  expect(ui.getByLabelText("表 3行 1列")).toBeTruthy();
+  expect(ui.queryByLabelText("表 2行 1列")).toBeNull();
+  fireEvent.click(ui.getByLabelText("値の絞り込みを閉じる"));
+  fireEvent.change(ui.getByLabelText("表 クイック検索"), {
+    target: { value: "赤" },
+  });
+  expect(ui.queryByLabelText("表 5行 1列")).toBeNull();
+  expect(ui.getByLabelText("表 3行 1列")).toBeTruthy();
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByRole("button", { name: "列の絞り込みを解除" }));
+  fireEvent.click(ui.getByLabelText("表 検索をクリア"));
+  expect(ui.getByLabelText("表 2行 1列")).toBeTruthy();
+});
+it("列構成が変わったら別の列へ条件を誤適用せず、空欄も選択できる", () => {
+  const source = { ...table, columns: ["分類"], rows: [[""], ["A"]] };
+  const ui = render(<TableGrid table={source} readOnly />);
+  fireEvent.click(ui.getByLabelText("表 分類 の表示を絞り込み"));
+  fireEvent.click(ui.getByRole("checkbox", { name: /A/ }));
+  expect(ui.getByText("1 / 2 行")).toBeTruthy();
+  expect(dispatch).not.toHaveBeenCalled();
+  ui.rerender(<TableGrid table={{ ...source, columns: ["品名"] }} readOnly />);
+  expect(ui.getByText("2 / 2 行")).toBeTruthy();
+  expect(
+    [...ui.container.querySelectorAll(".result-cell")].map(
+      (el) => el.textContent,
+    ),
+  ).toContain("A");
 });

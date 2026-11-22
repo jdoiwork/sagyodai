@@ -1,3 +1,8 @@
+import {
+  ColumnValueFilter,
+  type ColumnFilterState,
+  type ColumnFilters,
+} from "./ColumnValueFilter";
 import { matchingRows } from "./quickSearch";
 import { Icon } from "../../components/Icon";
 import { SummaryFooter } from "./SummaryFooter";
@@ -22,8 +27,13 @@ export function TableGrid({
   readOnly = false,
   onCanvasScroll,
   search,
+  columnFilters,
 }: {
   table: TableData;
+  columnFilters?: {
+    state: ColumnFilterState;
+    onChange: (state: ColumnFilterState) => void;
+  };
   search?: { value: string; onChange: (value: string) => void };
   readOnly?: boolean;
   onCanvasScroll?: (dx: number, dy: number) => void;
@@ -31,10 +41,20 @@ export function TableGrid({
   const { dispatch } = useProject();
   const [localQuery, setLocalQuery] = useState("");
   const query = search?.value ?? localQuery;
-  const searching = query.trim().length > 0;
+  const [localFilters, setLocalFilters] = useState<ColumnFilterState>({
+    schema: "",
+    values: {},
+  });
+  const filterState = columnFilters?.state ?? localFilters;
+  const schema = JSON.stringify(table.columns);
+  const filters = useMemo(
+    () => (filterState.schema === schema ? filterState.values : {}),
+    [filterState, schema],
+  );
+  const searching = query.trim().length > 0 || Object.keys(filters).length > 0;
   const visibleRows = useMemo(
-    () => matchingRows(table.rows, query),
-    [table.rows, query],
+    () => matchingRows(table.rows, query, filters),
+    [table.rows, query, filters],
   );
   const visibleSet = new Set(visibleRows);
 
@@ -129,7 +149,21 @@ export function TableGrid({
     setContextMenu(null);
     setPasteError("");
     setFocusedCell(null);
-    const first = matchingRows(table.rows, value)[0] ?? 0;
+    const first = matchingRows(table.rows, value, filters)[0] ?? 0;
+    setSelection({
+      start: { row: first, col: 0 },
+      end: { row: first, col: 0 },
+    });
+    if (viewport.current) viewport.current.scrollTop = 0;
+    setTop(0);
+  }
+  function changeFilters(next: ColumnFilters) {
+    (columnFilters?.onChange ?? setLocalFilters)({ schema, values: next });
+    headers.clear();
+    setContextMenu(null);
+    setPasteError("");
+    setFocusedCell(null);
+    const first = matchingRows(table.rows, query, next)[0] ?? 0;
     setSelection({
       start: { row: first, col: 0 },
       end: { row: first, col: 0 },
@@ -215,6 +249,9 @@ export function TableGrid({
             <Icon name="close" />
           </button>
         )}
+        {Object.keys(filters).length > 0 && (
+          <button onClick={() => changeFilters({})}>列の絞り込みを解除</button>
+        )}
         <span role="status">
           {visibleRows.length.toLocaleString()} /{" "}
           {table.rows.length.toLocaleString()} 行
@@ -223,7 +260,7 @@ export function TableGrid({
       {searching && (
         <div className="quick-search-note">
           表示のみ絞り込み · 出力・集計は全行
-          {!readOnly ? " · 行の並べ替え・複数行の貼り付けは検索解除後" : ""}
+          {!readOnly ? " · 行の並べ替え・複数行の貼り付けは絞り込み解除後" : ""}
         </div>
       )}
       {contextMenu && !readOnly && (
@@ -343,7 +380,7 @@ export function TableGrid({
             const values = parseTsv(text);
             if (searching && values.length > 1) {
               setPasteError(
-                "検索中の複数行への貼り付けは、検索を解除してから行ってください。",
+                "表示絞り込み中の複数行への貼り付けは、絞り込みを解除してから行ってください。",
               );
               return;
             }
@@ -455,7 +492,7 @@ export function TableGrid({
                     if (
                       readOnly ||
                       (e.target as HTMLElement).closest(
-                        "textarea, input, [role=separator]",
+                        "textarea, input, button.column-value-filter, [role=separator]",
                       )
                     )
                       return;
@@ -485,6 +522,18 @@ export function TableGrid({
                     {String.fromCharCode(65 + c)}
                   </span>
                   {readOnly ? name : <ColumnHeader table={table} col={c} />}
+                  <ColumnValueFilter
+                    key={`${schema}-${c}`}
+                    label={`${table.title} ${name}`}
+                    values={table.rows.map((row) => row[c])}
+                    selected={filters[c]}
+                    onChange={(values) => {
+                      const next = { ...filters };
+                      if (values === undefined) delete next[c];
+                      else next[c] = values;
+                      changeFilters(next);
+                    }}
+                  />
                   <ColumnResizeHandle
                     table={table}
                     col={c}

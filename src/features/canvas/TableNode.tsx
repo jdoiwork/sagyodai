@@ -1,3 +1,4 @@
+import type { ColumnFilterState } from "../table/ColumnValueFilter";
 import { NodeActions } from "./NodeActions";
 import { unionPortHeight } from "../union/ports";
 import { UnionSettings } from "../union/UnionSettings";
@@ -16,6 +17,10 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
   const [search, setSearch] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFilterState>({
+    schema: "",
+    values: {},
+  });
   const emptyRows = table.kind === "input" ? emptyRowIndices(table.rows) : [];
   const { getViewport, setViewport } = useReactFlow();
   const onCanvasScroll = useCallback(
@@ -182,6 +187,10 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
               table={table}
               onCanvasScroll={onCanvasScroll}
               search={{ value: search, onChange: setSearch }}
+              columnFilters={{
+                state: columnFilters,
+                onChange: setColumnFilters,
+              }}
             />
           </>
         ) : (
@@ -196,6 +205,10 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 table={table}
                 readOnly
                 search={{ value: search, onChange: setSearch }}
+                columnFilters={{
+                  state: columnFilters,
+                  onChange: setColumnFilters,
+                }}
                 onCanvasScroll={onCanvasScroll}
               />
             )}
