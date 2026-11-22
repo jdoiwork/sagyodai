@@ -1,3 +1,5 @@
+import { matchingRows } from "./quickSearch";
+import { Icon } from "../../components/Icon";
 import { SummaryFooter } from "./SummaryFooter";
 import { pasteInputError } from "../../validation/input";
 import { useRowReorder } from "./useRowReorder";
@@ -8,7 +10,7 @@ import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
 import { useDeletionAnimation } from "./useDeletionAnimation";
 import { TableContextMenu } from "./TableContextMenu";
 import { ColumnHeader } from "./ColumnHeader";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Cell } from "./Cell";
@@ -19,12 +21,23 @@ export function TableGrid({
   table,
   readOnly = false,
   onCanvasScroll,
+  search,
 }: {
   table: TableData;
+  search?: { value: string; onChange: (value: string) => void };
   readOnly?: boolean;
   onCanvasScroll?: (dx: number, dy: number) => void;
 }) {
   const { dispatch } = useProject();
+  const [localQuery, setLocalQuery] = useState("");
+  const query = search?.value ?? localQuery;
+  const searching = query.trim().length > 0;
+  const visibleRows = useMemo(
+    () => matchingRows(table.rows, query),
+    [table.rows, query],
+  );
+  const visibleSet = new Set(visibleRows);
+
   const viewport = useRef<HTMLDivElement>(null);
   useDeletionAnimation(viewport, table);
   useTableWheel(viewport, onCanvasScroll);
@@ -90,25 +103,40 @@ export function TableGrid({
     );
   const first = Math.max(
     0,
-    Math.min(table.rows.length - 1, Math.floor(top / ROW_HEIGHT) - 5),
+    Math.min(visibleRows.length - 1, Math.floor(top / ROW_HEIGHT) - 5),
   );
   const last = Math.min(
-    table.rows.length,
+    visibleRows.length,
     first + Math.ceil(table.height / ROW_HEIGHT) + 12,
   );
   // 画面外へスクロールしても、IME 変換中のセルをアンマウントしない。
   const renderedRows = Array.from(
     new Set([
       ...Array.from({ length: last - first }, (_, i) => first + i),
-      ...(rowReorder.draggedRow !== null &&
+      ...(!searching &&
+      rowReorder.draggedRow !== null &&
       rowReorder.draggedRow < table.rows.length
         ? [rowReorder.draggedRow]
         : []),
-      ...(focusedRow !== null && focusedRow < table.rows.length
-        ? [focusedRow]
+      ...(focusedRow !== null && visibleSet.has(focusedRow)
+        ? [visibleRows.indexOf(focusedRow)]
         : []),
     ]),
   ).sort((a, b) => a - b);
+  function changeQuery(value: string) {
+    (search?.onChange ?? setLocalQuery)(value);
+    headers.clear();
+    setContextMenu(null);
+    setPasteError("");
+    setFocusedCell(null);
+    const first = matchingRows(table.rows, value)[0] ?? 0;
+    setSelection({
+      start: { row: first, col: 0 },
+      end: { row: first, col: 0 },
+    });
+    if (viewport.current) viewport.current.scrollTop = 0;
+    setTop(0);
+  }
   function spacer(count: number) {
     return count > 0 ? (
       <tr aria-hidden="true">
@@ -124,7 +152,7 @@ export function TableGrid({
     col: number,
     direction: "next" | "previous" | "down" | "up",
   ) {
-    let r = row,
+    let r = visibleRows.indexOf(row),
       c = col;
     if (direction === "down") r++;
     if (direction === "up") r--;
@@ -142,11 +170,15 @@ export function TableGrid({
         r--;
       }
     }
-    if (r < 0 || r >= table.rows.length) {
+    if (r < 0 || r >= visibleRows.length) {
       (document.activeElement as HTMLElement)?.blur();
       return;
     }
-    setSelection({ start: { row: r, col: c }, end: { row: r, col: c } });
+    const sourceRow = visibleRows[r];
+    setSelection({
+      start: { row: sourceRow, col: c },
+      end: { row: sourceRow, col: c },
+    });
     const el = viewport.current;
     if (
       el &&
@@ -159,13 +191,41 @@ export function TableGrid({
     requestAnimationFrame(() =>
       el
         ?.querySelector<HTMLTextAreaElement>(
-          `[data-row="${r}"] [data-col="${c}"] textarea`,
+          `[data-row="${sourceRow}"] [data-col="${c}"] textarea`,
         )
         ?.focus(),
     );
   }
   return (
     <>
+      <div className="quick-search nodrag nopan nowheel">
+        <Icon name="search" />
+        <input
+          type="search"
+          aria-label={`${table.title} クイック検索`}
+          placeholder="この表を検索（全列）"
+          value={query}
+          onChange={(e) => changeQuery(e.target.value)}
+        />
+        {query && (
+          <button
+            aria-label={`${table.title} 検索をクリア`}
+            onClick={() => changeQuery("")}
+          >
+            <Icon name="close" />
+          </button>
+        )}
+        <span role="status">
+          {visibleRows.length.toLocaleString()} /{" "}
+          {table.rows.length.toLocaleString()} 行
+        </span>
+      </div>
+      {searching && (
+        <div className="quick-search-note">
+          表示のみ絞り込み · 出力・集計は全行
+          {!readOnly ? " · 行の並べ替え・複数行の貼り付けは検索解除後" : ""}
+        </div>
+      )}
       {contextMenu && !readOnly && (
         <TableContextMenu
           {...contextMenu}
@@ -281,6 +341,12 @@ export function TableGrid({
           e.stopPropagation();
           try {
             const values = parseTsv(text);
+            if (searching && values.length > 1) {
+              setPasteError(
+                "検索中の複数行への貼り付けは、検索を解除してから行ってください。",
+              );
+              return;
+            }
             const message = pasteInputError(minRow, minCol, values);
             if (message) {
               setPasteError(message);
@@ -324,8 +390,12 @@ export function TableGrid({
               "text/plain",
               formatTsv(
                 kind === "row"
-                  ? indices.map((i) => table.rows[i])
-                  : table.rows.map((row) => indices.map((i) => row[i])),
+                  ? indices
+                      .filter((i) => visibleSet.has(i))
+                      .map((i) => table.rows[i])
+                  : visibleRows.map((r) =>
+                      indices.map((i) => table.rows[r][i]),
+                    ),
               ),
             );
             return;
@@ -335,9 +405,9 @@ export function TableGrid({
           e.clipboardData.setData(
             "text/plain",
             formatTsv(
-              table.rows
-                .slice(minRow, maxRow + 1)
-                .map((row) => row.slice(minCol, maxCol + 1)),
+              visibleRows
+                .filter((r) => r >= minRow && r <= maxRow)
+                .map((r) => table.rows[r].slice(minCol, maxCol + 1)),
             ),
           );
         }}
@@ -434,16 +504,19 @@ export function TableGrid({
             </tr>
           </thead>
           <tbody>
-            {renderedRows.map((r, index) => {
+            {renderedRows.map((viewRow, index) => {
+              const r = visibleRows[viewRow];
               const row = table.rows[r];
               const previous = index === 0 ? -1 : renderedRows[index - 1];
               return (
                 <Fragment key={r}>
-                  {spacer(r - previous - 1)}
+                  {spacer(viewRow - previous - 1)}
                   <tr
                     key={r}
                     data-row={r}
-                    {...(!readOnly ? rowReorder.targetProps(r) : {})}
+                    {...(!readOnly && !searching
+                      ? rowReorder.targetProps(r)
+                      : {})}
                     className={
                       !readOnly && rowReorder.marker?.row === r
                         ? `row-drop-${rowReorder.marker.side}`
@@ -458,7 +531,9 @@ export function TableGrid({
                         y: e.clientY,
                         index: r,
                         indices: headers.contains("row", r)
-                          ? headers.selection!.indices
+                          ? headers.selection!.indices.filter((i) =>
+                              visibleSet.has(i),
+                            )
                           : [r],
                         kind: "row",
                         columns: table.columns,
@@ -467,7 +542,9 @@ export function TableGrid({
                     }}
                   >
                     <th
-                      {...(!readOnly ? rowReorder.sourceProps(r) : {})}
+                      {...(!readOnly && !searching
+                        ? rowReorder.sourceProps(r)
+                        : {})}
                       tabIndex={readOnly ? undefined : -1}
                       aria-selected={headers.contains("row", r)}
                       onClick={(e) => {
@@ -539,12 +616,15 @@ export function TableGrid({
                 </Fragment>
               );
             })}
-            {spacer(table.rows.length - (renderedRows.at(-1) ?? -1) - 1)}
+            {spacer(visibleRows.length - (renderedRows.at(-1) ?? -1) - 1)}
           </tbody>
           <SummaryFooter table={table} />
         </table>
       </div>
-      {readOnly && table.rows.length === 0 && (
+      {searching && visibleRows.length === 0 && (
+        <div className="empty-result">検索に一致する行はありません</div>
+      )}
+      {readOnly && table.rows.length === 0 && !searching && (
         <div className="empty-result">
           {table.stale
             ? "結果はまだありません"

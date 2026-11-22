@@ -663,3 +663,88 @@ it("貼り付け上限を超える場合は送信前に表内でエラーを表�
   expect(dispatch).not.toHaveBeenCalled();
   expect(ui.getByRole("alert").textContent).toMatch(/5000行・50列/);
 });
+
+it("クイック検索は表示だけを絞り、元の行番号で編集する", () => {
+  const source = {
+    ...table,
+    rows: [["非表示"], ["Apple"], ["除外"], ["APPLE 日本語"]],
+  };
+  const ui = render(<TableGrid table={source} />);
+  fireEvent.change(ui.getByLabelText("表 クイック検索"), {
+    target: { value: "apple" },
+  });
+  expect(ui.queryByLabelText("表 1行 1列")).toBeNull();
+  expect(ui.getByLabelText("表 2行 1列")).toBeTruthy();
+  expect(ui.getByLabelText("表 4行 1列")).toBeTruthy();
+  expect(dispatch).not.toHaveBeenCalled();
+  const cell = ui.getByLabelText("表 4行 1列");
+  fireEvent.focus(cell);
+  fireEvent.change(cell, { target: { value: "APPLE 編集" } });
+  fireEvent.blur(cell);
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "paste",
+    id: "t",
+    row: 3,
+    col: 0,
+    values: [["APPLE 編集"]],
+    expectedValues: [["APPLE 日本語"]],
+  });
+  fireEvent.click(ui.getByLabelText("表 検索をクリア"));
+  expect(ui.getByLabelText("表 1行 1列")).toBeTruthy();
+});
+it("検索結果の範囲コピーは隠れた行を含めず、複数行の貼り付けを拒否する", () => {
+  const ui = render(
+    <TableGrid
+      table={{ ...table, rows: [["hit 1"], ["hidden"], ["hit 3"]] }}
+    />,
+  );
+  fireEvent.change(ui.getByLabelText("表 クイック検索"), {
+    target: { value: "hit" },
+  });
+  fireEvent.mouseDown(ui.getByLabelText("表 1行 1列"));
+  fireEvent.mouseDown(ui.getByLabelText("表 3行 1列"), { shiftKey: true });
+  const setData = vi.fn();
+  fireEvent.copy(ui.getByLabelText("表 3行 1列"), {
+    clipboardData: { setData },
+  });
+  expect(setData).toHaveBeenCalledWith("text/plain", "hit 1\nhit 3");
+  fireEvent.paste(ui.getByLabelText("表 1行 1列"), {
+    clipboardData: { getData: () => "a\nb" },
+  });
+  expect(ui.getByRole("alert").textContent).toContain("検索を解除");
+  expect(dispatch).not.toHaveBeenCalled();
+});
+it("検索した結果表は0件表示と検索解除に対応し、集計には元の表を渡す", () => {
+  const ui = render(
+    <TableGrid
+      readOnly
+      table={{
+        ...table,
+        kind: "display",
+        rows: [["日本語"], ["English"]],
+        footer: [true],
+        footerTotals: ["42"],
+      }}
+    />,
+  );
+  fireEvent.change(ui.getByLabelText("表 クイック検索"), {
+    target: { value: "該当なし" },
+  });
+  expect(ui.getByText("検索に一致する行はありません")).toBeTruthy();
+  expect(ui.getByText("42")).toBeTruthy();
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByLabelText("表 検索をクリア"));
+  expect(ui.getByText("日本語")).toBeTruthy();
+});
+it("検索後の遠い元行番号を空白行にせず仮想表示する", () => {
+  const rows = Array.from({ length: 1000 }, (_, i) => [
+    i === 999 ? "末尾の一致" : "その他",
+  ]);
+  const ui = render(<TableGrid table={{ ...table, rows }} />);
+  fireEvent.change(ui.getByLabelText("表 クイック検索"), {
+    target: { value: "末尾" },
+  });
+  expect(ui.getByLabelText("表 1000行 1列")).toBeTruthy();
+  expect(ui.container.querySelectorAll("textarea").length).toBe(1);
+  expect(ui.container.querySelector("tbody td[aria-hidden]")).toBeNull();
+});

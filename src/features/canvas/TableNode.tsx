@@ -3,7 +3,7 @@ import { unionPortHeight } from "../union/ports";
 import { UnionSettings } from "../union/UnionSettings";
 import { NodePorts } from "./NodePorts";
 import { emptyRowIndices } from "../table/emptyRows";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { CANVAS_SCROLL_SPEED } from "./scroll";
 import { NodeTitle } from "./NodeTitle";
 import { Icon } from "../../components/Icon";
@@ -15,6 +15,7 @@ import { TableGrid } from "../table/TableGrid";
 export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, project } = useProject();
   const table = data.table;
+  const [search, setSearch] = useState("");
   const emptyRows = table.kind === "input" ? emptyRowIndices(table.rows) : [];
   const { getViewport, setViewport } = useReactFlow();
   const onCanvasScroll = useCallback(
@@ -177,7 +178,11 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 削除
               </button>
             </div>
-            <TableGrid table={table} onCanvasScroll={onCanvasScroll} />
+            <TableGrid
+              table={table}
+              onCanvasScroll={onCanvasScroll}
+              search={{ value: search, onChange: setSearch }}
+            />
           </>
         ) : (
           <>
@@ -190,6 +195,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
               <TableGrid
                 table={table}
                 readOnly
+                search={{ value: search, onChange: setSearch }}
                 onCanvasScroll={onCanvasScroll}
               />
             )}
