@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { GroupConfig, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
+const metrics = [
+  ["sums", "合計"],
+  ["averages", "平均"],
+  ["minima", "最小値"],
+  ["maxima", "最大値"],
+] as const;
 const initial: GroupConfig = { groupBy: [], sums: [], count: true };
 export function GroupConditions({
   table,
@@ -18,13 +24,14 @@ export function GroupConditions({
     if (!editing.current) setDraft(saved);
   }, [saved]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
+  const metricColumns = metrics.flatMap(([field]) => draft[field] ?? []);
   const error =
-    !draft.count && !draft.sums.length
-      ? "合計または件数を1つ以上選んでください。"
-      : draft.groupBy.length + draft.sums.length + Number(draft.count) > 50
+    !draft.count && !metricColumns.length
+      ? "集計項目または件数を1つ以上選んでください。"
+      : draft.groupBy.length + metricColumns.length + Number(draft.count) > 50
         ? "出力は50列以内にしてください。"
         : source &&
-            [...draft.groupBy, ...draft.sums].some(
+            [...draft.groupBy, ...metricColumns].some(
               (c) => c >= source.columns.length,
             )
           ? "対象列を選び直してください。"
@@ -33,12 +40,16 @@ export function GroupConditions({
     editing.current = true;
     setDraft(next);
   }
-  function toggle(field: "groupBy" | "sums", column: number, checked: boolean) {
+  function toggle(
+    field: "groupBy" | (typeof metrics)[number][0],
+    column: number,
+    checked: boolean,
+  ) {
     change({
       ...draft,
       [field]: checked
-        ? [...draft[field], column]
-        : draft[field].filter((c) => c !== column),
+        ? [...(draft[field] ?? []), column]
+        : (draft[field] ?? []).filter((c) => c !== column),
     });
   }
   return (
@@ -50,7 +61,12 @@ export function GroupConditions({
                 .map((c) => source?.columns[c] ?? `列${c + 1}`)
                 .join("・")
             : "全行"}{" "}
-          · 合計{saved.sums.length}列{saved.count ? "・件数" : ""}
+          ·{" "}
+          {metrics
+            .filter(([field]) => saved[field]?.length)
+            .map(([field, label]) => `${label}${saved[field]!.length}列`)
+            .join("・")}
+          {saved.count ? "・件数" : ""}
           {dirty ? " · 未適用" : ""}
         </span>
       )}
@@ -67,7 +83,9 @@ export function GroupConditions({
           <div className="group-column-row group-column-heading">
             <span>入力列</span>
             <span>グループ</span>
-            <span>合計</span>
+            {metrics.map(([field, label]) => (
+              <span key={field}>{label}</span>
+            ))}
           </div>
           {source?.columns.map((name, c) => (
             <div className="group-column-row" key={c}>
@@ -78,12 +96,15 @@ export function GroupConditions({
                 checked={draft.groupBy.includes(c)}
                 onChange={(e) => toggle("groupBy", c, e.target.checked)}
               />
-              <input
-                type="checkbox"
-                aria-label={`${table.title} ${name} の合計`}
-                checked={draft.sums.includes(c)}
-                onChange={(e) => toggle("sums", c, e.target.checked)}
-              />
+              {metrics.map(([field, label]) => (
+                <input
+                  key={field}
+                  type="checkbox"
+                  aria-label={`${table.title} ${name} の${label}`}
+                  checked={(draft[field] ?? []).includes(c)}
+                  onChange={(e) => toggle(field, c, e.target.checked)}
+                />
+              ))}
             </div>
           ))}
           {!source?.columns.length && <p>入力を接続してください</p>}
@@ -97,7 +118,7 @@ export function GroupConditions({
           件数（グループ内の行数）
         </label>
         <p className="sort-hint">
-          グループ列なしは全行を集計 · 合計は空欄・非数値を除く
+          グループ列なしは全行を集計 · 数値集計は空欄・非数値を除く
         </p>
         {error && (
           <div className="inline-error" role="alert">

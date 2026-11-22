@@ -1390,7 +1390,7 @@ button.action-danger:hover {
 }
 .group-column-row {
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) 80px 60px;
+  grid-template-columns: minmax(80px, 1fr) 64px repeat(4, 48px);
   align-items: center;
   gap: 8px;
   padding: 5px 0;

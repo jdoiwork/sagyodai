@@ -6,6 +6,7 @@ mod graph;
 #[cfg(test)]
 mod graph_tests;
 mod group;
+mod group_stats;
 #[cfg(test)]
 mod sheet_move_tests;
 mod sheets;

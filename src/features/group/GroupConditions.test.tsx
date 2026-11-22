@@ -34,3 +34,30 @@ it("複数グループ列と合計・件数を適用し、集計項目なしを�
   expect(ui.getByRole("alert").textContent).toContain("1つ以上");
   expect((ui.getByText("条件を適用") as HTMLButtonElement).disabled).toBe(true);
 });
+
+it("平均・最小値・最大値だけでも適用できる", () => {
+  const table = {
+    id: "g",
+    title: "集計",
+    group: { groupBy: [], sums: [], count: false },
+  } as unknown as TableData;
+  const source = { columns: ["数量"] } as TableData;
+  const ui = render(<GroupConditions table={table} source={source} />);
+  for (const metric of ["平均", "最小値", "最大値"])
+    fireEvent.click(ui.getByLabelText(`集計 数量 の${metric}`));
+  expect(ui.queryByRole("alert")).toBeNull();
+  expect(dispatch).not.toHaveBeenCalled();
+  fireEvent.click(ui.getByText("条件を適用"));
+  expect(dispatch).toHaveBeenCalledWith({
+    type: "setGroup",
+    id: "g",
+    config: {
+      groupBy: [],
+      sums: [],
+      count: false,
+      averages: [0],
+      minima: [0],
+      maxima: [0],
+    },
+  });
+});

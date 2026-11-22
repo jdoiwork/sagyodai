@@ -56,6 +56,9 @@ export type SortKey = z.infer<typeof sortKeySchema>;
 export const groupConfigSchema = z.object({
   groupBy: z.array(z.number().int().nonnegative()),
   sums: z.array(z.number().int().nonnegative()),
+  averages: z.array(z.number().int().nonnegative()).optional(),
+  minima: z.array(z.number().int().nonnegative()).optional(),
+  maxima: z.array(z.number().int().nonnegative()).optional(),
   count: z.boolean(),
 });
 export type GroupConfig = z.infer<typeof groupConfigSchema>;
