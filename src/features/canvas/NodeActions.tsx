@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { TableData } from "../../api/project";
+import { emptyTableView, type TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
 import { sheetOf, sheetsOf } from "../sheets/model";
@@ -23,6 +23,12 @@ export function NodeActions({ table }: { table: TableData }) {
   } | null>(null);
   const visible =
     open && open.revision === project?.revision && open.sheet === activeSheet;
+  const view = table.view ?? emptyTableView;
+  const filterCount =
+    (view.query.trim() ? 1 : 0) +
+    (view.columns.schema === JSON.stringify(table.columns)
+      ? Object.keys(view.columns.values).length
+      : 0);
   const candidates = sheetsOf(project).filter((s) => s.id !== sheetOf(table));
   useEffect(() => {
     if (!visible) return;
@@ -161,6 +167,34 @@ export function NodeActions({ table }: { table: TableData }) {
               </>
             ) : (
               <>
+                {["input", "csv", "display"].includes(table.kind) && (
+                  <button
+                    role="menuitem"
+                    disabled={pending > 0 || !filterCount}
+                    onClick={() => {
+                      const ids = new Set(project?.tables?.map((t) => t.id));
+                      setOpen(null);
+                      dispatch(
+                        {
+                          type: "createViewFilters",
+                          id: table.id,
+                          expectedView: view,
+                        },
+                        (ok, next) => {
+                          const created = next?.tables.filter(
+                            (t) => !ids.has(t.id),
+                          );
+                          if (ok && created?.length)
+                            onMoved(created[created.length - 1]);
+                        },
+                      );
+                    }}
+                  >
+                    <Icon name="filter" />
+                    クイックフィルターから作成
+                    {filterCount > 0 ? `（${filterCount}個）` : ""}
+                  </button>
+                )}
                 <button
                   role="menuitem"
                   aria-haspopup="menu"

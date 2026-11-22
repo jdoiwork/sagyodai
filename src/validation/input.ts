@@ -32,7 +32,9 @@ export function filterInputError(filter: FilterConfig): string {
       : "";
   if (cellInputError(filter.value))
     return "比較値は100000バイト以内で入力してください。";
-  if (!["equals", "notEquals", "contains"].includes(filter.operator)) {
+  if (
+    !["equals", "notEquals", "contains", "searchAll"].includes(filter.operator)
+  ) {
     const text = filter.value.trim();
     // Number() が受け付ける空文字・16進数などは Rust の浮動小数点構文ではない。
     if (

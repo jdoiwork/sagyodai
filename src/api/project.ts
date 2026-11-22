@@ -12,6 +12,7 @@ export type PaletteColor = z.infer<typeof paletteColorSchema>;
 export const filterSchema = z.object({
   column: z.number().int().nonnegative(),
   operator: z.enum([
+    "searchAll",
     "in",
     "notIn",
     "equals",
@@ -149,6 +150,11 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | {
+      type: "createViewFilters";
+      id: string;
+      expectedView: z.infer<typeof tableViewSchema>;
+    }
   | {
       type: "setCsvOptions";
       id: string;

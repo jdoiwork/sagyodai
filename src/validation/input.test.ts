@@ -51,3 +51,9 @@ it("結合の複数入力をたどって循環を検出し、合流を循環扱�
   expect(createsCycle(tables, "b", "u")).toBe(true);
   expect(createsCycle(tables, "other", "u")).toBe(false);
 });
+
+it("全列検索では文字列の比較値を許可する", () => {
+  expect(
+    filterInputError({ column: 0, operator: "searchAll", value: " APPLE " }),
+  ).toBe("");
+});

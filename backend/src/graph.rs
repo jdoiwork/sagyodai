@@ -84,6 +84,18 @@ fn number(value: &str) -> Option<f64> {
     value.trim().parse::<f64>().ok().filter(|n| n.is_finite())
 }
 fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, String> {
+    if filter.operator == Operator::SearchAll {
+        let needle = filter.value.trim().to_lowercase();
+        return Ok(source
+            .rows
+            .iter()
+            .filter(|row| {
+                row.iter()
+                    .any(|value| value.to_lowercase().contains(&needle))
+            })
+            .cloned()
+            .collect());
+    }
     if filter.column >= source.columns.len() {
         return Err("指定した列が入力にありません。".into());
     }

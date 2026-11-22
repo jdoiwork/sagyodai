@@ -19,6 +19,7 @@ mod table_view;
 mod union;
 #[cfg(test)]
 mod union_tests;
+mod view_filters;
 
 use application::Project;
 use axum::{

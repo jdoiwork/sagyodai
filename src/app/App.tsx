@@ -136,6 +136,9 @@ function Canvas() {
             y: (rect?.height ?? 600) / 2 - (table.y + height / 2) * zoom,
             zoom,
           });
+          if (sheetOf(table) === activeSheet) {
+            void setViewport(viewports.current.get(activeSheet)!);
+          }
           setSelectedSheet(sheetOf(table));
           selectNode(table.id);
         },

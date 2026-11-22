@@ -132,6 +132,37 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::CreateViewFilters { id, expected_view } => {
+                let source = table_mut(tables, &id)?.clone();
+                let filters = crate::view_filters::conditions(&source, &expected_view)?;
+                if tables.len() + filters.len() > 20 {
+                    return Err(format!(
+                        "フィルターを{}個作成するにはノード数の上限（20個）を超えます。",
+                        filters.len()
+                    ));
+                }
+                let mut previous = id;
+                for (index, filter) in filters.into_iter().enumerate() {
+                    self.edit(
+                        tables,
+                        Command::AddNode {
+                            kind: Kind::Filter,
+                            position: Some(crate::domain::Position {
+                                x: source.x + source.width + 80.0 + index as f64 * 440.0,
+                                y: source.y,
+                            }),
+                            sheet_id: Some(source.sheet_id.clone()),
+                        },
+                    )?;
+                    let node = tables.last_mut().ok_or("フィルターを作成できません。")?;
+                    node.source = Some(previous);
+                    node.edge_color = source.output_color;
+                    node.output_color = source.output_color;
+                    node.filter = Some(filter);
+                    previous = node.id.clone();
+                }
+            }
+
             Command::SetCsvOptions {
                 id,
                 has_headers,

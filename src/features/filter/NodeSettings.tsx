@@ -14,6 +14,7 @@ const operators: [FilterConfig["operator"], string][] = [
   ["notIn", "いずれにも一致しない（NOT IN）"],
   ["notEquals", "文字列が不一致"],
   ["contains", "文字列を含む"],
+  ["searchAll", "全列を検索（大小文字を区別しない）"],
   ["numberEquals", "数値 ="],
   ["numberNotEquals", "数値 !="],
   ["greater", "数値 >"],
@@ -32,7 +33,9 @@ export function NodeSettings({ table }: { table: TableData }) {
   const source = project?.tables.find((t) => t.id === table.source);
   const inputError = draft
     ? filterInputError(draft) ||
-      (source && draft.column >= source.columns.length
+      (draft.operator !== "searchAll" &&
+      source &&
+      draft.column >= source.columns.length
         ? "対象列を選び直してください。"
         : "")
     : "";
@@ -54,8 +57,10 @@ export function NodeSettings({ table }: { table: TableData }) {
       )}
       {table.compact && table.filter && (
         <div className="compact-condition" title="適用済みの条件">
-          {source?.columns[table.filter.column] ??
-            `列 ${table.filter.column + 1}`}{" "}
+          {table.filter.operator === "searchAll"
+            ? ""
+            : (source?.columns[table.filter.column] ??
+              `列 ${table.filter.column + 1}`)}{" "}
           {operators.find(([op]) => op === table.filter?.operator)?.[1]}{" "}
           {JSON.stringify(
             table.filter.operator === "in" || table.filter.operator === "notIn"
@@ -131,6 +136,7 @@ export function NodeSettings({ table }: { table: TableData }) {
           >
             <select
               aria-label={`${table.title} 対象列`}
+              disabled={draft.operator === "searchAll"}
               value={draft.column}
               onChange={(e) =>
                 setDraft({
@@ -142,14 +148,20 @@ export function NodeSettings({ table }: { table: TableData }) {
                 })
               }
             >
-              {!source?.columns.length && (
-                <option value={draft.column}>入力を接続してください</option>
+              {draft.operator === "searchAll" ? (
+                <option value={draft.column}>全列</option>
+              ) : (
+                <>
+                  {!source?.columns.length && (
+                    <option value={draft.column}>入力を接続してください</option>
+                  )}
+                  {source?.columns.map((name, i) => (
+                    <option key={i} value={i}>
+                      {name}
+                    </option>
+                  ))}
+                </>
               )}
-              {source?.columns.map((name, i) => (
-                <option key={i} value={i}>
-                  {name}
-                </option>
-              ))}
             </select>
             <select
               aria-label={`${table.title} 比較方法`}

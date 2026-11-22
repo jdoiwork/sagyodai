@@ -98,6 +98,7 @@ pub enum Kind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Operator {
+    SearchAll,
     In,
     NotIn,
     NumberEquals,
@@ -138,6 +139,10 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    CreateViewFilters {
+        id: String,
+        expected_view: crate::table_view::TableView,
+    },
     SetCsvOptions {
         id: String,
         has_headers: bool,
