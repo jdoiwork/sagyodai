@@ -115,9 +115,11 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             <Icon name={table.compact ? "expand" : "collapse"} />
             {table.compact ? "展開" : "縮小"}
           </button>
-          <span className="editable-badge" hidden={table.compact}>
-            {table.kind === "input" ? "編集可能" : "読み取り専用"}
-          </span>
+          {(table.kind === "input" || table.kind === "display") && (
+            <span className="editable-badge" hidden={table.compact}>
+              {table.kind === "input" ? "編集可能" : "読み取り専用"}
+            </span>
+          )}
           <NodeActions table={table} />
           <span className="grip" aria-hidden="true">
             ⠿
