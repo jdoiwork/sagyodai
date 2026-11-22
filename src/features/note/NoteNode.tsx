@@ -1,3 +1,4 @@
+import { NodeSettings } from "../filter/NodeSettings";
 import { TextSettings } from "../text/TextSettings";
 import { NodePorts } from "../canvas/NodePorts";
 import { useEffect, useState } from "react";
@@ -13,10 +14,14 @@ import { useProject } from "../../app/ProjectContext";
 export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, pending, project } = useProject();
   const table = data.table;
+  const isResult = table.kind === "textDisplay";
+  const isViewer = isResult || table.kind === "text";
   const isFile = table.kind === "text";
-  const text = isFile
-    ? (table.textSource?.text ?? "")
-    : (table.note?.text ?? "");
+  const text = isResult
+    ? table.rows.map((row) => row.join("\t")).join("\n")
+    : isFile
+      ? (table.textSource?.text ?? "")
+      : (table.note?.text ?? "");
   const plainText = table.textDisplay === "plain";
   function setPlainText(plain: boolean) {
     dispatch({
@@ -25,7 +30,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
       display: plain ? "plain" : "markdown",
     });
   }
-  const [editing, setEditing] = useState(!isFile && !text);
+  const [editing, setEditing] = useState(!isViewer && !text);
   const [draft, setDraft] = useState(text);
   const [original, setOriginal] = useState(text);
   // 競合の再適用で自分の本文が保存された場合も、次の保存を競合にしない。
@@ -72,18 +77,21 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
           }
         />
         <header className="table-drag-handle">
-          <div className="table-icon" title={isFile ? "テキスト入力" : "メモ"}>
+          <div
+            className="table-icon"
+            title={isResult ? "結果テキスト" : isFile ? "テキスト入力" : "メモ"}
+          >
             <Icon name="note" />
           </div>
           <div>
             <NodeTitle table={table} />
             <span>
-              {isFile
-                ? `テキストファイル · ${plainText ? "テキスト" : "Markdown"}`
+              {isViewer
+                ? `${isResult ? "結果テキスト" : "テキストファイル"} · ${plainText ? "テキスト" : "Markdown"}`
                 : "メモ · Markdown"}
             </span>
           </div>
-          {isFile && (
+          {isViewer && (
             <button
               className="nodrag nopan"
               aria-label={`${table.title} ${table.compact ? "展開" : "コンパクト表示"}`}
@@ -105,7 +113,9 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             ⠿
           </span>
         </header>
-        {isFile ? (
+        {isResult ? (
+          <NodeSettings table={table} />
+        ) : isFile ? (
           <TextSettings table={table} />
         ) : (
           <div className="note-actions nodrag nopan">
@@ -148,7 +158,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             </button>
           </div>
         )}
-        {isFile && !table.compact && (
+        {isViewer && !table.compact && (
           <div
             className="note-actions nodrag nopan"
             role="group"
@@ -200,11 +210,11 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
         ) : (
           <div
             className="note-preview nodrag nopan nowheel"
-            hidden={isFile && table.compact}
+            hidden={isViewer && table.compact}
             aria-label={`${table.title} 閲覧`}
           >
             {text ? (
-              isFile && plainText ? (
+              isViewer && plainText ? (
                 <pre className="text-file-plain">{text}</pre>
               ) : (
                 <Markdown
@@ -228,11 +238,13 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
               )
             ) : (
               <p className="note-empty">
-                {isFile
-                  ? table.textSource
-                    ? "ファイルは空です。"
-                    : "ファイルを選択すると本文を表示します。"
-                  : "メモは空です。「編集」から入力できます。"}
+                {isResult
+                  ? "表示する結果はありません。"
+                  : isFile
+                    ? table.textSource
+                      ? "ファイルは空です。"
+                      : "ファイルを選択すると本文を表示します。"
+                    : "メモは空です。「編集」から入力できます。"}
               </p>
             )}
           </div>

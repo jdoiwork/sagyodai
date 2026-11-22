@@ -21,6 +21,8 @@ npm run dev
 
 ## 試せること
 
+- [結果テキスト](docs/text-output.md)で加工結果をテキスト／Markdown表示。
+
 - UTF-8の[テキストファイル入力](docs/text-input.md)に対応し、改行ごとに1列の表として後続ノードへ出力できる。
 
 - [Markdownで表示できるメモノード](docs/notes.md)。

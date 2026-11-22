@@ -144,8 +144,8 @@ impl Project {
         match command {
             Command::SetTextDisplay { id, display } => {
                 let table = table_mut(tables, &id)?;
-                if table.kind != Kind::Text {
-                    return Err("テキスト入力ノードではありません。".into());
+                if !matches!(table.kind, Kind::Text | Kind::TextDisplay) {
+                    return Err("テキスト表示に対応したノードではありません。".into());
                 }
                 table.text_display = display;
             }
@@ -552,6 +552,8 @@ impl Project {
                             "メモ"
                         } else if kind == Kind::Replace {
                             "置換"
+                        } else if kind == Kind::TextDisplay {
+                            "結果テキスト"
                         } else if kind == Kind::Text {
                             "テキスト"
                         } else if kind == Kind::Csv {
@@ -587,6 +589,11 @@ impl Project {
                     t.x = next_x;
                     t.y = 100.0;
                     t.stale = kind != Kind::Note;
+                    if kind == Kind::TextDisplay {
+                        t.width = 520.0;
+                        t.height = 480.0;
+                        t.text_display = crate::text_source::TextDisplay::Plain;
+                    }
                     if kind == Kind::Note {
                         t.note = Some(Default::default());
                     }

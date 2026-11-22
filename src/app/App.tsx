@@ -74,6 +74,7 @@ function Canvas() {
       | "text"
       | "filter"
       | "display"
+      | "textDisplay"
       | "union"
       | "sort"
       | "aggregate"
@@ -98,6 +99,7 @@ function Canvas() {
       | "text"
       | "filter"
       | "display"
+      | "textDisplay"
       | "union"
       | "sort"
       | "aggregate"
@@ -431,6 +433,15 @@ function Canvas() {
             >
               <Icon name="table" />
               結果表
+            </button>
+            <button
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
+              onClick={() => addNode("textDisplay")}
+            >
+              <Icon name="note" />
+              結果テキスト
             </button>
             <div className="toolbar-history">
               <div className="toolbar-separator" />

@@ -115,6 +115,7 @@ pub enum Kind {
     Text,
     Filter,
     Display,
+    TextDisplay,
     Union,
     Sort,
     Aggregate,

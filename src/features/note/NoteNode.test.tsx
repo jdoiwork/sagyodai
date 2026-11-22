@@ -8,6 +8,9 @@ vi.mock("../../app/ProjectContext", () => ({
   useProject: () => ({ dispatch, pending: 0, project: { tables: [{}, {}] } }),
 }));
 vi.mock("@xyflow/react", () => ({ NodeResizer: () => null }));
+vi.mock("../filter/NodeSettings", () => ({
+  NodeSettings: () => <div>入力・更新設定</div>,
+}));
 vi.mock("../canvas/NodePorts", () => ({ NodePorts: () => null }));
 vi.mock("../canvas/NodeActions", () => ({ NodeActions: () => null }));
 vi.mock("../canvas/NodeTitle", () => ({ NodeTitle: () => null }));
@@ -111,4 +114,34 @@ it("テキスト表示は記号・改行・空白を保持し、出力を変更�
   ui.rerender(<NoteNode {...node} />);
   expect(ui.getByRole("heading", { name: "見出し" })).toBeTruthy();
   expect(ui.container.querySelector("pre")).toBeNull();
+});
+
+it("結果テキストは列をタブ・行を改行で連結し、入力が更新されると表示も更新する", () => {
+  const node = props("");
+  node.data.table = {
+    ...node.data.table,
+    kind: "textDisplay",
+    note: undefined,
+    textDisplay: "plain",
+    columns: ["A", "B"],
+    rows: [
+      ["日本語", "001"],
+      ["", ""],
+      ["末尾", "値"],
+    ],
+  };
+  const ui = render(<NoteNode {...node} />);
+  expect(ui.container.querySelector("pre")?.textContent).toBe(
+    "日本語\t001\n\t\n末尾\t値",
+  );
+  expect(ui.queryByRole("button", { name: /^編集$/ })).toBeNull();
+  expect(ui.getByText("入力・更新設定")).toBeTruthy();
+  node.data.table = {
+    ...node.data.table,
+    rows: [["# 見出し"]],
+    columns: ["本文"],
+    textDisplay: "markdown",
+  };
+  ui.rerender(<NoteNode {...node} />);
+  expect(ui.getByRole("heading", { name: "見出し" })).toBeTruthy();
 });

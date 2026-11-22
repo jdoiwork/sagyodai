@@ -142,6 +142,7 @@ const tableSchema = z.object({
     "text",
     "filter",
     "display",
+    "textDisplay",
     "union",
     "sort",
     "aggregate",
@@ -236,6 +237,7 @@ export type Command =
         | "text"
         | "filter"
         | "display"
+        | "textDisplay"
         | "union"
         | "sort"
         | "aggregate"
