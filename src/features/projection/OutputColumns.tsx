@@ -84,64 +84,66 @@ export function OutputColumns({
             dispatch({ type: "setProjection", id: table.id, config: draft });
           }}
         >
-          <p className="sort-hint">
-            選択・並び順・列名は後続ノードへの出力にも反映します。
-          </p>
-          <div className="output-column-list nowheel" ref={reorder.list}>
-            {config.columns.map((column, i) => (
-              <div
-                className="output-column-row"
-                key={reorder.ids[i]}
-                data-output-id={reorder.ids[i]}
-              >
-                <label>
+          <div className="output-column-settings-scroll nowheel">
+            <p className="sort-hint">
+              選択・並び順・列名は後続ノードへの出力にも反映します。
+            </p>
+            <div className="output-column-list nowheel" ref={reorder.list}>
+              {config.columns.map((column, i) => (
+                <div
+                  className="output-column-row"
+                  key={reorder.ids[i]}
+                  data-output-id={reorder.ids[i]}
+                >
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={column.visible}
+                      aria-label={`${table.title} ${config.schema[column.column]} を出力`}
+                      onChange={(e) => update(i, { visible: e.target.checked })}
+                    />
+                    <span>{config.schema[column.column]}</span>
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={column.visible}
-                    aria-label={`${table.title} ${config.schema[column.column]} を出力`}
-                    onChange={(e) => update(i, { visible: e.target.checked })}
+                    aria-label={`${table.title} ${config.schema[column.column]} の出力列名`}
+                    placeholder={config.schema[column.column]}
+                    value={column.name}
+                    onChange={(e) => update(i, { name: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        (e.nativeEvent.isComposing || e.keyCode === 229)
+                      )
+                        e.preventDefault();
+                    }}
                   />
-                  <span>{config.schema[column.column]}</span>
-                </label>
-                <input
-                  aria-label={`${table.title} ${config.schema[column.column]} の出力列名`}
-                  placeholder={config.schema[column.column]}
-                  value={column.name}
-                  onChange={(e) => update(i, { name: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      (e.nativeEvent.isComposing || e.keyCode === 229)
-                    )
-                      e.preventDefault();
-                  }}
-                />
-                <button
-                  type="button"
-                  aria-label={`${table.title} 出力列${i + 1}を上へ移動`}
-                  disabled={i === 0}
-                  onClick={() => move(i, -1)}
-                >
-                  <Icon name="collapse" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${table.title} 出力列${i + 1}を下へ移動`}
-                  disabled={i === config.columns.length - 1}
-                  onClick={() => move(i, 1)}
-                >
-                  <Icon name="expand" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <p className="sort-hint">列名が空欄なら入力列名を使用</p>
-          {error && (
-            <div className="inline-error" role="alert">
-              {error}
+                  <button
+                    type="button"
+                    aria-label={`${table.title} 出力列${i + 1}を上へ移動`}
+                    disabled={i === 0}
+                    onClick={() => move(i, -1)}
+                  >
+                    <Icon name="collapse" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${table.title} 出力列${i + 1}を下へ移動`}
+                    disabled={i === config.columns.length - 1}
+                    onClick={() => move(i, 1)}
+                  >
+                    <Icon name="expand" />
+                  </button>
+                </div>
+              ))}
             </div>
-          )}
-          <div className="condition-actions">
+            <p className="sort-hint">列名が空欄なら入力列名を使用</p>
+            {error && (
+              <div className="inline-error" role="alert">
+                {error}
+              </div>
+            )}
+          </div>
+          <div className="condition-actions output-column-settings-actions">
             <button type="button" onClick={() => change(null)}>
               入力列に戻す
             </button>

@@ -1536,3 +1536,49 @@ button.action-danger:hover {
   color: #62786c;
   font-size: 12px;
 }
+
+/* 小さいノードでも確定操作を隠さず、編集領域だけをスクロールする。 */
+.table-node:has(.output-column-settings[open]) {
+  position: relative;
+}
+.node-settings.display-settings:has(.output-column-settings[open]) {
+  overflow: visible;
+}
+.output-column-settings[open] {
+  position: absolute;
+  inset: 8px;
+  z-index: 10;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #a5cbb5;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 16px #274d3120;
+  display: flex;
+  flex-direction: column;
+}
+.output-column-settings[open]::details-content {
+  display: contents;
+}
+.output-column-settings[open] > summary {
+  flex-shrink: 0;
+}
+.node-settings .output-column-settings[open] > form {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  margin-top: 8px;
+}
+.output-column-settings-scroll {
+  min-height: 0;
+  overflow: auto;
+}
+.output-column-settings-scroll .output-column-list {
+  max-height: none;
+  overflow: visible;
+}
+.output-column-settings-actions {
+  padding-top: 8px;
+  border-top: 1px solid #dfe7e1;
+  background: white;
+}
