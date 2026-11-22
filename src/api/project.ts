@@ -88,6 +88,8 @@ export const replacementSchema = z.object({
   regex: z.boolean(),
   pattern: z.string(),
   replacement: z.string(),
+  addColumn: z.boolean().default(false),
+  columnName: z.string().default(""),
 });
 export type Replacement = z.infer<typeof replacementSchema>;
 const tableSchema = z.object({

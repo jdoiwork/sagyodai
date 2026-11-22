@@ -1669,3 +1669,12 @@ button.action-danger:hover {
 .replace-conditions > button {
   justify-self: end;
 }
+
+.replace-conditions .replace-add-column {
+  display: flex;
+  gap: 8px;
+}
+.replace-conditions input:not([type="checkbox"]) {
+  min-width: 0;
+  width: 100%;
+}

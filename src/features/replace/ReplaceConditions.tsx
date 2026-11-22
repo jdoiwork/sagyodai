@@ -7,6 +7,8 @@ const empty: Replacement = {
   regex: false,
   pattern: "",
   replacement: "",
+  addColumn: false,
+  columnName: "",
 };
 export function ReplaceConditions({
   table,
@@ -31,7 +33,11 @@ export function ReplaceConditions({
       ? "検索・置換文字列は各1000バイト以内にしてください。"
       : source && draft.column >= source.columns.length
         ? "対象列を選び直してください。"
-        : "";
+        : draft.addColumn && [...draft.columnName].length > 240
+          ? "出力列名は240文字以内にしてください。"
+          : draft.addColumn && source && source.columns.length >= 50
+            ? "列数の上限（50列）のため、新しい列を追加できません。"
+            : "";
   function update(patch: Partial<Replacement>) {
     editing.current = true;
     setDraft({ ...draft, ...patch });
@@ -41,7 +47,9 @@ export function ReplaceConditions({
       {table.compact && (
         <span className="compact-condition">
           {source?.columns[saved.column] ?? "対象列未設定"} ·{" "}
-          {saved.regex ? "正規表現" : "文字列"}置換{dirty ? " · 未適用" : ""}
+          {saved.regex ? "正規表現" : "文字列"}置換
+          {saved.addColumn ? " · 新しい列" : ""}
+          {dirty ? " · 未適用" : ""}
         </span>
       )}
       <form
@@ -103,6 +111,32 @@ export function ReplaceConditions({
             onChange={(e) => update({ replacement: e.target.value })}
           />
         </label>
+        <label className="replace-add-column">
+          <input
+            type="checkbox"
+            checked={draft.addColumn}
+            onChange={(e) => update({ addColumn: e.target.checked })}
+          />
+          結果を新しい列に追加
+        </label>
+        {draft.addColumn && (
+          <label>
+            列名
+            <input
+              aria-label={`${table.title} 出力列名`}
+              value={draft.columnName}
+              placeholder={`置換（${source?.columns[draft.column] ?? "対象列"}）`}
+              onChange={(e) => update({ columnName: e.target.value })}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  (e.nativeEvent.isComposing || e.keyCode === 229)
+                )
+                  e.preventDefault();
+              }}
+            />
+          </label>
+        )}
         <p className="sort-hint">
           各セルの一致箇所をすべて置換します。
           {draft.regex

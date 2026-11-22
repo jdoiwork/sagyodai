@@ -11,6 +11,10 @@ pub struct Replacement {
     pub regex: bool,
     pub pattern: String,
     pub replacement: String,
+    #[serde(default)]
+    pub add_column: bool,
+    #[serde(default)]
+    pub column_name: String,
 }
 impl Replacement {
     pub fn validate(&self) -> Result<(), String> {
@@ -19,12 +23,45 @@ impl Replacement {
                 "対象列は50列以内、検索・置換文字列は各1000バイト以内にしてください。".into(),
             );
         }
+        if self.add_column && self.column_name.chars().count() > 240 {
+            return Err("出力列名は240文字以内にしてください。".into());
+        }
         Ok(())
+    }
+    pub fn evaluate(&self, source: &Table) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+        let rows = self.rows(source)?;
+        let mut columns = source.columns.clone();
+        if self.add_column {
+            let requested = if self.column_name.trim().is_empty() {
+                format!("置換（{}）", source.columns[self.column])
+            } else {
+                self.column_name.trim().to_string()
+            };
+            let base: String = requested.chars().take(240).collect();
+            let mut name = base.clone();
+            let mut n = 2;
+            while columns.contains(&name) {
+                let suffix = format!(" ({n})");
+                name = format!(
+                    "{}{}",
+                    base.chars()
+                        .take(240 - suffix.chars().count())
+                        .collect::<String>(),
+                    suffix
+                );
+                n += 1;
+            }
+            columns.push(name);
+        }
+        Ok((columns, rows))
     }
     pub fn rows(&self, source: &Table) -> Result<Vec<Vec<String>>, String> {
         self.validate()?;
         if self.column >= source.columns.len() {
             return Err("置換対象の列が入力にありません。".into());
+        }
+        if self.add_column && source.columns.len() >= MAX_COLS {
+            return Err("列数の上限（50列）のため、新しい列を追加できません。".into());
         }
         if self.pattern.is_empty() {
             return Err("検索文字列を入力してください。".into());
@@ -53,7 +90,11 @@ impl Replacement {
                 end = matched.end();
             }
             append(&mut output, &value[end..])?;
-            row[self.column] = output;
+            if self.add_column {
+                row.push(output);
+            } else {
+                row[self.column] = output;
+            }
         }
         Ok(rows)
     }
@@ -81,6 +122,42 @@ mod tests {
         .unwrap();
     }
     #[test]
+    fn appended_column_preserves_input_and_checks_names_and_limits() {
+        let mut source = crate::domain::sample_table("source".into(), 0);
+        source.columns = vec!["品名".into(), "置換（品名）".into()];
+        source.rows = vec![
+            vec!["赤い花".into(), "元の値".into()],
+            vec!["青い花".into(), "別の値".into()],
+        ];
+        let mut config = Replacement {
+            column: 0,
+            pattern: "赤".into(),
+            replacement: "白".into(),
+            add_column: true,
+            ..Default::default()
+        };
+        let (columns, rows) = config.evaluate(&source).unwrap();
+        assert_eq!(columns, ["品名", "置換（品名）", "置換（品名） (2)"]);
+        assert_eq!(rows[0], ["赤い花", "元の値", "白い花"]);
+        assert_eq!(rows[1], ["青い花", "別の値", "青い花"]);
+        assert_eq!(source.rows[0][0], "赤い花");
+        config.column_name = " 加工済み ".into();
+        config.regex = true;
+        config.pattern = "(赤|青)".into();
+        config.replacement = "${1}色".into();
+        assert_eq!(config.evaluate(&source).unwrap().0[2], "加工済み");
+        assert_eq!(config.evaluate(&source).unwrap().1[1][2], "青色い花");
+        source.rows.clear();
+        assert_eq!(config.evaluate(&source).unwrap().0.len(), 3);
+        config.column_name = "あ".repeat(241);
+        assert!(config.validate().is_err());
+        config.column_name.clear();
+        source.columns.resize(MAX_COLS, "列".into());
+        assert!(config.evaluate(&source).unwrap_err().contains("50列"));
+        config.add_column = false;
+        assert_eq!(config.evaluate(&source).unwrap().0.len(), MAX_COLS);
+    }
+    #[test]
     fn literal_regex_captures_deletion_and_limits() {
         let mut source = crate::domain::sample_table("source".into(), 0);
         source.columns = vec!["文字".into(), "残す列".into()];
@@ -90,6 +167,7 @@ mod tests {
             regex: false,
             pattern: ".".into(),
             replacement: "$1".into(),
+            ..Default::default()
         };
         assert_eq!(config.rows(&source).unwrap()[0], ["赤$1赤$1001", "元"]);
         config.regex = true;
@@ -141,6 +219,7 @@ mod tests {
             regex: false,
             pattern: "ノート".into(),
             replacement: "手帳".into(),
+            ..Default::default()
         };
         run(
             &mut p,
@@ -205,5 +284,39 @@ mod tests {
         assert_eq!(p.snapshot().tables[2].rows[0][0], "手帳");
         run(&mut p, Command::Redo);
         assert_eq!(p.snapshot().tables[2].rows[0][0], "新しい手帳");
+        let mut config = p.snapshot().tables[1].replacement.clone().unwrap();
+        config.add_column = true;
+        config.column_name = "加工済み".into();
+        run(
+            &mut p,
+            Command::SetReplacement {
+                id: "table-2".into(),
+                config,
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns.len(), 4); // 手動更新までは旧キャッシュ
+        run(
+            &mut p,
+            Command::Run {
+                id: "table-2".into(),
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns.last().unwrap(), "加工済み");
+        assert_eq!(p.snapshot().tables[2].rows[0][0], "ノート");
+        assert_eq!(p.snapshot().tables[2].rows[0][4], "新しい手帳");
+        let restored =
+            Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
+        assert!(
+            restored.snapshot().tables[1]
+                .replacement
+                .as_ref()
+                .unwrap()
+                .add_column
+        );
+        assert_eq!(restored.snapshot().tables[2].rows[0].len(), 5);
+        run(&mut p, Command::Undo);
+        assert_eq!(p.snapshot().tables[2].columns.len(), 4);
+        run(&mut p, Command::Redo);
+        assert_eq!(p.snapshot().tables[2].columns.len(), 5);
     }
 }

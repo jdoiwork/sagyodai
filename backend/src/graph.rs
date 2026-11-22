@@ -200,10 +200,13 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                     .as_ref()
                     .ok_or_else(|| "集計設定がありません。".to_string())
                     .and_then(|config| crate::group::evaluate(&s, config)),
+                Some(s) if node.kind == Kind::Replace => node
+                    .replacement
+                    .as_ref()
+                    .ok_or_else(|| "置換設定がありません。".to_string())
+                    .and_then(|config| config.evaluate(&s)),
                 Some(s) => {
-                    let rows = if let Some(config) = &node.replacement {
-                        config.rows(&s)
-                    } else if node.kind == Kind::Sort {
+                    let rows = if node.kind == Kind::Sort {
                         crate::sort::rows(&s, &node.sort_keys)
                     } else {
                         match &node.filter {
