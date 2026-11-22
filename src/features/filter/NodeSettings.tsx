@@ -24,6 +24,7 @@ const operators: [FilterConfig["operator"], string][] = [
 export function NodeSettings({ table }: { table: TableData }) {
   const { project, dispatch } = useProject();
   const [draft, setDraft] = useState(table.filter);
+  const [columnsOpen, setColumnsOpen] = useState(false);
   const editing = useRef(false);
   useEffect(() => {
     if (!editing.current) setDraft(table.filter);
@@ -94,7 +95,12 @@ export function NodeSettings({ table }: { table: TableData }) {
         </select>
       </label>
       {table.kind === "display" && (
-        <OutputColumns table={table} source={source} />
+        <OutputColumns
+          table={table}
+          source={source}
+          open={columnsOpen}
+          onClose={() => setColumnsOpen(false)}
+        />
       )}
       {table.kind === "aggregate" && (
         <GroupConditions table={table} source={source} />
@@ -232,6 +238,16 @@ export function NodeSettings({ table }: { table: TableData }) {
           <Icon name="refresh" />
           今すぐ更新
         </button>
+        {table.kind === "display" && (
+          <button
+            className="action-accent"
+            aria-expanded={columnsOpen && !table.compact}
+            onClick={() => setColumnsOpen(true)}
+          >
+            <Icon name="table" />
+            出力列の設定
+          </button>
+        )}
         <button
           disabled={project?.tables.length === 1}
           className="action-danger"

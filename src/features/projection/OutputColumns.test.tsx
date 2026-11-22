@@ -18,8 +18,9 @@ const table = {
 } as unknown as TableData;
 const source = { columns: ["品名", "数量", "分類"] } as TableData;
 it("列の選択・順序・名前をまとめて出力設定として適用する", () => {
-  const ui = render(<OutputColumns table={table} source={source} />);
-  fireEvent.click(ui.getByText("出力列の設定"));
+  const ui = render(
+    <OutputColumns table={table} source={source} open onClose={() => {}} />,
+  );
   fireEvent.click(ui.getByLabelText("結果表 分類 を出力"));
   fireEvent.change(ui.getByLabelText("結果表 数量 の出力列名"), {
     target: { value: "個数" },
@@ -41,8 +42,9 @@ it("列の選択・順序・名前をまとめて出力設定として適用す�
   });
 });
 it("重複する列名・全列非表示を防ぎ、修正すれば適用できる", () => {
-  const ui = render(<OutputColumns table={table} source={source} />);
-  fireEvent.click(ui.getByText("出力列の設定"));
+  const ui = render(
+    <OutputColumns table={table} source={source} open onClose={() => {}} />,
+  );
   fireEvent.change(ui.getByLabelText("結果表 数量 の出力列名"), {
     target: { value: "品名" },
   });

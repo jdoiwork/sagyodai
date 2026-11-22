@@ -7,9 +7,13 @@ import { useOutputReorderAnimation } from "../group/useOutputReorderAnimation";
 export function OutputColumns({
   table,
   source,
+  open,
+  onClose,
 }: {
   table: TableData;
   source?: TableData;
+  open: boolean;
+  onClose: () => void;
 }) {
   const { dispatch } = useProject();
   const saved = table.projection ?? null;
@@ -62,20 +66,28 @@ export function OutputColumns({
   }
   return (
     <>
-      {table.compact && dirty && (
+      {(table.compact || !open) && dirty && (
         <span className="condition-draft-status">出力列に未適用の変更あり</span>
       )}
-      <details className="output-column-settings" hidden={table.compact}>
-        <summary>
+      <section
+        className="output-column-settings"
+        hidden={!open || table.compact}
+        aria-label={`${table.title} 出力列の設定`}
+      >
+        <header className="output-column-settings-header">
           <Icon name="table" />
           <span className="output-column-settings-label">
             <strong>出力列の設定{dirty ? " · 未適用" : ""}</strong>
             <span>列の選択・並び順・名前</span>
           </span>
-          <span className="output-column-settings-chevron">
-            <Icon name="expand" />
-          </span>
-        </summary>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="出力列の設定を閉じる"
+          >
+            <Icon name="close" />
+          </button>
+        </header>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -157,7 +169,7 @@ export function OutputColumns({
             </button>
           </div>
         </form>
-      </details>
+      </section>
     </>
   );
 }

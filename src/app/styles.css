@@ -1458,30 +1458,18 @@ button.action-danger:hover {
   position: relative;
 }
 
-.output-column-settings {
-  margin: 8px 0;
-}
-.output-column-settings summary {
+.output-column-settings-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #a5cbb5;
+  padding: 8px 10px;
   border-radius: 6px;
   background: #e9f4ed;
-  cursor: pointer;
   color: #235a45;
-  list-style: none;
+  flex-shrink: 0;
 }
-.output-column-settings summary::-webkit-details-marker {
-  display: none;
-}
-.output-column-settings summary:hover {
-  background: #dceee2;
-}
-.output-column-settings summary:focus-visible {
-  outline: 2px solid #386e61;
-  outline-offset: 2px;
+.output-column-settings-header > button {
+  margin-left: auto;
 }
 .output-column-settings-label {
   display: grid;
@@ -1490,13 +1478,6 @@ button.action-danger:hover {
 .output-column-settings-label > span {
   font-size: 12px;
   color: #527165;
-}
-.output-column-settings-chevron {
-  display: flex;
-  margin-left: auto;
-}
-.output-column-settings[open] .output-column-settings-chevron {
-  transform: rotate(180deg);
 }
 .output-column-list {
   max-height: 240px;
@@ -1538,13 +1519,13 @@ button.action-danger:hover {
 }
 
 /* 小さいノードでも確定操作を隠さず、編集領域だけをスクロールする。 */
-.table-node:has(.output-column-settings[open]) {
+.table-node:has(.output-column-settings:not([hidden])) {
   position: relative;
 }
-.node-settings.display-settings:has(.output-column-settings[open]) {
+.node-settings.display-settings:has(.output-column-settings:not([hidden])) {
   overflow: visible;
 }
-.output-column-settings[open] {
+.output-column-settings:not([hidden]) {
   position: absolute;
   inset: 8px;
   z-index: 10;
@@ -1557,13 +1538,7 @@ button.action-danger:hover {
   display: flex;
   flex-direction: column;
 }
-.output-column-settings[open]::details-content {
-  display: contents;
-}
-.output-column-settings[open] > summary {
-  flex-shrink: 0;
-}
-.node-settings .output-column-settings[open] > form {
+.node-settings .output-column-settings:not([hidden]) > form {
   flex: 1;
   min-height: 0;
   grid-template-rows: minmax(0, 1fr) auto;
