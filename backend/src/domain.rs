@@ -143,6 +143,10 @@ pub enum Command {
         file_name: String,
         text: String,
         has_headers: bool,
+        #[serde(default)]
+        skip_empty_rows: bool,
+        #[serde(default)]
+        skip_empty_columns: bool,
     },
     HideOutputColumn {
         id: String,

@@ -10,6 +10,10 @@ pub const MAX_CSV_BYTES: usize = 1024 * 1024;
 pub struct CsvSource {
     pub file_name: String,
     pub has_headers: bool,
+    #[serde(default)]
+    pub skip_empty_rows: bool,
+    #[serde(default)]
+    pub skip_empty_columns: bool,
 }
 fn valid_name(name: &str) -> bool {
     !name.trim().is_empty() && name.len() <= 1024 && !name.contains(['/', '\\'])
@@ -29,6 +33,8 @@ pub fn import(
     file_name: String,
     text: &str,
     has_headers: bool,
+    skip_empty_rows: bool,
+    skip_empty_columns: bool,
 ) -> Result<(), String> {
     if table.kind != Kind::Csv {
         return Err("CSV入力ノードではありません。".into());
@@ -44,7 +50,7 @@ pub fn import(
         .has_headers(false)
         .from_reader(text.as_bytes());
     let mut columns = Vec::new();
-    let mut rows = Vec::new();
+    let mut rows: Vec<Vec<String>> = Vec::new();
     for (index, record) in reader.records().enumerate() {
         let record = record.map_err(|e| {
             format!("CSVの読み込みに失敗しました（列数などを確認してください）: {e}")
@@ -86,6 +92,26 @@ pub fn import(
     if columns.is_empty() {
         return Err("CSVファイルが空です。".into());
     }
+    // ヘッダーは空列の判定に含めない。データ0行のファイルは列定義を残す。
+    if skip_empty_columns && !rows.is_empty() {
+        let keep: Vec<usize> = (0..columns.len())
+            .filter(|&col| rows.iter().any(|row| !row[col].is_empty()))
+            .collect();
+        if keep.is_empty() {
+            return Err(
+                "空列をスキップすると列がなくなります。オプションを外して読み込んでください。"
+                    .into(),
+            );
+        }
+        columns = keep.iter().map(|&col| columns[col].clone()).collect();
+        rows = rows
+            .into_iter()
+            .map(|row| keep.iter().map(|&col| row[col].clone()).collect())
+            .collect();
+    }
+    if skip_empty_rows {
+        rows.retain(|row| row.iter().any(|value| !value.is_empty()));
+    }
     // パース完了まで既存の出力を触らない。再読み込みでも列名や先頭ゼロは文字列として保持。
     if table.columns != columns {
         table.view = Default::default();
@@ -96,6 +122,8 @@ pub fn import(
     table.csv = Some(CsvSource {
         file_name,
         has_headers,
+        skip_empty_rows,
+        skip_empty_columns,
     });
     table.stale = false;
     table.error = None;
@@ -110,12 +138,59 @@ mod tests {
         domain::{Command, Request},
         storage,
     };
+    fn import(
+        table: &mut Table,
+        file_name: String,
+        text: &str,
+        has_headers: bool,
+    ) -> Result<(), String> {
+        super::import(table, file_name, text, has_headers, false, false)
+    }
     fn table() -> Table {
         let mut t = crate::domain::sample_table("csv".into(), 0);
         t.kind = Kind::Csv;
         t.columns.clear();
         t.rows.clear();
         t
+    }
+    #[test]
+    fn skips_empty_rows_and_data_columns_independently_and_saves_options() {
+        let text = "品名,空列,数量\nペン,,001\n,,\nノート,,2\n";
+        let mut t = table();
+        super::import(&mut t, "data.csv".into(), text, true, false, false).unwrap();
+        assert_eq!(t.rows.len(), 3);
+        assert_eq!(t.columns.len(), 3);
+        super::import(&mut t, "data.csv".into(), text, true, true, false).unwrap();
+        assert_eq!(t.rows.len(), 2);
+        assert_eq!(t.columns.len(), 3);
+        super::import(&mut t, "data.csv".into(), text, true, false, true).unwrap();
+        assert_eq!(t.rows.len(), 3);
+        assert_eq!(t.rows[1], ["", ""]);
+        super::import(&mut t, "data.csv".into(), text, true, true, true).unwrap();
+        assert_eq!(t.columns, ["品名", "数量"]);
+        assert_eq!(t.rows, [vec!["ペン", "001"], vec!["ノート", "2"]]);
+        let saved = storage::encode(&[t.clone()]).unwrap();
+        let restored = storage::decode(serde_json::from_slice(&saved).unwrap()).unwrap();
+        assert_eq!(restored[0].csv, t.csv);
+        assert!(restored[0].csv.as_ref().unwrap().skip_empty_rows);
+        assert!(restored[0].csv.as_ref().unwrap().skip_empty_columns);
+        let before = serde_json::to_value(&t).unwrap();
+        assert!(super::import(&mut t, "empty.csv".into(), "A,B\n,", true, true, true).is_err());
+        assert_eq!(serde_json::to_value(&t).unwrap(), before);
+        super::import(&mut t, "header.csv".into(), "A,B", true, true, true).unwrap();
+        assert_eq!(t.columns, ["A", "B"]);
+        assert!(t.rows.is_empty());
+        super::import(
+            &mut t,
+            "no-header.csv".into(),
+            "001,, \n,,",
+            false,
+            true,
+            true,
+        )
+        .unwrap();
+        assert_eq!(t.columns, ["列1", "列3"]);
+        assert_eq!(t.rows, [vec!["001", " "]]);
     }
     #[test]
     fn parses_bom_quotes_newlines_and_preserves_strings() {
@@ -202,6 +277,8 @@ mod tests {
             file_name: "商品.csv".into(),
             text: text.into(),
             has_headers: true,
+            skip_empty_rows: false,
+            skip_empty_columns: false,
         };
         run(&mut p, import_command("品名,数量\nペン,001\nノート,2"));
         assert_eq!(p.snapshot().tables[3].rows, [vec!["ペン", "001"]]);

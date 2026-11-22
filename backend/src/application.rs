@@ -137,8 +137,17 @@ impl Project {
                 file_name,
                 text,
                 has_headers,
+                skip_empty_rows,
+                skip_empty_columns,
             } => {
-                crate::csv_source::import(table_mut(tables, &id)?, file_name, &text, has_headers)?;
+                crate::csv_source::import(
+                    table_mut(tables, &id)?,
+                    file_name,
+                    &text,
+                    has_headers,
+                    skip_empty_rows,
+                    skip_empty_columns,
+                )?;
             }
             Command::OpenProject { .. } | Command::AddSheet | Command::RenameSheet { .. } => {
                 return Err("プロジェクト操作は共通操作から実行してください。".into());

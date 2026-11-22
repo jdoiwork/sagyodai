@@ -1565,3 +1565,9 @@ button.action-danger:hover {
   white-space: nowrap;
   margin-bottom: 6px;
 }
+
+.csv-import-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}

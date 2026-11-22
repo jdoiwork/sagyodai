@@ -33,7 +33,7 @@ function file(bytes: Uint8Array, size = bytes.length) {
 }
 it("選択したUTF-8ファイルとヘッダー設定を共通操作へ渡す", async () => {
   const ui = render(<CsvSettings table={table} />);
-  fireEvent.click(ui.getByRole("checkbox"));
+  fireEvent.click(ui.getByRole("checkbox", { name: "1行目を列名として使う" }));
   const text = "001,日本語\n002,abc";
   fireEvent.change(ui.getByLabelText("CSV 1 CSVファイル"), {
     target: { files: [file(new TextEncoder().encode(text))] },
@@ -45,6 +45,8 @@ it("選択したUTF-8ファイルとヘッダー設定を共通操作へ渡す",
       fileName: "商品.csv",
       text,
       hasHeaders: false,
+      skipEmptyRows: false,
+      skipEmptyColumns: false,
     }),
   );
 });
@@ -76,5 +78,42 @@ it("文字コード・容量・サーバーの入力エラーを表示し、選�
       (ui.getByRole("button", { name: "CSVを選択" }) as HTMLButtonElement)
         .disabled,
     ).toBe(false),
+  );
+});
+
+it("空行・空列スキップの保存済み設定を復元し、次の読み込みに渡す", async () => {
+  const ui = render(
+    <CsvSettings
+      table={{
+        ...table,
+        csv: {
+          fileName: "旧.csv",
+          hasHeaders: true,
+          skipEmptyRows: true,
+          skipEmptyColumns: true,
+        },
+      }}
+    />,
+  );
+  expect(
+    (ui.getByRole("checkbox", { name: "空行をスキップ" }) as HTMLInputElement)
+      .checked,
+  ).toBe(true);
+  expect(
+    (ui.getByRole("checkbox", { name: "空列をスキップ" }) as HTMLInputElement)
+      .checked,
+  ).toBe(true);
+  fireEvent.click(ui.getByRole("checkbox", { name: "空列をスキップ" }));
+  fireEvent.change(ui.getByLabelText("CSV 1 CSVファイル"), {
+    target: { files: [file(new TextEncoder().encode("A,B\n1,"))] },
+  });
+  await waitFor(() =>
+    expect(importCsv).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasHeaders: true,
+        skipEmptyRows: true,
+        skipEmptyColumns: false,
+      }),
+    ),
   );
 });

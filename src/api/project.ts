@@ -82,7 +82,12 @@ export const projectionSchema = z.object({
 export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
   csv: z
-    .object({ fileName: z.string(), hasHeaders: z.boolean() })
+    .object({
+      fileName: z.string(),
+      hasHeaders: z.boolean(),
+      skipEmptyRows: z.boolean().optional(),
+      skipEmptyColumns: z.boolean().optional(),
+    })
     .nullable()
     .optional(),
   projection: projectionSchema.nullable().optional(),
@@ -142,6 +147,8 @@ export type Command =
       fileName: string;
       text: string;
       hasHeaders: boolean;
+      skipEmptyRows: boolean;
+      skipEmptyColumns: boolean;
     }
   | {
       type: "hideOutputColumn";
