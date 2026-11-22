@@ -43,12 +43,16 @@ export function createsCycle(
   target: string,
   source: string,
 ): boolean {
-  const seen = new Set<string>([target]);
-  let current: string | null = source;
-  while (current) {
-    if (seen.has(current)) return true;
+  const seen = new Set<string>();
+  const waiting = [source];
+  while (waiting.length) {
+    const current = waiting.pop()!;
+    if (current === target) return true;
+    if (seen.has(current)) continue;
     seen.add(current);
-    current = tables.find((t) => t.id === current)?.source ?? null;
+    const table = tables.find((t) => t.id === current);
+    if (table?.source) waiting.push(table.source);
+    for (const input of table?.unionInputs ?? []) waiting.push(input.source);
   }
   return false;
 }

@@ -13,6 +13,10 @@ pub struct Table {
     pub footer: Option<Vec<bool>>,
     #[serde(default, skip_deserializing, skip_serializing_if = "Vec::is_empty")]
     pub footer_totals: Vec<Option<String>>,
+    #[serde(default)]
+    pub union_inputs: Vec<UnionInput>,
+    #[serde(default)]
+    pub union_distinct: bool,
     pub kind: Kind,
     pub source: Option<String>,
     pub filter: Option<Filter>,
@@ -31,6 +35,21 @@ pub struct Table {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UnionInput {
+    pub source: String,
+    pub color: Option<PaletteColor>,
+}
+impl Table {
+    pub fn sources(&self) -> Vec<&String> {
+        self.source
+            .iter()
+            .chain(self.union_inputs.iter().map(|input| &input.source))
+            .collect()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +78,7 @@ pub enum Kind {
     Input,
     Filter,
     Display,
+    Union,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -120,6 +140,17 @@ pub enum Command {
     SetColor {
         id: String,
         target: ColorTarget,
+        color: Option<PaletteColor>,
+    },
+    SetUnion {
+        id: String,
+        sources: Vec<String>,
+        distinct: bool,
+        expected_sources: Vec<String>,
+    },
+    SetUnionEdgeColor {
+        id: String,
+        source: String,
         color: Option<PaletteColor>,
     },
     SetFooter {
@@ -260,6 +291,8 @@ pub fn sample_table(id: String, index: usize) -> Table {
         edge_color: None,
         input_color: None,
         output_color: None,
+        union_inputs: vec![],
+        union_distinct: false,
         footer: None,
         footer_totals: vec![],
         kind: Kind::Input,

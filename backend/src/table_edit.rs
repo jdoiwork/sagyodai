@@ -69,6 +69,14 @@ pub fn remove_column(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
+        if tables[n].kind == Kind::Union
+            && tables[n]
+                .union_inputs
+                .iter()
+                .any(|input| affected.contains(&input.source))
+        {
+            return Err("結合ノードへ接続中の列挿入・削除・並べ替えはできません。結合の入力接続を外してから列構成を変更してください。".into());
+        }
         if tables[n]
             .source
             .as_ref()
@@ -160,6 +168,14 @@ pub fn move_columns(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
+        if tables[n].kind == Kind::Union
+            && tables[n]
+                .union_inputs
+                .iter()
+                .any(|input| affected.contains(&input.source))
+        {
+            return Err("結合ノードへ接続中の列挿入・削除・並べ替えはできません。結合の入力接続を外してから列構成を変更してください。".into());
+        }
         if tables[n]
             .source
             .as_ref()
@@ -295,6 +311,14 @@ pub fn insert(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
+        if tables[n].kind == Kind::Union
+            && tables[n]
+                .union_inputs
+                .iter()
+                .any(|input| affected.contains(&input.source))
+        {
+            return Err("結合ノードへ接続中の列挿入・削除・並べ替えはできません。結合の入力接続を外してから列構成を変更してください。".into());
+        }
         if tables[n]
             .source
             .as_ref()

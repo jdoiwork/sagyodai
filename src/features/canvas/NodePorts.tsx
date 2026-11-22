@@ -53,7 +53,11 @@ export function NodePorts({ table }: { table: TableData }) {
           style={{ top: 32, background: colorValue(table.inputColor) }}
           onContextMenu={(e) => openMenu(e, "input")}
           aria-label={`${table.title} 入力端子`}
-          title="入力：出力端子からドラッグして接続（入力から逆向きにも接続できます）"
+          title={
+            table.kind === "union"
+              ? "入力：複数の出力端子から接続できます（接続順に追加）"
+              : "入力：出力端子からドラッグして接続（入力から逆向きにも接続できます）"
+          }
         >
           <span className="port-label">入力</span>
         </Handle>

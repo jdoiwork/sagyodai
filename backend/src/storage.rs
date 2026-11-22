@@ -44,11 +44,9 @@ pub fn decode(value: serde_json::Value) -> Result<Vec<Table>, String> {
     }
     let mut ids = HashSet::new();
     for table in &file.tables {
-        if table
-            .footer
-            .as_ref()
-            .is_some_and(|f| f.len() > table.columns.len() || table.kind == Kind::Filter)
-        {
+        if table.footer.as_ref().is_some_and(|f| {
+            f.len() > table.columns.len() || !matches!(table.kind, Kind::Input | Kind::Display)
+        }) {
             return Err("フッターの指定が不正です。".into());
         }
         if table.id.is_empty() || table.id.len() > 128 || !ids.insert(&table.id) {

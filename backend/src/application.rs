@@ -134,17 +134,41 @@ impl Project {
                     tables,
                     Command::Connect {
                         id: id.clone(),
-                        source: Some(source),
+                        source: Some(source.clone()),
                     },
                 )?;
-                table_mut(tables, &id)?.edge_color = color;
+                let table = table_mut(tables, &id)?;
+                if table.kind == Kind::Union {
+                    if let Some(input) = table
+                        .union_inputs
+                        .iter_mut()
+                        .find(|input| input.source == source)
+                    {
+                        input.color = color;
+                    }
+                } else {
+                    table.edge_color = color;
+                }
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
                 if t.kind == Kind::Input {
                     return Err("手入力の表には接続できません。".into());
                 }
-                t.source = source;
+                if t.kind == Kind::Union {
+                    if let Some(source) = source {
+                        if !t.union_inputs.iter().any(|input| input.source == source) {
+                            t.union_inputs.push(crate::domain::UnionInput {
+                                source,
+                                color: None,
+                            });
+                        }
+                    } else {
+                        t.union_inputs.clear();
+                    }
+                } else {
+                    t.source = source;
+                }
                 crate::graph::order(tables)?;
             }
             Command::Configure { id, filter, manual } => {
@@ -167,13 +191,55 @@ impl Project {
                     _ => return Err("色を変更する接続線または端子がありません。".into()),
                 }
             }
+            Command::SetUnion {
+                id,
+                sources,
+                distinct,
+                expected_sources,
+            } => {
+                let t = table_mut(tables, &id)?;
+                if t.kind != Kind::Union {
+                    return Err("結合ノードではありません。".into());
+                }
+                if t.union_inputs
+                    .iter()
+                    .map(|i| &i.source)
+                    .ne(expected_sources.iter())
+                {
+                    return Err(
+                        "入力一覧が変更されています。表示を確認して設定し直してください。".into(),
+                    );
+                }
+                t.union_inputs = sources
+                    .into_iter()
+                    .map(|source| {
+                        let color = t
+                            .union_inputs
+                            .iter()
+                            .find(|i| i.source == source)
+                            .and_then(|i| i.color);
+                        crate::domain::UnionInput { source, color }
+                    })
+                    .collect();
+                t.union_distinct = distinct;
+                crate::graph::order(tables)?;
+            }
+            Command::SetUnionEdgeColor { id, source, color } => {
+                let t = table_mut(tables, &id)?;
+                let input = t
+                    .union_inputs
+                    .iter_mut()
+                    .find(|i| i.source == source)
+                    .ok_or("接続が見つかりません。")?;
+                input.color = color;
+            }
             Command::SetFooter {
                 id,
                 columns,
                 expected_columns,
             } => {
                 let table = table_mut(tables, &id)?;
-                if table.kind == Kind::Filter {
+                if !matches!(table.kind, Kind::Input | Kind::Display) {
                     return Err("フッターは手入力の表と結果表で使用できます。".into());
                 }
                 if table.columns != expected_columns
@@ -205,6 +271,7 @@ impl Project {
                 }
                 tables.retain(|t| t.id != id);
                 for t in tables {
+                    t.union_inputs.retain(|input| input.source != id);
                     if t.source.as_ref() == Some(&id) {
                         t.source = None;
                     }
@@ -243,6 +310,8 @@ impl Project {
                         "{} {}",
                         if kind == Kind::Filter {
                             "フィルタ"
+                        } else if kind == Kind::Union {
+                            "結合"
                         } else {
                             "結果表"
                         },
@@ -250,8 +319,12 @@ impl Project {
                     );
                     t.columns.clear();
                     t.rows.clear();
-                    t.width = if kind == Kind::Filter { 400.0 } else { 760.0 };
-                    t.height = if kind == Kind::Filter { 360.0 } else { 390.0 };
+                    t.width = match kind {
+                        Kind::Display => 760.0,
+                        Kind::Union => 440.0,
+                        _ => 400.0,
+                    };
+                    t.height = if kind == Kind::Display { 390.0 } else { 360.0 };
                     t.x = next_x;
                     t.y = 100.0;
                     t.stale = true;

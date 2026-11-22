@@ -39,3 +39,15 @@ it("間接的な循環接続も検出する", () => {
   expect(createsCycle(tables, "b", "b")).toBe(true);
   expect(createsCycle(tables, "c", "a")).toBe(false);
 });
+
+it("結合の複数入力をたどって循環を検出し、合流を循環扱いしない", () => {
+  const tables = [
+    { id: "a", source: null },
+    { id: "b", source: "a" },
+    { id: "c", source: "a" },
+    { id: "u", source: null, unionInputs: [{ source: "b" }, { source: "c" }] },
+  ] as TableData[];
+  expect(createsCycle(tables, "a", "u")).toBe(true);
+  expect(createsCycle(tables, "b", "u")).toBe(true);
+  expect(createsCycle(tables, "other", "u")).toBe(false);
+});

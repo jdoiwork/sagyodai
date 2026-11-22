@@ -1,3 +1,4 @@
+import { UnionSettings } from "../union/UnionSettings";
 import { NodePorts } from "./NodePorts";
 import { emptyRowIndices } from "../table/emptyRows";
 import { useCallback } from "react";
@@ -53,7 +54,9 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 ? "手入力の表"
                 : table.kind === "filter"
                   ? "フィルタ"
-                  : "結果表"
+                  : table.kind === "union"
+                    ? "結合"
+                    : "結果表"
             }
           >
             <Icon
@@ -62,7 +65,9 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                   ? "editableTable"
                   : table.kind === "filter"
                     ? "filter"
-                    : "table"
+                    : table.kind === "union"
+                      ? "union"
+                      : "table"
               }
             />
           </div>
@@ -73,7 +78,9 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
                 ? "入力ソース"
                 : table.kind === "filter"
                   ? "行の絞り込み"
-                  : "結果の表示"}
+                  : table.kind === "union"
+                    ? "表の結合"
+                    : "結果の表示"}
             </span>
           </div>
           <button
@@ -171,7 +178,11 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
           </>
         ) : (
           <>
-            <NodeSettings table={table} />
+            {table.kind === "union" ? (
+              <UnionSettings table={table} />
+            ) : (
+              <NodeSettings table={table} />
+            )}
             {table.kind === "display" && !table.compact && (
               <TableGrid
                 table={table}

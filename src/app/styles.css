@@ -1067,3 +1067,26 @@ button.action-danger:hover {
   border: 1px solid #c5d7cc;
   border-radius: 4px;
 }
+
+.union-inputs {
+  max-height: 112px;
+  overflow: auto;
+  margin: 8px 0;
+}
+.union-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+.union-input-row > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.union-input-row button {
+  min-height: 26px;
+  padding: 2px 7px;
+}

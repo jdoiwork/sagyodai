@@ -1,5 +1,6 @@
 // 装飾用のアイコン。操作名はボタンの文字・aria-label に任せる。
 const paths = {
+  union: "M3 5h5l4 7h9M3 19h5l4-7m5-4 4 4-4 4",
   collapse: "m6 14 6-6 6 6",
   expand: "m6 10 6 6 6-6",
   edit: "m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Z",

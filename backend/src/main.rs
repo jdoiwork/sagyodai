@@ -7,6 +7,9 @@ mod graph;
 mod graph_tests;
 mod storage;
 mod table_edit;
+mod union;
+#[cfg(test)]
+mod union_tests;
 
 use application::Project;
 use axum::{

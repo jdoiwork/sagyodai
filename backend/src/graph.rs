@@ -12,7 +12,22 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
         if (t.kind == Kind::Filter) != t.filter.is_some() {
             return Err("フィルタ設定とノードの種類が一致しません。".into());
         }
-        if let Some(source) = &t.source {
+        if t.kind == Kind::Union {
+            if t.source.is_some()
+                || t.union_inputs.len() > 19
+                || t.union_inputs
+                    .iter()
+                    .map(|i| &i.source)
+                    .collect::<HashSet<_>>()
+                    .len()
+                    != t.union_inputs.len()
+            {
+                return Err("結合の入力は重複なしで19個まで指定してください。".into());
+            }
+        } else if !t.union_inputs.is_empty() || t.union_distinct {
+            return Err("結合設定とノードの種類が一致しません。".into());
+        }
+        for source in t.sources() {
             let source = tables
                 .iter()
                 .find(|n| &n.id == source)
@@ -31,7 +46,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     while result.len() < tables.len() {
         let before = result.len();
         for (i, t) in tables.iter().enumerate() {
-            if !done.contains(&t.id) && t.source.as_ref().is_none_or(|s| done.contains(s)) {
+            if !done.contains(&t.id) && t.sources().iter().all(|s| done.contains(*s)) {
                 done.insert(t.id.clone());
                 result.push(i);
             }
@@ -94,42 +109,46 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             continue;
         }
         let old = previous.iter().find(|n| n.id == tables[i].id);
-        let source = tables[i]
-            .source
-            .as_ref()
-            .and_then(|id| tables.iter().find(|n| &n.id == id))
-            .cloned();
-        let old_source = old
-            .and_then(|n| n.source.as_ref())
-            .and_then(|id| previous.iter().find(|n| &n.id == id));
-        let changed = old
-            .is_none_or(|n| n.source != tables[i].source || n.filter != tables[i].filter)
-            || match (&source, old_source) {
-                (Some(a), Some(b)) => {
-                    a.rows != b.rows
-                        || a.columns != b.columns
-                        || a.stale != b.stale
-                        || a.error != b.error
-                }
-                (None, None) => false,
-                _ => true,
-            };
+        let inputs: Vec<Table> = tables[i]
+            .sources()
+            .iter()
+            .filter_map(|id| tables.iter().find(|t| &t.id == *id).cloned())
+            .collect();
+        let changed = old.is_none_or(|n| {
+            n.sources() != tables[i].sources()
+                || n.filter != tables[i].filter
+                || n.union_distinct != tables[i].union_distinct
+        }) || inputs.iter().any(|current| {
+            previous
+                .iter()
+                .find(|t| t.id == current.id)
+                .is_none_or(|old| {
+                    current.rows != old.rows
+                        || current.columns != old.columns
+                        || current.stale != old.stale
+                        || current.error != old.error
+                })
+        });
         let node = &mut tables[i];
         if node.manual && run != Some(node.id.as_str()) {
             node.stale |= changed;
             continue;
         }
-        let result = match source {
-            None => Err("入力が未接続です。".to_string()),
-            Some(s) if s.stale || s.error.is_some() => {
-                Err("入力が更新待ちです。上流ノードを確認してください。".to_string())
-            }
-            Some(s) => {
-                let rows = match &node.filter {
-                    Some(f) => filter_rows(&s, f),
-                    None => Ok(s.rows.clone()),
-                };
-                rows.map(|rows| (s.columns, rows))
+        let result = if node.kind == Kind::Union {
+            crate::union::merge(&inputs, node.union_distinct)
+        } else {
+            match inputs.into_iter().next() {
+                None => Err("入力が未接続です。".to_string()),
+                Some(s) if s.stale || s.error.is_some() => {
+                    Err("入力が更新待ちです。上流ノードを確認してください。".to_string())
+                }
+                Some(s) => {
+                    let rows = match &node.filter {
+                        Some(f) => filter_rows(&s, f),
+                        None => Ok(s.rows.clone()),
+                    };
+                    rows.map(|rows| (s.columns, rows))
+                }
             }
         };
         match result {

@@ -40,7 +40,7 @@ function Canvas() {
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
-    kind: "input" | "filter" | "display";
+    kind: "input" | "filter" | "display" | "union";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -53,7 +53,7 @@ function Canvas() {
       adding.current = null;
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
-  function addNode(kind: "input" | "filter" | "display") {
+  function addNode(kind: "input" | "filter" | "display" | "union") {
     if (
       !canvas.current ||
       !project ||
@@ -67,8 +67,8 @@ function Canvas() {
     const left = rect.left + 24,
       top = rect.top + 88;
     // 大きく拡大して全体が入らない場合も、見出しと設定の起点を画面内に残す。
-    const width = (kind === "filter" ? 400 : 760) * zoom;
-    const height = (kind === "filter" ? 360 : 390) * zoom;
+    const width = (kind === "filter" || kind === "union" ? 440 : 760) * zoom;
+    const height = (kind === "filter" || kind === "union" ? 360 : 390) * zoom;
     const position = screenToFlowPosition({
       x: left + Math.max(0, (right - left - width) / 2),
       y: top + Math.max(0, (rect.bottom - 80 - top - height) / 2),
@@ -97,26 +97,53 @@ function Canvas() {
       {edgeMenu &&
         project?.revision === edgeMenu.revision &&
         project.tables.some(
-          (t) => t.id === edgeMenu.target && t.source === edgeMenu.source,
+          (t) =>
+            t.id === edgeMenu.target &&
+            (t.source === edgeMenu.source ||
+              t.unionInputs?.some((i) => i.source === edgeMenu.source)),
         ) && (
           <EdgeContextMenu
             x={edgeMenu.x}
             y={edgeMenu.y}
             color={
+              project.tables
+                .find((t) => t.id === edgeMenu.target)
+                ?.unionInputs?.find((i) => i.source === edgeMenu.source)
+                ?.color ??
               project.tables.find((t) => t.id === edgeMenu.target)?.edgeColor
             }
             onColor={(color) =>
-              dispatch({
-                type: "setColor",
-                id: edgeMenu.target,
-                target: "edge",
-                color,
-              })
+              dispatch(
+                project.tables.find((t) => t.id === edgeMenu.target)?.kind ===
+                  "union"
+                  ? {
+                      type: "setUnionEdgeColor",
+                      id: edgeMenu.target,
+                      source: edgeMenu.source,
+                      color,
+                    }
+                  : {
+                      type: "setColor",
+                      id: edgeMenu.target,
+                      target: "edge",
+                      color,
+                    },
+              )
             }
             onClose={() => setEdgeMenu(null)}
-            onDisconnect={() =>
-              dispatch({ type: "connect", id: edgeMenu.target, source: null })
-            }
+            onDisconnect={() => {
+              const t = project.tables.find((t) => t.id === edgeMenu.target)!;
+              if (t.kind === "union") {
+                const sources = (t.unionInputs ?? []).map((i) => i.source);
+                dispatch({
+                  type: "setUnion",
+                  id: t.id,
+                  sources: sources.filter((s) => s !== edgeMenu.source),
+                  expectedSources: sources,
+                  distinct: !!t.unionDistinct,
+                });
+              } else dispatch({ type: "connect", id: t.id, source: null });
+            }}
           />
         )}
       <main ref={canvas} className="canvas-shell">
@@ -164,23 +191,30 @@ function Canvas() {
               source: connection.source,
             })
           }
-          edges={(project?.tables ?? [])
-            .filter((t) => t.source)
-            .map((t) => ({
-              id: `edge-${t.id}`,
-              source: t.source!,
+          edges={(project?.tables ?? []).flatMap((t) => {
+            const inputs =
+              t.kind === "union"
+                ? (t.unionInputs ?? [])
+                : t.source
+                  ? [{ source: t.source, color: t.edgeColor }]
+                  : [];
+            return inputs.map((input) => ({
+              id: `edge-${t.id}-${input.source}`,
+              source: input.source,
               target: t.id,
               sourceHandle: "out",
               targetHandle: "in",
               type: "smoothstep",
-              reconnectable: "source" as const,
+              reconnectable:
+                t.kind === "union" ? (false as const) : ("source" as const),
               style: {
                 stroke:
-                  colorValue(t.edgeColor) ?? (t.stale ? "#bd9147" : "#386e61"),
+                  colorValue(input.color) ?? (t.stale ? "#bd9147" : "#386e61"),
                 strokeDasharray: t.stale ? "6 4" : undefined,
                 strokeWidth: 2.5,
               },
-            }))}
+            }));
+          })}
           isValidConnection={(connection) =>
             !!project &&
             project.tables.some(
@@ -277,6 +311,13 @@ function Canvas() {
           >
             <Icon name="table" />
             結果表
+          </button>
+          <button
+            disabled={!project || project.tables.length >= 20 || pending > 0}
+            onClick={() => addNode("union")}
+          >
+            <Icon name="union" />
+            結合
           </button>
           <div className="toolbar-separator" />
           <button

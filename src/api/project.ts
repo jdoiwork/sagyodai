@@ -29,10 +29,16 @@ const tableSchema = z.object({
   edgeColor: paletteColorSchema.nullable().optional(),
   inputColor: paletteColorSchema.nullable().optional(),
   outputColor: paletteColorSchema.nullable().optional(),
+  unionInputs: z
+    .array(
+      z.object({ source: z.string(), color: paletteColorSchema.nullable() }),
+    )
+    .optional(),
+  unionDistinct: z.boolean().optional(),
   footer: z.array(z.boolean()).nullable().optional(),
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
-  kind: z.enum(["input", "filter", "display"]),
+  kind: z.enum(["input", "filter", "display", "union"]),
   source: z.string().nullable(),
   filter: filterSchema.nullable(),
   manual: z.boolean(),
@@ -60,7 +66,7 @@ export type Command =
   | { type: "addTable" | "undo" | "redo" }
   | {
       type: "addNode";
-      kind: "input" | "filter" | "display";
+      kind: "input" | "filter" | "display" | "union";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }
@@ -75,6 +81,19 @@ export type Command =
       id: string;
       columns: boolean[] | null;
       expectedColumns: string[];
+    }
+  | {
+      type: "setUnion";
+      id: string;
+      sources: string[];
+      distinct: boolean;
+      expectedSources: string[];
+    }
+  | {
+      type: "setUnionEdgeColor";
+      id: string;
+      source: string;
+      color: PaletteColor | null;
     }
   | { type: "setCompact"; id: string; compact: boolean }
   | { type: "connectFromPort"; id: string; source: string; fromInput: boolean }
