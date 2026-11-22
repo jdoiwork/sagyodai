@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../../components/Icon";
 
@@ -30,6 +30,14 @@ export function TableContextMenu({
   onClose: () => void;
 }) {
   const menu = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = menu.current;
+    if (!element) return;
+    // 折り返した実寸で位置を補正し、画面下端でも項目を操作可能にする。
+    const { width, height } = element.getBoundingClientRect();
+    element.style.left = `${Math.max(8, Math.min(x, window.innerWidth - width - 8))}px`;
+    element.style.top = `${Math.max(8, Math.min(y, window.innerHeight - height - 8))}px`;
+  }, [x, y, targetLabel, hideOnly, count]);
   useEffect(() => {
     const outside = (e: PointerEvent) => {
       if (!menu.current?.contains(e.target as Node)) onClose();
@@ -40,15 +48,19 @@ export function TableContextMenu({
         onClose();
       }
     };
+    const scroll = (e: Event) => {
+      if (!(e.target instanceof Node) || !menu.current?.contains(e.target))
+        onClose();
+    };
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", key);
     window.addEventListener("resize", onClose);
-    window.addEventListener("scroll", onClose, true);
+    window.addEventListener("scroll", scroll, true);
     return () => {
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("keydown", key);
       window.removeEventListener("resize", onClose);
-      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("scroll", scroll, true);
     };
   }, [onClose]);
   return createPortal(
@@ -97,7 +109,9 @@ export function TableContextMenu({
         }}
       >
         <Icon name={hideOnly ? "minus" : "trash"} />
-        {targetLabel}を{hideOnly ? "非表示" : "削除"}
+        <span className="table-context-menu-label">
+          {targetLabel}を{hideOnly ? "非表示" : "削除"}
+        </span>
       </button>
     </div>,
     document.body,
