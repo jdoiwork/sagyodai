@@ -11,53 +11,74 @@ afterEach(() => {
   cleanup();
   dispatch.mockClear();
 });
-it("複数グループ列と合計・件数を適用し、集計項目なしを編集時に防ぐ", () => {
-  const table = {
-    id: "g",
-    title: "集計",
-    group: { groupBy: [], sums: [], count: true },
-  } as unknown as TableData;
-  const source = { columns: ["分類", "地域", "数量"] } as TableData;
+const table = {
+  id: "g",
+  title: "集計",
+  group: { groupBy: [], sums: [], count: true },
+} as unknown as TableData;
+const source = { columns: ["分類", "数量"] } as TableData;
+it("出力列を追加し関数・対象・名前を指定して順番どおり適用する", () => {
   const ui = render(<GroupConditions table={table} source={source} />);
   fireEvent.click(ui.getByLabelText("集計 分類 でグループ化"));
-  fireEvent.click(ui.getByLabelText("集計 地域 でグループ化"));
-  fireEvent.click(ui.getByLabelText("集計 数量 の合計"));
-  expect(dispatch).not.toHaveBeenCalled();
-  fireEvent.click(ui.getByText("条件を適用"));
-  expect(dispatch).toHaveBeenCalledWith({
-    type: "setGroup",
-    id: "g",
-    config: { groupBy: [0, 1], sums: [2], count: true },
+  fireEvent.click(ui.getByText("出力列を追加"));
+  fireEvent.change(ui.getByLabelText("出力列2の集約関数"), {
+    target: { value: "average" },
   });
-  fireEvent.click(ui.getByLabelText("集計 数量 の合計"));
-  fireEvent.click(ui.getByLabelText("件数（グループ内の行数）"));
-  expect(ui.getByRole("alert").textContent).toContain("1つ以上");
-  expect((ui.getByText("条件を適用") as HTMLButtonElement).disabled).toBe(true);
-});
-
-it("平均・最小値・最大値だけでも適用できる", () => {
-  const table = {
-    id: "g",
-    title: "集計",
-    group: { groupBy: [], sums: [], count: false },
-  } as unknown as TableData;
-  const source = { columns: ["数量"] } as TableData;
-  const ui = render(<GroupConditions table={table} source={source} />);
-  for (const metric of ["平均", "最小値", "最大値"])
-    fireEvent.click(ui.getByLabelText(`集計 数量 の${metric}`));
-  expect(ui.queryByRole("alert")).toBeNull();
+  fireEvent.change(ui.getByLabelText("出力列2の対象列"), {
+    target: { value: "1" },
+  });
+  fireEvent.change(ui.getByLabelText("出力列2の列名"), {
+    target: { value: "平均数量" },
+  });
   expect(dispatch).not.toHaveBeenCalled();
   fireEvent.click(ui.getByText("条件を適用"));
   expect(dispatch).toHaveBeenCalledWith({
     type: "setGroup",
     id: "g",
     config: {
-      groupBy: [],
+      groupBy: [0],
       sums: [],
       count: false,
-      averages: [0],
-      minima: [0],
-      maxima: [0],
+      outputs: [
+        { function: "count", column: null, name: "" },
+        { function: "average", column: 1, name: "平均数量" },
+      ],
     },
   });
+});
+it("空欄は標準名になり、不正な名前と集計項目なしは編集時に防ぐ", () => {
+  const ui = render(<GroupConditions table={table} source={source} />);
+  fireEvent.change(ui.getByLabelText("出力列1の列名"), {
+    target: { value: "あ".repeat(241) },
+  });
+  expect(ui.getByRole("alert").textContent).toContain("240文字");
+  expect((ui.getByText("条件を適用") as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(ui.getByLabelText("出力列1の列名"), {
+    target: { value: "" },
+  });
+  expect(ui.queryByRole("alert")).toBeNull();
+  expect(ui.getByPlaceholderText("件数")).toBeTruthy();
+  fireEvent.click(ui.getByText("条件を適用"));
+  expect(dispatch).toHaveBeenCalledTimes(1);
+  fireEvent.click(ui.getByLabelText("出力列1を削除"));
+  expect(ui.getByRole("alert").textContent).toContain("1つ以上");
+});
+it("既存の集計を出力列として表示し、件数へ変更すると対象列を不要にする", () => {
+  const ui = render(
+    <GroupConditions
+      table={{ ...table, group: { groupBy: [], sums: [1], count: false } }}
+      source={source}
+    />,
+  );
+  expect(ui.getByPlaceholderText("合計（数量）")).toBeTruthy();
+  fireEvent.change(ui.getByLabelText("出力列1の集約関数"), {
+    target: { value: "count" },
+  });
+  expect(
+    (ui.getByLabelText("出力列1の対象列") as HTMLSelectElement).disabled,
+  ).toBe(true);
+  fireEvent.click(ui.getByText("条件を適用"));
+  expect(dispatch.mock.calls[0][0].config.outputs).toEqual([
+    { function: "count", column: null, name: "" },
+  ]);
 });

@@ -1383,33 +1383,56 @@ button.action-danger:hover {
   color: #657d70;
   font-size: 11px;
 }
-.group-column-list {
-  max-height: 160px;
+/* 集計は出力列ごとに設定し、多数の項目はノード内でスクロールする。 */
+.group-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  max-height: 90px;
+  overflow: auto;
+  margin-bottom: 10px;
+}
+.group-keys label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.group-outputs {
+  max-height: 260px;
   overflow: auto;
   margin-bottom: 8px;
 }
-.group-column-row {
-  display: grid;
-  grid-template-columns: minmax(80px, 1fr) 64px repeat(4, 48px);
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
+.group-output {
+  border: 1px solid #d5e1db;
+  border-radius: 6px;
+  margin: 0 0 8px;
+  padding: 8px;
+  min-width: 0;
 }
-.group-column-row > span:first-child {
-  overflow-wrap: anywhere;
-}
-.group-column-row input {
-  justify-self: center;
-}
-.group-column-heading {
+.group-output legend {
   color: #657d70;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  background: white;
+  font-size: 11px;
+  padding: 0 4px;
 }
-.group-count {
-  display: flex;
-  align-items: center;
+.group-output-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
   gap: 8px;
+  align-items: end;
+}
+.group-output label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+}
+.group-output select,
+.group-output input {
+  width: 100%;
+  min-width: 0;
+}
+.group-output-name {
+  margin-top: 8px;
 }

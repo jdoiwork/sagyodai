@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { GroupConfig, TableData } from "../../api/project";
+import type { GroupConfig, GroupOutput, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
-const metrics = [
-  ["sums", "合計"],
-  ["averages", "平均"],
-  ["minima", "最小値"],
-  ["maxima", "最大値"],
-] as const;
+import { functions, outputColumns, outputName } from "./groupOutputs";
 const initial: GroupConfig = { groupBy: [], sums: [], count: true };
 export function GroupConditions({
   table,
@@ -24,50 +19,41 @@ export function GroupConditions({
     if (!editing.current) setDraft(saved);
   }, [saved]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  const metricColumns = metrics.flatMap(([field]) => draft[field] ?? []);
-  const error =
-    !draft.count && !metricColumns.length
-      ? "集計項目または件数を1つ以上選んでください。"
-      : draft.groupBy.length + metricColumns.length + Number(draft.count) > 50
-        ? "出力は50列以内にしてください。"
-        : source &&
-            [...draft.groupBy, ...metricColumns].some(
-              (c) => c >= source.columns.length,
-            )
+  const outputs = outputColumns(draft);
+  const columns = source?.columns ?? [];
+  const error = !outputs.length
+    ? "出力する集計列を1つ以上追加してください。"
+    : draft.groupBy.length + outputs.length > 50
+      ? "出力は50列以内にしてください。"
+      : outputs.some((o) => [...o.name].length > 240)
+        ? "出力列名は240文字以内にしてください。"
+        : outputs.some(
+              (o) =>
+                o.function !== "count" &&
+                (o.column === null || o.column >= columns.length),
+            ) || draft.groupBy.some((c) => c >= columns.length)
           ? "対象列を選び直してください。"
           : "";
   function change(next: GroupConfig) {
     editing.current = true;
     setDraft(next);
   }
-  function toggle(
-    field: "groupBy" | (typeof metrics)[number][0],
-    column: number,
-    checked: boolean,
-  ) {
-    change({
-      ...draft,
-      [field]: checked
-        ? [...(draft[field] ?? []), column]
-        : (draft[field] ?? []).filter((c) => c !== column),
-    });
+  function changeOutputs(next: GroupOutput[]) {
+    change({ groupBy: draft.groupBy, sums: [], count: false, outputs: next });
+  }
+  function update(index: number, patch: Partial<GroupOutput>) {
+    changeOutputs(
+      outputs.map((o, i) => (i === index ? { ...o, ...patch } : o)),
+    );
   }
   return (
     <>
       {table.compact && (
         <span className="compact-condition">
           {saved.groupBy.length
-            ? saved.groupBy
-                .map((c) => source?.columns[c] ?? `列${c + 1}`)
-                .join("・")
+            ? saved.groupBy.map((c) => columns[c] ?? `列${c + 1}`).join("・")
             : "全行"}{" "}
-          ·{" "}
-          {metrics
-            .filter(([field]) => saved[field]?.length)
-            .map(([field, label]) => `${label}${saved[field]!.length}列`)
-            .join("・")}
-          {saved.count ? "・件数" : ""}
-          {dirty ? " · 未適用" : ""}
+          · 集計{outputColumns(saved).length}列{dirty ? " · 未適用" : ""}
         </span>
       )}
       <form
@@ -79,46 +65,120 @@ export function GroupConditions({
           dispatch({ type: "setGroup", id: table.id, config: draft });
         }}
       >
-        <div className="group-column-list nowheel">
-          <div className="group-column-row group-column-heading">
-            <span>入力列</span>
-            <span>グループ</span>
-            {metrics.map(([field, label]) => (
-              <span key={field}>{label}</span>
-            ))}
-          </div>
-          {source?.columns.map((name, c) => (
-            <div className="group-column-row" key={c}>
-              <span>{name}</span>
+        <div className="group-keys nowheel" aria-label="グループ化する列">
+          <span>グループ化</span>
+          {columns.map((name, c) => (
+            <label key={c}>
               <input
                 type="checkbox"
                 aria-label={`${table.title} ${name} でグループ化`}
                 checked={draft.groupBy.includes(c)}
-                onChange={(e) => toggle("groupBy", c, e.target.checked)}
+                onChange={(e) =>
+                  change({
+                    ...draft,
+                    groupBy: e.target.checked
+                      ? [...draft.groupBy, c]
+                      : draft.groupBy.filter((v) => v !== c),
+                  })
+                }
               />
-              {metrics.map(([field, label]) => (
-                <input
-                  key={field}
-                  type="checkbox"
-                  aria-label={`${table.title} ${name} の${label}`}
-                  checked={(draft[field] ?? []).includes(c)}
-                  onChange={(e) => toggle(field, c, e.target.checked)}
-                />
-              ))}
-            </div>
+              {name}
+            </label>
           ))}
-          {!source?.columns.length && <p>入力を接続してください</p>}
+          {!columns.length && <span>入力を接続してください</span>}
         </div>
-        <label className="group-count">
-          <input
-            type="checkbox"
-            checked={draft.count}
-            onChange={(e) => change({ ...draft, count: e.target.checked })}
-          />
-          件数（グループ内の行数）
-        </label>
+        <div className="group-outputs nowheel">
+          {outputs.map((output, i) => (
+            <fieldset className="group-output" key={i}>
+              <legend>出力列 {i + 1}</legend>
+              <div className="group-output-fields">
+                <label>
+                  集約関数
+                  <select
+                    aria-label={`出力列${i + 1}の集約関数`}
+                    value={output.function}
+                    onChange={(e) => {
+                      const fn = e.target.value as GroupOutput["function"];
+                      update(i, {
+                        function: fn,
+                        column:
+                          fn === "count"
+                            ? null
+                            : (output.column ?? (columns.length ? 0 : null)),
+                      });
+                    }}
+                  >
+                    {functions.map(([fn, label]) => (
+                      <option key={fn} value={fn}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  対象列
+                  <select
+                    aria-label={`出力列${i + 1}の対象列`}
+                    disabled={output.function === "count"}
+                    value={output.column ?? ""}
+                    onChange={(e) =>
+                      update(i, { column: Number(e.target.value) })
+                    }
+                  >
+                    <option value="" disabled>
+                      {output.function === "count" ? "全行" : "列を選択"}
+                    </option>
+                    {columns.map((name, c) => (
+                      <option key={c} value={c}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  aria-label={`出力列${i + 1}を削除`}
+                  onClick={() =>
+                    changeOutputs(outputs.filter((_, n) => n !== i))
+                  }
+                >
+                  <Icon name="trash" />
+                </button>
+              </div>
+              <label className="group-output-name">
+                列名
+                <input
+                  aria-label={`出力列${i + 1}の列名`}
+                  value={output.name}
+                  placeholder={outputName(output, columns)}
+                  onChange={(e) => update(i, { name: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      (e.nativeEvent.isComposing || e.keyCode === 229)
+                    )
+                      e.preventDefault();
+                  }}
+                />
+              </label>
+            </fieldset>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={draft.groupBy.length + outputs.length >= 50}
+          onClick={() =>
+            changeOutputs([
+              ...outputs,
+              { function: "sum", column: columns.length ? 0 : null, name: "" },
+            ])
+          }
+        >
+          <Icon name="plus" />
+          出力列を追加
+        </button>
         <p className="sort-hint">
-          グループ列なしは全行を集計 · 数値集計は空欄・非数値を除く
+          列名が空欄なら自動命名 · グループ列なしは全行を集計
         </p>
         {error && (
           <div className="inline-error" role="alert">

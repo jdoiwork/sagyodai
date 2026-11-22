@@ -53,7 +53,14 @@ export const sortKeySchema = z.object({
   mode: z.enum(["number", "text"]),
 });
 export type SortKey = z.infer<typeof sortKeySchema>;
+export const groupOutputSchema = z.object({
+  function: z.enum(["sum", "average", "min", "max", "count"]),
+  column: z.number().int().nonnegative().nullable(),
+  name: z.string(),
+});
+export type GroupOutput = z.infer<typeof groupOutputSchema>;
 export const groupConfigSchema = z.object({
+  outputs: z.array(groupOutputSchema).optional(),
   groupBy: z.array(z.number().int().nonnegative()),
   sums: z.array(z.number().int().nonnegative()),
   averages: z.array(z.number().int().nonnegative()).optional(),
