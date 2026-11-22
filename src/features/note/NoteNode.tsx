@@ -1,3 +1,4 @@
+import { NodePorts } from "../canvas/NodePorts";
 import { useEffect, useState } from "react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import Markdown from "react-markdown";
@@ -37,128 +38,136 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
     );
   }
   return (
-    <section className="table-node note-node" aria-label={table.title}>
-      <NodeResizer
-        isVisible={selected && !table.compact}
-        minWidth={380}
-        minHeight={240}
-        maxWidth={2400}
-        maxHeight={1600}
-        onResizeStart={data.onLayoutStart}
-        onResizeEnd={(_, p) =>
-          data.onLayoutEnd({ x: p.x, y: p.y, width: p.width, height: p.height })
-        }
-      />
-      <header className="table-drag-handle">
-        <div className="table-icon" title="メモ">
-          <Icon name="note" />
-        </div>
-        <div>
-          <NodeTitle table={table} />
-          <span>メモ · Markdown</span>
-        </div>
-        <NodeActions table={table} />
-        <span className="grip" aria-hidden="true">
-          ⠿
-        </span>
-      </header>
-      <div className="note-actions nodrag nopan">
-        {editing ? (
-          <>
-            <button disabled={!!error || pending > 0} onClick={save}>
-              <Icon name="check" />
-              保存して閲覧
-            </button>
+    <>
+      <NodePorts table={table} />
+      <section className="table-node note-node" aria-label={table.title}>
+        <NodeResizer
+          isVisible={selected && !table.compact}
+          minWidth={380}
+          minHeight={240}
+          maxWidth={2400}
+          maxHeight={1600}
+          onResizeStart={data.onLayoutStart}
+          onResizeEnd={(_, p) =>
+            data.onLayoutEnd({
+              x: p.x,
+              y: p.y,
+              width: p.width,
+              height: p.height,
+            })
+          }
+        />
+        <header className="table-drag-handle">
+          <div className="table-icon" title="メモ">
+            <Icon name="note" />
+          </div>
+          <div>
+            <NodeTitle table={table} />
+            <span>メモ · Markdown</span>
+          </div>
+          <NodeActions table={table} />
+          <span className="grip" aria-hidden="true">
+            ⠿
+          </span>
+        </header>
+        <div className="note-actions nodrag nopan">
+          {editing ? (
+            <>
+              <button disabled={!!error || pending > 0} onClick={save}>
+                <Icon name="check" />
+                保存して閲覧
+              </button>
+              <button
+                disabled={pending > 0}
+                onClick={() => {
+                  setDraft(text);
+                  setOriginal(text);
+                  setEditing(false);
+                }}
+              >
+                キャンセル
+              </button>
+            </>
+          ) : (
             <button
-              disabled={pending > 0}
               onClick={() => {
                 setDraft(text);
                 setOriginal(text);
-                setEditing(false);
+                setEditing(true);
               }}
             >
-              キャンセル
+              <Icon name="edit" />
+              編集
             </button>
+          )}
+          <button
+            className="action-danger"
+            disabled={pending > 0 || project?.tables.length === 1}
+            onClick={() => dispatch({ type: "removeNode", id: table.id })}
+          >
+            <Icon name="trash" />
+            削除
+          </button>
+        </div>
+        {editing ? (
+          <>
+            {draft !== original && (
+              <span className="condition-dirty note-message">
+                未保存の変更があります
+              </span>
+            )}
+            {text !== original && (
+              <p className="node-error note-message" role="alert">
+                別の操作でメモが更新されています。保存時に競合を確認します。
+              </p>
+            )}
+            {error && (
+              <p className="node-error note-message" role="alert">
+                {error}
+              </p>
+            )}
+            <textarea
+              className="note-editor nodrag nopan nowheel"
+              aria-label={`${table.title} 本文`}
+              aria-invalid={!!error}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="メモを入力（Markdown対応）"
+              onKeyDown={(e) => e.stopPropagation()}
+            />
           </>
         ) : (
-          <button
-            onClick={() => {
-              setDraft(text);
-              setOriginal(text);
-              setEditing(true);
-            }}
+          <div
+            className="note-preview nodrag nopan nowheel"
+            aria-label={`${table.title} 閲覧`}
           >
-            <Icon name="edit" />
-            編集
-          </button>
+            {text ? (
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                skipHtml
+                components={{
+                  a: ({ children, href, title }) => (
+                    <a
+                      href={href}
+                      title={title}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {text}
+              </Markdown>
+            ) : (
+              <p className="note-empty">
+                メモは空です。「編集」から入力できます。
+              </p>
+            )}
+          </div>
         )}
-        <button
-          className="action-danger"
-          disabled={pending > 0 || project?.tables.length === 1}
-          onClick={() => dispatch({ type: "removeNode", id: table.id })}
-        >
-          <Icon name="trash" />
-          削除
-        </button>
-      </div>
-      {editing ? (
-        <>
-          {draft !== original && (
-            <span className="condition-dirty note-message">
-              未保存の変更があります
-            </span>
-          )}
-          {text !== original && (
-            <p className="node-error note-message" role="alert">
-              別の操作でメモが更新されています。保存時に競合を確認します。
-            </p>
-          )}
-          {error && (
-            <p className="node-error note-message" role="alert">
-              {error}
-            </p>
-          )}
-          <textarea
-            className="note-editor nodrag nopan nowheel"
-            aria-label={`${table.title} 本文`}
-            aria-invalid={!!error}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="メモを入力（Markdown対応）"
-            onKeyDown={(e) => e.stopPropagation()}
-          />
-        </>
-      ) : (
-        <div
-          className="note-preview nodrag nopan nowheel"
-          aria-label={`${table.title} 閲覧`}
-        >
-          {text ? (
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              skipHtml
-              components={{
-                a: ({ children, href, title }) => (
-                  <a
-                    href={href}
-                    title={title}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {text}
-            </Markdown>
-          ) : (
-            <p className="note-empty">
-              メモは空です。「編集」から入力できます。
-            </p>
-          )}
-        </div>
-      )}
-    </section>
+      </section>
+    </>
   );
 }

@@ -8,6 +8,7 @@ vi.mock("../../app/ProjectContext", () => ({
   useProject: () => ({ dispatch, pending: 0, project: { tables: [{}, {}] } }),
 }));
 vi.mock("@xyflow/react", () => ({ NodeResizer: () => null }));
+vi.mock("../canvas/NodePorts", () => ({ NodePorts: () => null }));
 vi.mock("../canvas/NodeActions", () => ({ NodeActions: () => null }));
 vi.mock("../canvas/NodeTitle", () => ({ NodeTitle: () => null }));
 afterEach(() => {

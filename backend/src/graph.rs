@@ -56,13 +56,10 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("結合設定とノードの種類が一致しません。".into());
         }
         for source in t.sources() {
-            let upstream = tables
+            tables
                 .iter()
                 .find(|n| &n.id == source)
                 .ok_or("接続元が見つかりません。")?;
-            if upstream.kind == Kind::Note {
-                return Err("メモノードには接続できません。".into());
-            }
         }
         if let Some(f) = &t.filter
             && (f.column >= crate::storage::MAX_COLS
@@ -153,6 +150,7 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
 
 pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> Result<(), String> {
     for i in order(tables)? {
+        crate::note::refresh(&mut tables[i]);
         if matches!(tables[i].kind, Kind::Input | Kind::Csv | Kind::Note) {
             continue;
         }

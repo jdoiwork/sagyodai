@@ -85,7 +85,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         >
           <option value="">未接続</option>
           {project?.tables
-            .filter((t) => t.id !== table.id && t.kind !== "note")
+            .filter((t) => t.id !== table.id)
             .map((t) => (
               <option
                 key={t.id}

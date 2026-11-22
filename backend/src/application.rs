@@ -30,7 +30,10 @@ impl Default for Project {
 
 impl Project {
     pub fn restore(document: serde_json::Value, revision: u64) -> Result<Self, String> {
-        let file = storage::decode_project(document)?;
+        let mut file = storage::decode_project(document)?;
+        for table in &mut file.tables {
+            crate::note::refresh(table);
+        }
         Ok(Self {
             tables: file.tables,
             sheets: file.sheets,

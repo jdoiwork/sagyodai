@@ -20,7 +20,9 @@ export function PortSideMenu({
         ← アクションに戻る
       </button>
       {[true, false]
-        .filter((input) => !input || !["input", "csv"].includes(table.kind))
+        .filter(
+          (input) => !input || !["input", "csv", "note"].includes(table.kind),
+        )
         .map((input) => (
           <div key={String(input)}>
             <div className="node-action-caption">
