@@ -30,6 +30,7 @@ export function PortSideMenu({
               {sides.map(([side, label]) => (
                 <button
                   key={side}
+                  style={{ gridArea: side }}
                   role="menuitemradio"
                   aria-label={`${input ? "入力" : "出力"}端子を${label}に配置`}
                   aria-checked={

@@ -1593,14 +1593,18 @@ button.action-danger:hover {
 }
 
 .port-side-options {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-areas: ". top ." "left . right" ". bottom .";
+  justify-content: center;
+  gap: 3px;
   padding: 4px 8px 8px;
 }
 .port-side-options button {
   justify-content: center;
   min-width: 0;
-  flex: 1;
+  height: 30px;
+  padding: 3px;
 }
 .port-side-options button[aria-checked="true"] {
   background: #dceee5;
@@ -1633,4 +1637,8 @@ button.action-danger:hover {
 }
 .table-port.react-flow__handle-right .union-source-label {
   left: 27px;
+}
+
+.node-action-menu.port-position-menu {
+  max-height: min(364px, calc(100dvh - 16px));
 }

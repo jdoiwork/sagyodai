@@ -83,7 +83,7 @@ export function NodeActions({ table }: { table: TableData }) {
         createPortal(
           <div
             ref={menu}
-            className="table-context-menu node-action-menu nodrag nopan nowheel"
+            className={`table-context-menu node-action-menu nodrag nopan nowheel${open.ports ? " port-position-menu" : ""}`}
             role="menu"
             aria-label={
               open.move
@@ -92,7 +92,10 @@ export function NodeActions({ table }: { table: TableData }) {
             }
             style={{
               left: Math.max(8, Math.min(open.x, window.innerWidth - 248)),
-              top: Math.max(8, Math.min(open.y, window.innerHeight - 300)),
+              top: Math.max(
+                8,
+                Math.min(open.y, window.innerHeight - (open.ports ? 380 : 300)),
+              ),
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
