@@ -1,3 +1,4 @@
+import { NodeActions } from "./NodeActions";
 import { unionPortHeight } from "../union/ports";
 import { UnionSettings } from "../union/UnionSettings";
 import { NodePorts } from "./NodePorts";
@@ -102,6 +103,7 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
           <span className="editable-badge" hidden={table.compact}>
             {table.kind === "input" ? "編集可能" : "読み取り専用"}
           </span>
+          <NodeActions table={table} />
           <span className="grip" aria-hidden="true">
             ⠿
           </span>
