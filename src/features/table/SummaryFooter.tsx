@@ -14,7 +14,13 @@ export function SummaryFooter({ table }: { table: TableData }) {
           <td key={col}>
             <select
               aria-label={`${table.title} ${col + 1}列 ${name} の集計`}
-              value={table.footer?.[col] ? "sum" : ""}
+              value={
+                table.footer?.[col] === "mode"
+                  ? "mode"
+                  : table.footer?.[col]
+                    ? "sum"
+                    : ""
+              }
               onChange={(event) =>
                 dispatch({
                   type: "setFooter",
@@ -22,19 +28,26 @@ export function SummaryFooter({ table }: { table: TableData }) {
                   expectedColumns: table.columns,
                   columns: table.columns.map((_, index) =>
                     index === col
-                      ? event.target.value === "sum"
-                      : !!table.footer?.[index],
+                      ? event.target.value === "mode"
+                        ? "mode"
+                        : event.target.value === "sum"
+                      : (table.footer?.[index] ?? false),
                   ),
                 })
               }
             >
               <option value="">集計なし</option>
               <option value="sum">SUM</option>
+              <option value="mode">最頻値</option>
             </select>
             {table.footer?.[col] && (
               <output
-                aria-label={`${table.title} ${col + 1}列 合計`}
-                title="空欄と数値以外は集計対象外"
+                aria-label={`${table.title} ${col + 1}列 ${table.footer?.[col] === "mode" ? "最頻値" : "合計"}`}
+                title={
+                  table.footer?.[col] === "mode"
+                    ? "空欄・空白のみは対象外。同率は元の行順で最初の値。表示の絞り込み・並べ替えには影響されません"
+                    : "空欄と数値以外は集計対象外"
+                }
               >
                 {table.footerTotals?.[col] ?? "—"}
               </output>

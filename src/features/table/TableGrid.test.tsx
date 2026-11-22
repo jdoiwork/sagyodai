@@ -1048,3 +1048,39 @@ it("再表示で列名が重複する場合は設定での名前変更を案内�
   fireEvent.click(item);
   expect(dispatch).not.toHaveBeenCalled();
 });
+
+it("最頻値を選択し、別の列の集計を変更しても設定を保持する", () => {
+  const ui = render(
+    <TableGrid
+      table={{
+        ...table,
+        columns: ["分類", "数量"],
+        rows: [["赤", "1"]],
+        footer: ["mode", true],
+        footerTotals: ["赤", "1"],
+      }}
+    />,
+  );
+  expect(
+    (ui.getByLabelText("表 1列 分類 の集計") as HTMLSelectElement).value,
+  ).toBe("mode");
+  expect(ui.getByLabelText("表 1列 最頻値").textContent).toBe("赤");
+  fireEvent.change(ui.getByLabelText("表 2列 数量 の集計"), {
+    target: { value: "" },
+  });
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "setFooter",
+    id: "t",
+    expectedColumns: ["分類", "数量"],
+    columns: ["mode", false],
+  });
+  fireEvent.change(ui.getByLabelText("表 2列 数量 の集計"), {
+    target: { value: "mode" },
+  });
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "setFooter",
+    id: "t",
+    expectedColumns: ["分類", "数量"],
+    columns: ["mode", "mode"],
+  });
+});

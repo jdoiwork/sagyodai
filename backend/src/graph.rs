@@ -219,7 +219,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             Ok((columns, rows)) => {
                 node.column_widths.truncate(columns.len());
                 if let Some(footer) = &mut node.footer {
-                    footer.resize(columns.len(), false);
+                    footer.resize(columns.len(), Default::default());
                 }
                 node.columns = columns;
                 node.rows = rows;

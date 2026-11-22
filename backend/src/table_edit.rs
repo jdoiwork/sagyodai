@@ -224,7 +224,7 @@ pub fn move_columns(
         if let Some(footer) = &mut t.footer {
             *footer = order
                 .iter()
-                .map(|old| footer.get(*old).copied().unwrap_or(false))
+                .map(|old| footer.get(*old).copied().unwrap_or_default())
                 .collect();
         }
         t.column_widths = order
@@ -373,8 +373,8 @@ pub fn insert(
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
         if let Some(footer) = &mut t.footer {
-            footer.resize(columns.len(), false);
-            footer.splice(at..at, vec![false; count]);
+            footer.resize(columns.len(), Default::default());
+            footer.splice(at..at, vec![Default::default(); count]);
         }
         t.column_widths.resize(columns.len(), 160.0);
         t.column_widths.splice(at..at, vec![160.0; count]);

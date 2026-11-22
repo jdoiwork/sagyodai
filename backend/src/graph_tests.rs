@@ -1318,7 +1318,12 @@ fn sum_footer_follows_edits_filters_column_changes_and_history() {
             &mut p,
             Command::SetFooter {
                 id: id.into(),
-                columns: Some(vec![false, true, false, false]),
+                columns: Some(
+                    vec![false, true, false, false]
+                        .into_iter()
+                        .map(crate::aggregation::FooterAggregation::Enabled)
+                        .collect(),
+                ),
                 expected_columns: columns,
             },
         )
@@ -1401,7 +1406,12 @@ fn footer_uses_manual_cached_rows_and_does_not_feed_downstream() {
         &mut p,
         Command::SetFooter {
             id: "table-3".into(),
-            columns: Some(vec![false, true, false, false]),
+            columns: Some(
+                vec![false, true, false, false]
+                    .into_iter()
+                    .map(crate::aggregation::FooterAggregation::Enabled)
+                    .collect(),
+            ),
             expected_columns: cols,
         },
     )
@@ -1601,5 +1611,57 @@ fn port_sides_preserve_connections_and_roundtrip_with_undo() {
             }
         )
         .is_err()
+    );
+}
+
+#[test]
+fn mode_footer_roundtrips_and_follows_column_insertion_without_changing_output() {
+    use crate::aggregation::{FooterAggregation, FooterFunction};
+    let mut p = flow();
+    let initial = p.snapshot().tables[0].clone();
+    let setting = FooterAggregation::Function(FooterFunction::Mode);
+    run(
+        &mut p,
+        Command::SetFooter {
+            id: initial.id.clone(),
+            columns: Some(vec![setting; initial.columns.len()]),
+            expected_columns: initial.columns.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(p.snapshot().tables[0].rows, initial.rows);
+    let snapshot = p.snapshot();
+    let restored =
+        Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
+    assert_eq!(
+        restored.snapshot().tables[0].footer,
+        snapshot.tables[0].footer
+    );
+    assert_eq!(
+        restored.snapshot().tables[0].footer_totals,
+        snapshot.tables[0].footer_totals
+    );
+    run(&mut p, Command::Undo).unwrap();
+    assert!(p.snapshot().tables[0].footer.is_none());
+    run(&mut p, Command::Redo).unwrap();
+    assert_eq!(p.snapshot().tables[0].footer, snapshot.tables[0].footer);
+    run(
+        &mut p,
+        Command::InsertColumns {
+            id: initial.id.clone(),
+            at: 0,
+            count: 1,
+            expected_columns: initial.columns,
+            expected_rows: initial.rows,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        p.snapshot().tables[0].footer.as_ref().unwrap()[0],
+        FooterAggregation::Enabled(false)
+    );
+    assert_eq!(
+        p.snapshot().tables[0].footer_totals[1],
+        snapshot.tables[0].footer_totals[0]
     );
 }

@@ -157,7 +157,7 @@ pub fn move_columns(
             table.footer = Some(
                 order
                     .iter()
-                    .map(|i| footer.get(*i).copied().unwrap_or(false))
+                    .map(|i| footer.get(*i).copied().unwrap_or_default())
                     .collect(),
             );
         }

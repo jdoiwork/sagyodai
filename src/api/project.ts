@@ -123,7 +123,10 @@ const tableSchema = z.object({
     )
     .optional(),
   unionDistinct: z.boolean().optional(),
-  footer: z.array(z.boolean()).nullable().optional(),
+  footer: z
+    .array(z.union([z.boolean(), z.literal("mode")]))
+    .nullable()
+    .optional(),
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
   kind: z.enum([
@@ -235,7 +238,7 @@ export type Command =
   | {
       type: "setFooter";
       id: string;
-      columns: boolean[] | null;
+      columns: (boolean | "mode")[] | null;
       expectedColumns: string[];
     }
   | {

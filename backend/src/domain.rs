@@ -28,7 +28,7 @@ pub struct Table {
     #[serde(default)]
     pub output_color: Option<PaletteColor>,
     #[serde(default)]
-    pub footer: Option<Vec<bool>>,
+    pub footer: Option<Vec<crate::aggregation::FooterAggregation>>,
     #[serde(default, skip_deserializing, skip_serializing_if = "Vec::is_empty")]
     pub footer_totals: Vec<Option<String>>,
     #[serde(default)]
@@ -260,7 +260,7 @@ pub enum Command {
     },
     SetFooter {
         id: String,
-        columns: Option<Vec<bool>>,
+        columns: Option<Vec<crate::aggregation::FooterAggregation>>,
         expected_columns: Vec<String>,
     },
     SetCompact {
