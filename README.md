@@ -21,6 +21,8 @@ npm run dev
 
 ## 試せること
 
+- [文字列・正規表現による置換](docs/replacement.md)。
+
 - [CSVファイルの読み込み](docs/csv-input.md)と後続ノードへの出力（UTF-8）。
 
 - 表の追加・移動・サイズ変更、キャンバスのパン・ズーム。

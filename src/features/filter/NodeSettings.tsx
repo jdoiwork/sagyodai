@@ -1,3 +1,4 @@
+import { ReplaceConditions } from "../replace/ReplaceConditions";
 import { OutputColumns } from "../projection/OutputColumns";
 import { GroupConditions } from "../group/GroupConditions";
 import { SortConditions } from "../sort/SortConditions";
@@ -48,7 +49,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         JSON.stringify(table.filter?.values ?? []));
   return (
     <div
-      className={`node-settings nodrag nopan${table.kind === "display" && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${table.kind === "display" && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.kind === "replace" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
       {table.compact && table.kind === "display" && (
         <div className="compact-condition">
@@ -106,6 +107,9 @@ export function NodeSettings({ table }: { table: TableData }) {
           open={columnsOpen}
           onClose={() => setColumnsOpen(false)}
         />
+      )}
+      {table.kind === "replace" && (
+        <ReplaceConditions table={table} source={source} />
       )}
       {table.kind === "aggregate" && (
         <GroupConditions table={table} source={source} />

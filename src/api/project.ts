@@ -83,7 +83,15 @@ export const projectionSchema = z.object({
   ),
 });
 export type Projection = z.infer<typeof projectionSchema>;
+export const replacementSchema = z.object({
+  column: z.number().int().nonnegative(),
+  regex: z.boolean(),
+  pattern: z.string(),
+  replacement: z.string(),
+});
+export type Replacement = z.infer<typeof replacementSchema>;
 const tableSchema = z.object({
+  replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
   outputSide: portSideSchema.nullable().optional(),
   csv: z
@@ -126,6 +134,7 @@ const tableSchema = z.object({
     "union",
     "sort",
     "aggregate",
+    "replace",
   ]),
   group: groupConfigSchema.nullable().optional(),
   sortKeys: z.array(sortKeySchema).optional(),
@@ -154,6 +163,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setReplacement"; id: string; config: Replacement }
   | { type: "setPortSide"; id: string; input: boolean; side: PortSide }
   | {
       type: "createViewFilters";
@@ -205,7 +215,14 @@ export type Command =
       type: "addNode";
       sheetId?: string;
       kind:
-        "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate";
+        | "input"
+        | "csv"
+        | "filter"
+        | "display"
+        | "union"
+        | "sort"
+        | "aggregate"
+        | "replace";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }

@@ -7,6 +7,12 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut result = vec![];
     for t in tables {
         crate::csv_source::validate(t)?;
+        if (t.kind == Kind::Replace) != t.replacement.is_some() {
+            return Err("置換設定とノードの種類が一致しません。".into());
+        }
+        if let Some(config) = &t.replacement {
+            config.validate()?;
+        }
         if let Some(config) = &t.projection {
             if t.kind != Kind::Display {
                 return Err("出力列設定は結果表にのみ指定できます。".into());
@@ -156,6 +162,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             n.sources() != tables[i].sources()
                 || n.filter != tables[i].filter
                 || n.sort_keys != tables[i].sort_keys
+                || n.replacement != tables[i].replacement
                 || n.group != tables[i].group
                 || n.projection != tables[i].projection
                 || n.union_distinct != tables[i].union_distinct
@@ -194,7 +201,9 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                     .ok_or_else(|| "集計設定がありません。".to_string())
                     .and_then(|config| crate::group::evaluate(&s, config)),
                 Some(s) => {
-                    let rows = if node.kind == Kind::Sort {
+                    let rows = if let Some(config) = &node.replacement {
+                        config.rows(&s)
+                    } else if node.kind == Kind::Sort {
                         crate::sort::rows(&s, &node.sort_keys)
                     } else {
                         match &node.filter {

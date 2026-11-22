@@ -67,7 +67,14 @@ function Canvas() {
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
     kind:
-      "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate";
+      | "input"
+      | "csv"
+      | "filter"
+      | "display"
+      | "union"
+      | "sort"
+      | "aggregate"
+      | "replace";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -82,7 +89,14 @@ function Canvas() {
   }, [project, pending, selectNode]);
   function addNode(
     kind:
-      "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate",
+      | "input"
+      | "csv"
+      | "filter"
+      | "display"
+      | "union"
+      | "sort"
+      | "aggregate"
+      | "replace",
   ) {
     if (
       !canvas.current ||
@@ -98,13 +112,13 @@ function Canvas() {
       top = rect.top + 88;
     // 大きく拡大して全体が入らない場合も、見出しと設定の起点を画面内に残す。
     const width =
-      (kind === "sort" || kind === "aggregate"
+      (kind === "sort" || kind === "aggregate" || kind === "replace"
         ? 520
         : kind === "filter" || kind === "union"
           ? 440
           : 760) * zoom;
     const height =
-      (kind === "aggregate"
+      (kind === "aggregate" || kind === "replace"
         ? 480
         : kind === "filter" || kind === "union" || kind === "sort"
           ? 360
@@ -456,6 +470,15 @@ function Canvas() {
             >
               <Icon name="aggregate" />
               集計
+            </button>
+            <button
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
+              onClick={() => addNode("replace")}
+            >
+              <Icon name="replace" />
+              置換
             </button>
             <div className="toolbar-separator" />
             <button

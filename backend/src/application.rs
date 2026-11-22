@@ -132,6 +132,14 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetReplacement { id, config } => {
+                config.validate()?;
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Replace {
+                    return Err("置換ノードではありません。".into());
+                }
+                table.replacement = Some(config);
+            }
             Command::SetPortSide { id, input, side } => {
                 let table = table_mut(tables, &id)?;
                 if input {
@@ -497,7 +505,9 @@ impl Project {
                     t.kind = kind;
                     t.title = format!(
                         "{} {}",
-                        if kind == Kind::Csv {
+                        if kind == Kind::Replace {
+                            "置換"
+                        } else if kind == Kind::Csv {
                             "CSV"
                         } else if kind == Kind::Filter {
                             "フィルタ"
@@ -517,10 +527,10 @@ impl Project {
                     t.width = match kind {
                         Kind::Display | Kind::Csv => 760.0,
                         Kind::Union => 440.0,
-                        Kind::Sort | Kind::Aggregate => 520.0,
+                        Kind::Sort | Kind::Aggregate | Kind::Replace => 520.0,
                         _ => 400.0,
                     };
-                    t.height = if kind == Kind::Aggregate {
+                    t.height = if matches!(kind, Kind::Aggregate | Kind::Replace) {
                         480.0
                     } else if matches!(kind, Kind::Display | Kind::Csv) {
                         390.0
@@ -530,6 +540,9 @@ impl Project {
                     t.x = next_x;
                     t.y = 100.0;
                     t.stale = true;
+                    if kind == Kind::Replace {
+                        t.replacement = Some(Default::default());
+                    }
                     if kind == Kind::Aggregate {
                         t.group = Some(Default::default());
                     }

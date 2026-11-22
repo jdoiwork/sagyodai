@@ -1642,3 +1642,30 @@ button.action-danger:hover {
 .node-action-menu.port-position-menu {
   max-height: min(364px, calc(100dvh - 16px));
 }
+.replace-conditions {
+  display: grid;
+  gap: 8px;
+}
+.replace-conditions[hidden] {
+  display: none;
+}
+.replace-conditions label {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.replace-conditions textarea {
+  background: white;
+  color: #244239;
+  width: 100%;
+  min-height: 38px;
+  resize: vertical;
+  border: 1px solid #cbd8d2;
+  border-radius: 5px;
+  padding: 6px 8px;
+  font: inherit;
+}
+.replace-conditions > button {
+  justify-self: end;
+}

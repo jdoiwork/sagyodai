@@ -9,6 +9,7 @@ mod graph_tests;
 mod group;
 mod group_stats;
 mod projection;
+mod replacement;
 #[cfg(test)]
 mod sheet_move_tests;
 mod sheets;
