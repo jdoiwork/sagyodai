@@ -1,3 +1,4 @@
+import { GroupConditions } from "../group/GroupConditions";
 import { SortConditions } from "../sort/SortConditions";
 import { InValues } from "./InValues";
 import { sourceLabel } from "../sheets/model";
@@ -42,7 +43,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         JSON.stringify(table.filter?.values ?? []));
   return (
     <div
-      className={`node-settings nodrag nopan${table.kind === "filter" || table.kind === "sort" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
       {table.compact && table.kind === "display" && (
         <div className="compact-condition">
@@ -91,6 +92,9 @@ export function NodeSettings({ table }: { table: TableData }) {
             ))}
         </select>
       </label>
+      {table.kind === "aggregate" && (
+        <GroupConditions table={table} source={source} />
+      )}
       {table.kind === "sort" && (
         <SortConditions table={table} source={source} />
       )}

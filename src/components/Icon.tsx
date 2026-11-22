@@ -3,6 +3,7 @@ const paths = {
   search: "M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   moveSheet: "M4 4h9v4M4 4v16h9v-4M10 12h11m-4-4 4 4-4 4",
+  aggregate: "M19 4H5l7 8-7 8h14",
   sort: "M7 3v18m-4-4 4 4 4-4M17 21V3m-4 4 4-4 4 4",
   union: "M3 5h5l4 7h9M3 19h5l4-7m5-4 4 4-4 4",
   collapse: "m6 14 6-6 6 6",

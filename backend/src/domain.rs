@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default)]
+    pub group: Option<crate::group::GroupConfig>,
+    #[serde(default)]
     pub sort_keys: Vec<crate::sort::SortKey>,
     #[serde(default)]
     pub view: crate::table_view::TableView,
@@ -86,6 +88,7 @@ pub enum Kind {
     Display,
     Union,
     Sort,
+    Aggregate,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,6 +133,10 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetGroup {
+        id: String,
+        config: crate::group::GroupConfig,
+    },
     SetSort {
         id: String,
         keys: Vec<crate::sort::SortKey>,
@@ -333,6 +340,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         union_inputs: vec![],
         union_distinct: false,
         sort_keys: vec![],
+        group: None,
         footer: None,
         footer_totals: vec![],
         kind: Kind::Input,

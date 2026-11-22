@@ -1383,3 +1383,33 @@ button.action-danger:hover {
   color: #657d70;
   font-size: 11px;
 }
+.group-column-list {
+  max-height: 160px;
+  overflow: auto;
+  margin-bottom: 8px;
+}
+.group-column-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) 80px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+.group-column-row > span:first-child {
+  overflow-wrap: anywhere;
+}
+.group-column-row input {
+  justify-self: center;
+}
+.group-column-heading {
+  color: #657d70;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+.group-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

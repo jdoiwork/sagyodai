@@ -203,6 +203,14 @@ impl Project {
                 }
                 crate::graph::order(tables)?;
             }
+            Command::SetGroup { id, config } => {
+                crate::group::validate(&config)?;
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Aggregate {
+                    return Err("集計ノードではありません。".into());
+                }
+                table.group = Some(config);
+            }
             Command::SetSort { id, keys } => {
                 crate::sort::validate(&keys)?;
                 let table = table_mut(tables, &id)?;
@@ -402,6 +410,8 @@ impl Project {
                         "{} {}",
                         if kind == Kind::Filter {
                             "フィルタ"
+                        } else if kind == Kind::Aggregate {
+                            "集計"
                         } else if kind == Kind::Sort {
                             "ソート"
                         } else if kind == Kind::Union {
@@ -416,13 +426,22 @@ impl Project {
                     t.width = match kind {
                         Kind::Display => 760.0,
                         Kind::Union => 440.0,
-                        Kind::Sort => 520.0,
+                        Kind::Sort | Kind::Aggregate => 520.0,
                         _ => 400.0,
                     };
-                    t.height = if kind == Kind::Display { 390.0 } else { 360.0 };
+                    t.height = if kind == Kind::Aggregate {
+                        480.0
+                    } else if kind == Kind::Display {
+                        390.0
+                    } else {
+                        360.0
+                    };
                     t.x = next_x;
                     t.y = 100.0;
                     t.stale = true;
+                    if kind == Kind::Aggregate {
+                        t.group = Some(Default::default());
+                    }
                     if kind == Kind::Filter {
                         t.filter = Some(Filter {
                             values: vec![],

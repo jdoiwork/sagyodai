@@ -53,6 +53,12 @@ export const sortKeySchema = z.object({
   mode: z.enum(["number", "text"]),
 });
 export type SortKey = z.infer<typeof sortKeySchema>;
+export const groupConfigSchema = z.object({
+  groupBy: z.array(z.number().int().nonnegative()),
+  sums: z.array(z.number().int().nonnegative()),
+  count: z.boolean(),
+});
+export type GroupConfig = z.infer<typeof groupConfigSchema>;
 const tableSchema = z.object({
   view: tableViewSchema.optional(),
   sheetId: z.string().optional(),
@@ -68,7 +74,8 @@ const tableSchema = z.object({
   footer: z.array(z.boolean()).nullable().optional(),
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
-  kind: z.enum(["input", "filter", "display", "union", "sort"]),
+  kind: z.enum(["input", "filter", "display", "union", "sort", "aggregate"]),
+  group: groupConfigSchema.nullable().optional(),
   sortKeys: z.array(sortKeySchema).optional(),
   source: z.string().nullable(),
   filter: filterSchema.nullable(),
@@ -95,6 +102,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setGroup"; id: string; config: GroupConfig }
   | { type: "setSort"; id: string; keys: SortKey[] }
   | { type: "setViewQuery"; id: string; query: string; expectedQuery: string }
   | {
@@ -115,7 +123,7 @@ export type Command =
   | {
       type: "addNode";
       sheetId?: string;
-      kind: "input" | "filter" | "display" | "union" | "sort";
+      kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }

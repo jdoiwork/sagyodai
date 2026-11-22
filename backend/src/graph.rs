@@ -6,6 +6,13 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut done = HashSet::new();
     let mut result = vec![];
     for t in tables {
+        if (t.kind == Kind::Aggregate) != t.group.is_some() {
+            return Err("集計設定とノードの種類が一致しません。".into());
+        }
+        if let Some(config) = &t.group {
+            crate::group::validate(config)?;
+        }
+
         crate::sort::validate(&t.sort_keys)?;
         if t.kind != Kind::Sort && !t.sort_keys.is_empty() {
             return Err("ソート設定とノードの種類が一致しません。".into());
@@ -131,6 +138,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             n.sources() != tables[i].sources()
                 || n.filter != tables[i].filter
                 || n.sort_keys != tables[i].sort_keys
+                || n.group != tables[i].group
                 || n.union_distinct != tables[i].union_distinct
         }) || inputs.iter().any(|current| {
             previous
@@ -156,6 +164,11 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                 Some(s) if s.stale || s.error.is_some() => {
                     Err("入力が更新待ちです。上流ノードを確認してください。".to_string())
                 }
+                Some(s) if node.kind == Kind::Aggregate => node
+                    .group
+                    .as_ref()
+                    .ok_or_else(|| "集計設定がありません。".to_string())
+                    .and_then(|config| crate::group::evaluate(&s, config)),
                 Some(s) => {
                     let rows = if node.kind == Kind::Sort {
                         crate::sort::rows(&s, &node.sort_keys)

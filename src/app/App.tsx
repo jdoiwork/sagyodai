@@ -66,7 +66,7 @@ function Canvas() {
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
-    kind: "input" | "filter" | "display" | "union" | "sort";
+    kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -79,7 +79,9 @@ function Canvas() {
       adding.current = null;
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
-  function addNode(kind: "input" | "filter" | "display" | "union" | "sort") {
+  function addNode(
+    kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate",
+  ) {
     if (
       !canvas.current ||
       !project ||
@@ -94,14 +96,17 @@ function Canvas() {
       top = rect.top + 88;
     // 大きく拡大して全体が入らない場合も、見出しと設定の起点を画面内に残す。
     const width =
-      (kind === "sort"
+      (kind === "sort" || kind === "aggregate"
         ? 520
         : kind === "filter" || kind === "union"
           ? 440
           : 760) * zoom;
     const height =
-      (kind === "filter" || kind === "union" || kind === "sort" ? 360 : 390) *
-      zoom;
+      (kind === "aggregate"
+        ? 480
+        : kind === "filter" || kind === "union" || kind === "sort"
+          ? 360
+          : 390) * zoom;
     const position = screenToFlowPosition({
       x: left + Math.max(0, (right - left - width) / 2),
       y: top + Math.max(0, (rect.bottom - 80 - top - height) / 2),
@@ -403,6 +408,13 @@ function Canvas() {
             >
               <Icon name="sort" />
               ソート
+            </button>
+            <button
+              disabled={!project || project.tables.length >= 20 || pending > 0}
+              onClick={() => addNode("aggregate")}
+            >
+              <Icon name="aggregate" />
+              集計
             </button>
             <div className="toolbar-separator" />
             <button
