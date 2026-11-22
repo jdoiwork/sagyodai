@@ -81,6 +81,10 @@ export const projectionSchema = z.object({
 });
 export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
+  csv: z
+    .object({ fileName: z.string(), hasHeaders: z.boolean() })
+    .nullable()
+    .optional(),
   projection: projectionSchema.nullable().optional(),
   view: tableViewSchema.optional(),
   sheetId: z.string().optional(),
@@ -96,7 +100,15 @@ const tableSchema = z.object({
   footer: z.array(z.boolean()).nullable().optional(),
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
-  kind: z.enum(["input", "filter", "display", "union", "sort", "aggregate"]),
+  kind: z.enum([
+    "input",
+    "csv",
+    "filter",
+    "display",
+    "union",
+    "sort",
+    "aggregate",
+  ]),
   group: groupConfigSchema.nullable().optional(),
   sortKeys: z.array(sortKeySchema).optional(),
   source: z.string().nullable(),
@@ -125,6 +137,13 @@ export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
   | {
+      type: "importCsv";
+      id: string;
+      fileName: string;
+      text: string;
+      hasHeaders: boolean;
+    }
+  | {
       type: "hideOutputColumn";
       id: string;
       col: number;
@@ -152,7 +171,8 @@ export type Command =
   | {
       type: "addNode";
       sheetId?: string;
-      kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate";
+      kind:
+        "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate";
       position?: { x: number; y: number };
     }
   | { type: "rename"; id: string; title: string; expectedTitle: string }

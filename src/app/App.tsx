@@ -66,7 +66,8 @@ function Canvas() {
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const adding = useRef<{
-    kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate";
+    kind:
+      "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate";
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -80,7 +81,8 @@ function Canvas() {
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
   function addNode(
-    kind: "input" | "filter" | "display" | "union" | "sort" | "aggregate",
+    kind:
+      "input" | "csv" | "filter" | "display" | "union" | "sort" | "aggregate",
   ) {
     if (
       !canvas.current ||
@@ -298,6 +300,7 @@ function Canvas() {
                 (t) =>
                   t.id === connection.target &&
                   t.kind !== "input" &&
+                  t.kind !== "csv" &&
                   (t.kind !== "union" || connection.targetHandle === "in"),
               ) &&
               !createsCycle(
@@ -362,6 +365,13 @@ function Canvas() {
             >
               <Icon name="plus" />
               表を追加
+            </button>
+            <button
+              disabled={!project || project.tables.length >= 20 || pending > 0}
+              onClick={() => addNode("csv")}
+            >
+              <Icon name="folder" />
+              CSV
             </button>
             <button
               disabled={!project || project.tables.length >= 20}

@@ -8,7 +8,7 @@
 
 - 合意した要件、設計案、未決定事項を区別する。候補技術を採用済みと扱わない。
 - 中核は Rust、画面の言語は TypeScript とする。キャンバス試作では React・React Flow・Vite と、ローカル接続用の axum を使用する。Tauri、Glide Data Grid、Polars、SQLite、rmcp の採用は未確定。
-- 起動と検証は [README](README.md)、試作の範囲と未検証事項は [キャンバス試作](docs/canvas-prototype.md) を参照する。現段階は文字列の表編集、フィルタ・UNION／UNION ALL結合と読み取り専用結果表、JSON ファイル保存・読み込みまで。保存仕様は [プロジェクトファイル](docs/project-files.md) を参照し、[フィルタフロー](docs/filter-flow.md) も参照する。[結合フロー](docs/union-flow.md) も参照する。スクリプト・MCP は未実装。
+- 起動と検証は [README](README.md)、試作の範囲と未検証事項は [キャンバス試作](docs/canvas-prototype.md) を参照する。現段階は[CSV入力](docs/csv-input.md)、文字列の表編集、フィルタ・UNION／UNION ALL結合と読み取り専用結果表、JSON ファイル保存・読み込みまで。保存仕様は [プロジェクトファイル](docs/project-files.md) を参照し、[フィルタフロー](docs/filter-flow.md) も参照する。[結合フロー](docs/union-flow.md) も参照する。スクリプト・MCP は未実装。
 - ユーザーの最新の指示を優先し、仕様が変更された場合は関連ドキュメントも整合させる。
 - 設計相談やドキュメント作成の依頼を、実装開始の依頼と解釈しない。
 - 初期対象外の機能を、必要性のないまま実装範囲へ追加しない。

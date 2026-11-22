@@ -1,3 +1,4 @@
+import { CsvSettings } from "../csv/CsvSettings";
 import { useTableView } from "../table/useTableView";
 import { NodeActions } from "./NodeActions";
 import { unionPortHeight } from "../union/ports";
@@ -57,30 +58,34 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             title={
               table.kind === "input"
                 ? "手入力の表"
-                : table.kind === "aggregate"
-                  ? "集計"
-                  : table.kind === "sort"
-                    ? "ソート"
-                    : table.kind === "filter"
-                      ? "フィルタ"
-                      : table.kind === "union"
-                        ? "結合"
-                        : "結果表"
+                : table.kind === "csv"
+                  ? "CSV入力"
+                  : table.kind === "aggregate"
+                    ? "集計"
+                    : table.kind === "sort"
+                      ? "ソート"
+                      : table.kind === "filter"
+                        ? "フィルタ"
+                        : table.kind === "union"
+                          ? "結合"
+                          : "結果表"
             }
           >
             <Icon
               name={
                 table.kind === "input"
                   ? "editableTable"
-                  : table.kind === "aggregate"
-                    ? "aggregate"
-                    : table.kind === "sort"
-                      ? "sort"
-                      : table.kind === "filter"
-                        ? "filter"
-                        : table.kind === "union"
-                          ? "union"
-                          : "table"
+                  : table.kind === "csv"
+                    ? "folder"
+                    : table.kind === "aggregate"
+                      ? "aggregate"
+                      : table.kind === "sort"
+                        ? "sort"
+                        : table.kind === "filter"
+                          ? "filter"
+                          : table.kind === "union"
+                            ? "union"
+                            : "table"
               }
             />
           </div>
@@ -89,15 +94,17 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
             <span>
               {table.kind === "input"
                 ? "入力ソース"
-                : table.kind === "aggregate"
-                  ? "グループ集計"
-                  : table.kind === "sort"
-                    ? "行の並べ替え"
-                    : table.kind === "filter"
-                      ? "行の絞り込み"
-                      : table.kind === "union"
-                        ? "表の結合"
-                        : "結果の表示"}
+                : table.kind === "csv"
+                  ? "CSVファイルの読み込み"
+                  : table.kind === "aggregate"
+                    ? "グループ集計"
+                    : table.kind === "sort"
+                      ? "行の並べ替え"
+                      : table.kind === "filter"
+                        ? "行の絞り込み"
+                        : table.kind === "union"
+                          ? "表の結合"
+                          : "結果の表示"}
             </span>
           </div>
           <button
@@ -206,23 +213,26 @@ export function TableNode({ data, selected }: NodeProps<TableFlowNode>) {
           </>
         ) : (
           <>
-            {table.kind === "union" ? (
+            {table.kind === "csv" ? (
+              <CsvSettings table={table} />
+            ) : table.kind === "union" ? (
               <UnionSettings table={table} />
             ) : (
               <NodeSettings table={table} />
             )}
-            {table.kind === "display" && !table.compact && (
-              <TableGrid
-                table={table}
-                readOnly
-                search={{ value: search, onChange: setSearch }}
-                columnFilters={{
-                  state: columnFilters,
-                  onChange: setColumnFilters,
-                }}
-                onCanvasScroll={onCanvasScroll}
-              />
-            )}
+            {(table.kind === "display" || table.kind === "csv") &&
+              !table.compact && (
+                <TableGrid
+                  table={table}
+                  readOnly
+                  search={{ value: search, onChange: setSearch }}
+                  columnFilters={{
+                    state: columnFilters,
+                    onChange: setColumnFilters,
+                  }}
+                  onCanvasScroll={onCanvasScroll}
+                />
+              )}
           </>
         )}
       </section>

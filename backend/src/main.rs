@@ -1,6 +1,7 @@
 mod aggregation;
 mod application;
 mod autosave;
+mod csv_source;
 mod domain;
 mod graph;
 #[cfg(test)]

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub csv: Option<crate::csv_source::CsvSource>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub projection: Option<crate::projection::Projection>,
     #[serde(default)]
     pub group: Option<crate::group::GroupConfig>,
@@ -86,6 +88,7 @@ pub enum ColorTarget {
 #[serde(rename_all = "camelCase")]
 pub enum Kind {
     Input,
+    Csv,
     Filter,
     Display,
     Union,
@@ -135,6 +138,12 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    ImportCsv {
+        id: String,
+        file_name: String,
+        text: String,
+        has_headers: bool,
+    },
     HideOutputColumn {
         id: String,
         col: usize,
@@ -344,6 +353,7 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        csv: None,
         sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,
         input_color: None,

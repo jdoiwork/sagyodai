@@ -115,7 +115,7 @@ export function NodePorts({ table }: { table: TableData }) {
             </Handle>
           );
         })}
-      {table.kind !== "input" && (
+      {table.kind !== "input" && table.kind !== "csv" && (
         <Handle
           type="target"
           position={Position.Left}

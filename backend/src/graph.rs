@@ -6,6 +6,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     let mut done = HashSet::new();
     let mut result = vec![];
     for t in tables {
+        crate::csv_source::validate(t)?;
         if let Some(config) = &t.projection {
             if t.kind != Kind::Display {
                 return Err("出力列設定は結果表にのみ指定できます。".into());
@@ -24,8 +25,10 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("ソート設定とノードの種類が一致しません。".into());
         }
 
-        if t.kind == Kind::Input && (t.source.is_some() || t.filter.is_some() || t.manual) {
-            return Err("手入力の表には入力接続や加工設定を指定できません。".into());
+        if matches!(t.kind, Kind::Input | Kind::Csv)
+            && (t.source.is_some() || t.filter.is_some() || t.manual)
+        {
+            return Err("入力ソースには入力接続や加工設定を指定できません。".into());
         }
         if (t.kind == Kind::Filter) != t.filter.is_some() {
             return Err("フィルタ設定とノードの種類が一致しません。".into());
@@ -128,7 +131,7 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
 
 pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> Result<(), String> {
     for i in order(tables)? {
-        if tables[i].kind == Kind::Input {
+        if matches!(tables[i].kind, Kind::Input | Kind::Csv) {
             continue;
         }
         let old = previous.iter().find(|n| n.id == tables[i].id);

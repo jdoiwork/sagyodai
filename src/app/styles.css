@@ -1557,3 +1557,11 @@ button.action-danger:hover {
   border-top: 1px solid #dfe7e1;
   background: white;
 }
+
+.csv-file-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 6px;
+}

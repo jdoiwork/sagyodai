@@ -132,6 +132,14 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::ImportCsv {
+                id,
+                file_name,
+                text,
+                has_headers,
+            } => {
+                crate::csv_source::import(table_mut(tables, &id)?, file_name, &text, has_headers)?;
+            }
             Command::OpenProject { .. } | Command::AddSheet | Command::RenameSheet { .. } => {
                 return Err("プロジェクト操作は共通操作から実行してください。".into());
             }
@@ -184,8 +192,8 @@ impl Project {
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
-                if t.kind == Kind::Input {
-                    return Err("手入力の表には接続できません。".into());
+                if matches!(t.kind, Kind::Input | Kind::Csv) {
+                    return Err("入力ソースには接続できません。".into());
                 }
                 if t.kind == Kind::Union {
                     if let Some(source) = source {
@@ -239,8 +247,8 @@ impl Project {
             }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
-                if t.kind == Kind::Input {
-                    return Err("手入力の表には加工設定を指定できません。".into());
+                if matches!(t.kind, Kind::Input | Kind::Csv) {
+                    return Err("入力ソースには加工設定を指定できません。".into());
                 }
                 t.filter = filter;
                 t.manual = manual;
@@ -424,7 +432,9 @@ impl Project {
                     t.kind = kind;
                     t.title = format!(
                         "{} {}",
-                        if kind == Kind::Filter {
+                        if kind == Kind::Csv {
+                            "CSV"
+                        } else if kind == Kind::Filter {
                             "フィルタ"
                         } else if kind == Kind::Aggregate {
                             "集計"
@@ -440,14 +450,14 @@ impl Project {
                     t.columns.clear();
                     t.rows.clear();
                     t.width = match kind {
-                        Kind::Display => 760.0,
+                        Kind::Display | Kind::Csv => 760.0,
                         Kind::Union => 440.0,
                         Kind::Sort | Kind::Aggregate => 520.0,
                         _ => 400.0,
                     };
                     t.height = if kind == Kind::Aggregate {
                         480.0
-                    } else if kind == Kind::Display {
+                    } else if matches!(kind, Kind::Display | Kind::Csv) {
                         390.0
                     } else {
                         360.0

@@ -789,18 +789,20 @@ export function TableGrid({
         </div>
       )}
       <div className="table-footer nodrag nopan">
-        <button
-          onClick={() =>
-            dispatch({
-              type: "setFooter",
-              id: table.id,
-              columns: table.footer ? null : table.columns.map(() => false),
-              expectedColumns: table.columns,
-            })
-          }
-        >
-          {table.footer ? "フッターを削除" : "＋ フッター行"}
-        </button>
+        {table.kind !== "csv" && (
+          <button
+            onClick={() =>
+              dispatch({
+                type: "setFooter",
+                id: table.id,
+                columns: table.footer ? null : table.columns.map(() => false),
+                expectedColumns: table.columns,
+              })
+            }
+          >
+            {table.footer ? "フッターを削除" : "＋ フッター行"}
+          </button>
+        )}
         <span>
           {table.rows.length.toLocaleString()} 行 × {table.columns.length} 列
         </span>
