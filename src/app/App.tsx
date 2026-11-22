@@ -352,7 +352,29 @@ function Canvas() {
               color="#cdd6d2"
             />
           </ReactFlow>
-          <div className="canvas-toolbar" aria-busy={pending > 0}>
+          <div
+            className="canvas-toolbar"
+            aria-busy={pending > 0}
+            aria-describedby={
+              project && project.tables.length >= MAX_NODES
+                ? "node-limit-message"
+                : undefined
+            }
+          >
+            {project && project.tables.length >= MAX_NODES && (
+              <div
+                id="node-limit-message"
+                className="node-limit-message"
+                role="status"
+              >
+                <strong>
+                  ノード数が上限の{MAX_NODES}個に達したため、追加できません。
+                </strong>
+                <span>
+                  全シートの合計が対象です。不要なノードを削除すると追加できます。
+                </span>
+              </div>
+            )}
             <button
               className="primary"
               disabled={!project || project.tables.length >= MAX_NODES}

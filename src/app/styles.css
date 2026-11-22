@@ -1571,3 +1571,23 @@ button.action-danger:hover {
   flex-wrap: wrap;
   gap: 6px 12px;
 }
+
+.node-limit-message {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: max-content;
+  max-width: min(520px, calc(100vw - 48px));
+  padding: 12px 16px;
+  border: 1px solid #dbc39a;
+  border-radius: 10px;
+  background: #fff8eb;
+  color: #70501e;
+  box-shadow: 0 3px 12px #283d3014;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.node-limit-message strong,
+.node-limit-message span {
+  display: block;
+}
