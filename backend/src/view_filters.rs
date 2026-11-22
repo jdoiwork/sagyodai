@@ -159,10 +159,13 @@ mod tests {
         )
         .unwrap();
         assert!(p.snapshot().tables[1].rows.is_empty());
-        for _ in 2..20 {
+        for _ in 2..crate::storage::MAX_NODES {
             run(&mut p, Command::AddTable).unwrap();
         }
         let before = p.export().unwrap();
+        let restored = Project::restore(serde_json::from_slice(&before).unwrap(), 0).unwrap();
+        assert_eq!(restored.snapshot().tables.len(), crate::storage::MAX_NODES);
+        assert!(run(&mut p, Command::AddTable).is_err());
         assert!(
             run(
                 &mut p,

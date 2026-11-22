@@ -2,7 +2,7 @@ use crate::domain::{
     ColorTarget, Command, Filter, Kind, Operator, Request, Snapshot, Table, sample_table,
 };
 
-use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
+use crate::storage::{self, MAX_CELL_BYTES, MAX_COLS, MAX_NODES, MAX_ROWS};
 const HISTORY_LIMIT: usize = 30;
 
 #[derive(Clone)]
@@ -135,9 +135,9 @@ impl Project {
             Command::CreateViewFilters { id, expected_view } => {
                 let source = table_mut(tables, &id)?.clone();
                 let filters = crate::view_filters::conditions(&source, &expected_view)?;
-                if tables.len() + filters.len() > 20 {
+                if tables.len() + filters.len() > MAX_NODES {
                     return Err(format!(
-                        "フィルターを{}個作成するにはノード数の上限（20個）を超えます。",
+                        "フィルターを{}個作成するにはノード数の上限（{MAX_NODES}個）を超えます。",
                         filters.len()
                     ));
                 }
@@ -462,8 +462,8 @@ impl Project {
                 {
                     return Err("ノードの位置が不正です。".into());
                 }
-                if tables.len() >= 20 {
-                    return Err("試作では表は20個までです。".into());
+                if tables.len() >= MAX_NODES {
+                    return Err(format!("ノードは{MAX_NODES}個までです。"));
                 }
                 while tables
                     .iter()

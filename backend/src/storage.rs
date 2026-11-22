@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 pub const FORMAT_VERSION: u32 = 2;
 pub const MAX_FILE_BYTES: usize = 8 * 1024 * 1024;
+pub const MAX_NODES: usize = 100;
 pub const MAX_ROWS: usize = 5000;
 pub const MAX_COLS: usize = 50;
 pub const MAX_CELL_BYTES: usize = 100_000;
@@ -53,8 +54,8 @@ pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
     }
     let file: ProjectFile =
         serde_json::from_value(value).map_err(|_| "プロジェクトファイルの構造が不正です。")?;
-    if file.tables.is_empty() || file.tables.len() > 20 {
-        return Err("表の数は1〜20個にしてください。".into());
+    if file.tables.is_empty() || file.tables.len() > MAX_NODES {
+        return Err(format!("ノード数は1〜{MAX_NODES}個にしてください。"));
     }
     let mut ids = HashSet::new();
     for table in &file.tables {

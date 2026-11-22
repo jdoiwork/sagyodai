@@ -1,5 +1,6 @@
 import type { Command, FilterConfig, TableData } from "../api/project";
 // backend/src/storage.rs の試作上限に合わせる。
+export const MAX_NODES = 100;
 export const MAX_ROWS = 5000;
 export const MAX_COLUMNS = 50;
 export const MAX_CELL_BYTES = 100_000;

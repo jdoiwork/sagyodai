@@ -5,7 +5,7 @@ import { sheetOf, sheetsOf } from "../features/sheets/model";
 import { unionInputHandle } from "../features/union/ports";
 import { colorValue } from "../features/canvas/colors";
 import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
-import { createsCycle } from "../validation/input";
+import { createsCycle, MAX_NODES } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
@@ -88,7 +88,7 @@ function Canvas() {
       !canvas.current ||
       !project ||
       pending > 0 ||
-      project.tables.length >= 20
+      project.tables.length >= MAX_NODES
     )
       return;
     const rect = canvas.current.getBoundingClientRect();
@@ -355,14 +355,14 @@ function Canvas() {
           <div className="canvas-toolbar" aria-busy={pending > 0}>
             <button
               className="primary"
-              disabled={!project || project.tables.length >= 20}
+              disabled={!project || project.tables.length >= MAX_NODES}
               title={
-                project && project.tables.length >= 20
-                  ? "上限の20ノードに達しています"
+                project && project.tables.length >= MAX_NODES
+                  ? `上限の${MAX_NODES}ノードに達しています`
                   : undefined
               }
               aria-disabled={
-                !project || project.tables.length >= 20 || pending > 0
+                !project || project.tables.length >= MAX_NODES || pending > 0
               }
               onClick={() => addNode("input")}
             >
@@ -370,21 +370,23 @@ function Canvas() {
               表を追加
             </button>
             <button
-              disabled={!project || project.tables.length >= 20 || pending > 0}
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
               onClick={() => addNode("csv")}
             >
               <Icon name="folder" />
               CSV
             </button>
             <button
-              disabled={!project || project.tables.length >= 20}
+              disabled={!project || project.tables.length >= MAX_NODES}
               title={
-                project && project.tables.length >= 20
-                  ? "上限の20ノードに達しています"
+                project && project.tables.length >= MAX_NODES
+                  ? `上限の${MAX_NODES}ノードに達しています`
                   : undefined
               }
               aria-disabled={
-                !project || project.tables.length >= 20 || pending > 0
+                !project || project.tables.length >= MAX_NODES || pending > 0
               }
               onClick={() => addNode("filter")}
             >
@@ -392,21 +394,23 @@ function Canvas() {
               フィルタ
             </button>
             <button
-              disabled={!project || project.tables.length >= 20 || pending > 0}
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
               onClick={() => addNode("sort")}
             >
               <Icon name="sort" />
               ソート
             </button>
             <button
-              disabled={!project || project.tables.length >= 20}
+              disabled={!project || project.tables.length >= MAX_NODES}
               title={
-                project && project.tables.length >= 20
-                  ? "上限の20ノードに達しています"
+                project && project.tables.length >= MAX_NODES
+                  ? `上限の${MAX_NODES}ノードに達しています`
                   : undefined
               }
               aria-disabled={
-                !project || project.tables.length >= 20 || pending > 0
+                !project || project.tables.length >= MAX_NODES || pending > 0
               }
               onClick={() => addNode("display")}
             >
@@ -414,14 +418,18 @@ function Canvas() {
               結果表
             </button>
             <button
-              disabled={!project || project.tables.length >= 20 || pending > 0}
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
               onClick={() => addNode("union")}
             >
               <Icon name="union" />
               結合
             </button>
             <button
-              disabled={!project || project.tables.length >= 20 || pending > 0}
+              disabled={
+                !project || project.tables.length >= MAX_NODES || pending > 0
+              }
               onClick={() => addNode("aggregate")}
             >
               <Icon name="aggregate" />
