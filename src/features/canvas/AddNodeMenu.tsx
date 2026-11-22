@@ -13,21 +13,30 @@ const processingChoices = [
   { kind: "aggregate", label: "集計", icon: "aggregate" },
   { kind: "replace", label: "置換", icon: "replace" },
 ] as const;
+const outputChoices = [
+  { kind: "display", label: "結果表", icon: "table" },
+  { kind: "textDisplay", label: "結果テキスト", icon: "note" },
+] as const;
+const categories = {
+  source: { label: "入力", choices: sourceChoices },
+  processing: { label: "加工", choices: processingChoices },
+  output: { label: "出力", choices: outputChoices },
+};
 export function AddNodeMenu({
   category,
   disabled,
   onAdd,
 }: {
-  category: "source" | "processing";
+  category: keyof typeof categories;
   disabled: boolean;
   onAdd: (
     kind:
       | (typeof sourceChoices)[number]["kind"]
-      | (typeof processingChoices)[number]["kind"],
+      | (typeof processingChoices)[number]["kind"]
+      | (typeof outputChoices)[number]["kind"],
   ) => void;
 }) {
-  const choices = category === "source" ? sourceChoices : processingChoices;
-  const label = category === "source" ? "入力を追加" : "加工を追加";
+  const { choices, label } = categories[category];
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -68,7 +77,7 @@ export function AddNodeMenu({
         }}
       >
         <Icon name="plus" />
-        {label}
+        {label}を追加
         <span aria-hidden="true">▾</span>
       </button>
       {open && !disabled && (
@@ -76,9 +85,7 @@ export function AddNodeMenu({
           ref={menu}
           className="add-node-menu"
           role="menu"
-          aria-label={
-            category === "source" ? "入力ノードを追加" : "加工ノードを追加"
-          }
+          aria-label={`${label}ノードを追加`}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();

@@ -419,30 +419,13 @@ function Canvas() {
               }
               onAdd={addNode}
             />
-            <button
-              disabled={!project || project.tables.length >= MAX_NODES}
-              title={
-                project && project.tables.length >= MAX_NODES
-                  ? `上限の${MAX_NODES}ノードに達しています`
-                  : undefined
-              }
-              aria-disabled={
-                !project || project.tables.length >= MAX_NODES || pending > 0
-              }
-              onClick={() => addNode("display")}
-            >
-              <Icon name="table" />
-              結果表
-            </button>
-            <button
+            <AddNodeMenu
+              category="output"
               disabled={
                 !project || project.tables.length >= MAX_NODES || pending > 0
               }
-              onClick={() => addNode("textDisplay")}
-            >
-              <Icon name="note" />
-              結果テキスト
-            </button>
+              onAdd={addNode}
+            />
             <div className="toolbar-history">
               <div className="toolbar-separator" />
               <button
