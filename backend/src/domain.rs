@@ -138,6 +138,11 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetCsvOptions {
+        id: String,
+        skip_empty_rows: bool,
+        skip_empty_columns: bool,
+    },
     ImportCsv {
         id: String,
         file_name: String,

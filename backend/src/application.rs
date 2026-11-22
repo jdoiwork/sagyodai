@@ -132,6 +132,17 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetCsvOptions {
+                id,
+                skip_empty_rows,
+                skip_empty_columns,
+            } => {
+                crate::csv_source::set_options(
+                    table_mut(tables, &id)?,
+                    skip_empty_rows,
+                    skip_empty_columns,
+                )?;
+            }
             Command::ImportCsv {
                 id,
                 file_name,

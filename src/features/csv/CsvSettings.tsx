@@ -23,6 +23,28 @@ export function CsvSettings({ table }: { table: TableData }) {
     setSkipEmptyRows(table.csv?.skipEmptyRows ?? false);
     setSkipEmptyColumns(table.csv?.skipEmptyColumns ?? false);
   }, [table.csv?.skipEmptyRows, table.csv?.skipEmptyColumns]);
+  async function changeSkip(rows: boolean, columns: boolean) {
+    if (busy || pending > 0) return;
+    setSkipEmptyRows(rows);
+    setSkipEmptyColumns(columns);
+    if (!table.csv) return;
+    setBusy(true);
+    setError("");
+    try {
+      await importCsv({
+        type: "setCsvOptions",
+        id: table.id,
+        skipEmptyRows: rows,
+        skipEmptyColumns: columns,
+      });
+    } catch (e) {
+      setSkipEmptyRows(table.csv.skipEmptyRows ?? false);
+      setSkipEmptyColumns(table.csv.skipEmptyColumns ?? false);
+      setError(e instanceof Error ? e.message : "設定を変更できませんでした。");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function read(file: File) {
     setBusy(true);
     setError("");
@@ -70,14 +92,16 @@ export function CsvSettings({ table }: { table: TableData }) {
               disabled={busy}
               onChange={(e) => setHasHeaders(e.target.checked)}
             />
-            1行目を列名として使う
+            1行目を列名として使う（次の読込）
           </label>
           <label>
             <input
               type="checkbox"
               checked={skipEmptyRows}
-              disabled={busy}
-              onChange={(e) => setSkipEmptyRows(e.target.checked)}
+              disabled={busy || pending > 0}
+              onChange={(e) =>
+                void changeSkip(e.target.checked, skipEmptyColumns)
+              }
             />
             空行をスキップ
           </label>
@@ -85,14 +109,14 @@ export function CsvSettings({ table }: { table: TableData }) {
             <input
               type="checkbox"
               checked={skipEmptyColumns}
-              disabled={busy}
-              onChange={(e) => setSkipEmptyColumns(e.target.checked)}
+              disabled={busy || pending > 0}
+              onChange={(e) => void changeSkip(skipEmptyRows, e.target.checked)}
             />
             空列をスキップ
           </label>
         </div>
         <p className="sort-hint">
-          設定は次の読込に適用。空列はデータがすべて空の列です。
+          空行・空列の設定は読み込み済みデータに即時反映します。
         </p>
         <input
           ref={fileInput}

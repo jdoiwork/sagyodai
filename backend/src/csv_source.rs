@@ -8,6 +8,8 @@ pub const MAX_CSV_BYTES: usize = 1024 * 1024;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CsvSource {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original: Option<CsvData>,
     pub file_name: String,
     pub has_headers: bool,
     #[serde(default)]
@@ -15,11 +17,28 @@ pub struct CsvSource {
     #[serde(default)]
     pub skip_empty_columns: bool,
 }
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CsvData {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
 fn valid_name(name: &str) -> bool {
     !name.trim().is_empty() && name.len() <= 1024 && !name.contains(['/', '\\'])
 }
 pub fn validate(table: &Table) -> Result<(), String> {
     if let Some(csv) = &table.csv {
+        if let Some(data) = &csv.original
+            && (data.columns.is_empty()
+                || data.columns.len() > MAX_COLS
+                || data.columns.iter().any(|c| c.len() > 1024)
+                || data.rows.len() > MAX_ROWS
+                || data.rows.iter().any(|row| {
+                    row.len() != data.columns.len() || row.iter().any(|v| v.len() > MAX_CELL_BYTES)
+                }))
+        {
+            return Err("CSVの元データが不正です。".into());
+        }
         if table.kind != Kind::Csv || !valid_name(&csv.file_name) || table.columns.is_empty() {
             return Err("CSV入力の保存内容が不正です。".into());
         }
@@ -92,6 +111,34 @@ pub fn import(
     if columns.is_empty() {
         return Err("CSVファイルが空です。".into());
     }
+    let original = CsvData { columns, rows };
+    let (columns, rows) = filtered(&original, skip_empty_rows, skip_empty_columns)?;
+    // パース完了まで既存の出力を触らない。再読み込みでも列名や先頭ゼロは文字列として保持。
+    if table.columns != columns {
+        table.view = Default::default();
+        table.column_widths.clear();
+    }
+    table.columns = columns;
+    table.rows = rows;
+    table.csv = Some(CsvSource {
+        original: Some(original),
+        file_name,
+        has_headers,
+        skip_empty_rows,
+        skip_empty_columns,
+    });
+    table.stale = false;
+    table.error = None;
+    Ok(())
+}
+
+fn filtered(
+    data: &CsvData,
+    skip_empty_rows: bool,
+    skip_empty_columns: bool,
+) -> Result<(Vec<String>, Vec<Vec<String>>), String> {
+    let mut columns = data.columns.clone();
+    let mut rows = data.rows.clone();
     // ヘッダーは空列の判定に含めない。データ0行のファイルは列定義を残す。
     if skip_empty_columns && !rows.is_empty() {
         let keep: Vec<usize> = (0..columns.len())
@@ -112,19 +159,38 @@ pub fn import(
     if skip_empty_rows {
         rows.retain(|row| row.iter().any(|value| !value.is_empty()));
     }
-    // パース完了まで既存の出力を触らない。再読み込みでも列名や先頭ゼロは文字列として保持。
+    Ok((columns, rows))
+}
+
+pub fn set_options(
+    table: &mut Table,
+    skip_empty_rows: bool,
+    skip_empty_columns: bool,
+) -> Result<(), String> {
+    if table.kind != Kind::Csv {
+        return Err("CSV入力ノードではありません。".into());
+    }
+    let mut csv = table
+        .csv
+        .clone()
+        .ok_or("先にCSVファイルを読み込んでください。")?;
+    // 以前の版で除外済みのデータは復元できないため、推測で空行・空列を作らない。
+    let original = match csv.original.take() {
+        Some(data) => data,
+        None if !csv.skip_empty_rows && !csv.skip_empty_columns => CsvData { columns: table.columns.clone(), rows: table.rows.clone() },
+        None => return Err("このCSVは元データが保存されていません。一度だけファイルを選び直してください。以後は設定変更だけで反映できます。".into()),
+    };
+    let (columns, rows) = filtered(&original, skip_empty_rows, skip_empty_columns)?;
     if table.columns != columns {
         table.view = Default::default();
         table.column_widths.clear();
     }
     table.columns = columns;
     table.rows = rows;
-    table.csv = Some(CsvSource {
-        file_name,
-        has_headers,
-        skip_empty_rows,
-        skip_empty_columns,
-    });
+    csv.original = Some(original);
+    csv.skip_empty_rows = skip_empty_rows;
+    csv.skip_empty_columns = skip_empty_columns;
+    table.csv = Some(csv);
     table.stale = false;
     table.error = None;
     Ok(())
@@ -191,6 +257,90 @@ mod tests {
         .unwrap();
         assert_eq!(t.columns, ["列1", "列3"]);
         assert_eq!(t.rows, [vec!["001", " "]]);
+    }
+    #[test]
+    fn options_restore_original_after_restart_propagate_and_undo() {
+        let mut p = Project::default();
+        for kind in [Kind::Csv, Kind::Display] {
+            run(
+                &mut p,
+                Command::AddNode {
+                    kind,
+                    position: None,
+                    sheet_id: None,
+                },
+            );
+        }
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-3".into(),
+                source: Some("table-2".into()),
+            },
+        );
+        run(
+            &mut p,
+            Command::ImportCsv {
+                id: "table-2".into(),
+                file_name: "元.csv".into(),
+                text: "品名,空列,数量\nペン,,001\n,,\nノート,,2".into(),
+                has_headers: true,
+                skip_empty_rows: true,
+                skip_empty_columns: true,
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].columns, ["品名", "数量"]);
+        assert_eq!(p.snapshot().tables[2].rows.len(), 2);
+        let value = serde_json::from_slice(&p.export().unwrap()).unwrap();
+        let mut p = Project::restore(value, 0).unwrap();
+        let options = |r, c| Command::SetCsvOptions {
+            id: "table-2".into(),
+            skip_empty_rows: r,
+            skip_empty_columns: c,
+        };
+        run(&mut p, options(false, false));
+        assert_eq!(p.snapshot().tables[2].columns, ["品名", "空列", "数量"]);
+        assert_eq!(p.snapshot().tables[2].rows[1], ["", "", ""]);
+        run(&mut p, Command::Undo);
+        assert_eq!(p.snapshot().tables[2].columns, ["品名", "数量"]);
+        run(&mut p, Command::Redo);
+        run(
+            &mut p,
+            Command::Configure {
+                id: "table-3".into(),
+                filter: None,
+                manual: true,
+            },
+        );
+        run(&mut p, options(true, true));
+        assert!(p.snapshot().tables[2].stale);
+        assert_eq!(p.snapshot().tables[2].rows.len(), 3);
+        run(
+            &mut p,
+            Command::Run {
+                id: "table-3".into(),
+            },
+        );
+        assert_eq!(p.snapshot().tables[2].rows.len(), 2);
+    }
+    #[test]
+    fn failed_options_preserve_source_and_output() {
+        let mut t = table();
+        import(&mut t, "空.csv".into(), "A,B\n,", true).unwrap();
+        let before = serde_json::to_value(&t).unwrap();
+        assert!(set_options(&mut t, true, true).is_err());
+        assert_eq!(serde_json::to_value(&t).unwrap(), before);
+        set_options(&mut t, true, false).unwrap();
+        assert!(t.rows.is_empty());
+        set_options(&mut t, false, false).unwrap();
+        assert_eq!(t.rows, [vec!["", ""]]);
+        t.csv.as_mut().unwrap().original = None;
+        t.csv.as_mut().unwrap().skip_empty_rows = true;
+        assert!(
+            set_options(&mut t, false, false)
+                .unwrap_err()
+                .contains("一度だけ")
+        );
     }
     #[test]
     fn parses_bom_quotes_newlines_and_preserves_strings() {

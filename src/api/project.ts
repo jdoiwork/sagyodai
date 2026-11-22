@@ -83,6 +83,13 @@ export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
   csv: z
     .object({
+      original: z
+        .object({
+          columns: z.array(z.string()),
+          rows: z.array(z.array(z.string())),
+        })
+        .nullable()
+        .optional(),
       fileName: z.string(),
       hasHeaders: z.boolean(),
       skipEmptyRows: z.boolean().optional(),
@@ -141,6 +148,12 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | {
+      type: "setCsvOptions";
+      id: string;
+      skipEmptyRows: boolean;
+      skipEmptyColumns: boolean;
+    }
   | {
       type: "importCsv";
       id: string;
