@@ -23,8 +23,13 @@ export function CsvSettings({ table }: { table: TableData }) {
     setSkipEmptyRows(table.csv?.skipEmptyRows ?? false);
     setSkipEmptyColumns(table.csv?.skipEmptyColumns ?? false);
   }, [table.csv?.skipEmptyRows, table.csv?.skipEmptyColumns]);
-  async function changeSkip(rows: boolean, columns: boolean) {
+  async function changeOptions(
+    headers: boolean,
+    rows: boolean,
+    columns: boolean,
+  ) {
     if (busy || pending > 0) return;
+    setHasHeaders(headers);
     setSkipEmptyRows(rows);
     setSkipEmptyColumns(columns);
     if (!table.csv) return;
@@ -34,10 +39,12 @@ export function CsvSettings({ table }: { table: TableData }) {
       await importCsv({
         type: "setCsvOptions",
         id: table.id,
+        hasHeaders: headers,
         skipEmptyRows: rows,
         skipEmptyColumns: columns,
       });
     } catch (e) {
+      setHasHeaders(table.csv.hasHeaders);
       setSkipEmptyRows(table.csv.skipEmptyRows ?? false);
       setSkipEmptyColumns(table.csv.skipEmptyColumns ?? false);
       setError(e instanceof Error ? e.message : "設定を変更できませんでした。");
@@ -89,10 +96,16 @@ export function CsvSettings({ table }: { table: TableData }) {
             <input
               type="checkbox"
               checked={hasHeaders}
-              disabled={busy}
-              onChange={(e) => setHasHeaders(e.target.checked)}
+              disabled={busy || pending > 0}
+              onChange={(e) =>
+                void changeOptions(
+                  e.target.checked,
+                  skipEmptyRows,
+                  skipEmptyColumns,
+                )
+              }
             />
-            1行目を列名として使う（次の読込）
+            1行目を列名として使う
           </label>
           <label>
             <input
@@ -100,7 +113,11 @@ export function CsvSettings({ table }: { table: TableData }) {
               checked={skipEmptyRows}
               disabled={busy || pending > 0}
               onChange={(e) =>
-                void changeSkip(e.target.checked, skipEmptyColumns)
+                void changeOptions(
+                  hasHeaders,
+                  e.target.checked,
+                  skipEmptyColumns,
+                )
               }
             />
             空行をスキップ
@@ -110,14 +127,14 @@ export function CsvSettings({ table }: { table: TableData }) {
               type="checkbox"
               checked={skipEmptyColumns}
               disabled={busy || pending > 0}
-              onChange={(e) => void changeSkip(skipEmptyRows, e.target.checked)}
+              onChange={(e) =>
+                void changeOptions(hasHeaders, skipEmptyRows, e.target.checked)
+              }
             />
             空列をスキップ
           </label>
         </div>
-        <p className="sort-hint">
-          空行・空列の設定は読み込み済みデータに即時反映します。
-        </p>
+        <p className="sort-hint">設定は読み込み済みデータに即時反映します。</p>
         <input
           ref={fileInput}
           type="file"

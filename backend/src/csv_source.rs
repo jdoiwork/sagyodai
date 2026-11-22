@@ -9,6 +9,8 @@ pub const MAX_CSV_BYTES: usize = 1024 * 1024;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CsvSource {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub original: Option<CsvData>,
     pub file_name: String,
     pub has_headers: bool,
@@ -28,6 +30,13 @@ fn valid_name(name: &str) -> bool {
 }
 pub fn validate(table: &Table) -> Result<(), String> {
     if let Some(csv) = &table.csv {
+        if csv
+            .source_text
+            .as_ref()
+            .is_some_and(|text| text.len() > MAX_CSV_BYTES)
+        {
+            return Err("CSVの元データは1 MiB以内にしてください。".into());
+        }
         if let Some(data) = &csv.original
             && (data.columns.is_empty()
                 || data.columns.len() > MAX_COLS
@@ -121,7 +130,8 @@ pub fn import(
     table.columns = columns;
     table.rows = rows;
     table.csv = Some(CsvSource {
-        original: Some(original),
+        source_text: Some(text.to_string()),
+        original: None,
         file_name,
         has_headers,
         skip_empty_rows,
@@ -164,6 +174,7 @@ fn filtered(
 
 pub fn set_options(
     table: &mut Table,
+    has_headers: bool,
     skip_empty_rows: bool,
     skip_empty_columns: bool,
 ) -> Result<(), String> {
@@ -174,6 +185,19 @@ pub fn set_options(
         .csv
         .clone()
         .ok_or("先にCSVファイルを読み込んでください。")?;
+    if let Some(text) = &csv.source_text {
+        return import(
+            table,
+            csv.file_name.clone(),
+            text,
+            has_headers,
+            skip_empty_rows,
+            skip_empty_columns,
+        );
+    }
+    if has_headers != csv.has_headers {
+        return Err("このCSVは元の1行目が保存されていません。一度だけファイルを選び直してください。以後は設定変更だけで反映できます。".into());
+    }
     // 以前の版で除外済みのデータは復元できないため、推測で空行・空列を作らない。
     let original = match csv.original.take() {
         Some(data) => data,
@@ -218,6 +242,39 @@ mod tests {
         t.columns.clear();
         t.rows.clear();
         t
+    }
+    #[test]
+    fn header_toggle_restores_exact_first_row_after_save() {
+        let mut t = table();
+        let text = " 名前 ,名前,,数量\nペン,赤,,001\n,,,";
+        super::import(&mut t, "元.csv".into(), text, true, true, true).unwrap();
+        let saved = storage::encode(&[t]).unwrap();
+        let mut tables = storage::decode(serde_json::from_slice(&saved).unwrap()).unwrap();
+        let t = &mut tables[0];
+        set_options(t, false, true, true).unwrap();
+        assert_eq!(t.columns, ["列1", "列2", "列4"]);
+        assert_eq!(t.rows[0], [" 名前 ", "名前", "数量"]);
+        set_options(t, true, false, false).unwrap();
+        assert_eq!(t.columns, ["名前", "名前 (2)", "列3", "数量"]);
+        assert_eq!(
+            t.rows,
+            [vec!["ペン", "赤", "", "001"], vec!["", "", "", ""]]
+        );
+    }
+    #[test]
+    fn invalid_header_toggle_keeps_data_and_options() {
+        let mut t = table();
+        import(&mut t, "長い値.csv".into(), &"x".repeat(1001), false).unwrap();
+        let before = t.clone();
+        assert!(set_options(&mut t, true, false, false).is_err());
+        assert_eq!(
+            serde_json::to_value(t).unwrap(),
+            serde_json::to_value(before).unwrap()
+        );
+        let mut t = table();
+        import(&mut t, "上限.csv".into(), &"A\n".repeat(5001), true).unwrap();
+        assert!(set_options(&mut t, false, true, false).is_err());
+        assert!(t.csv.unwrap().has_headers);
     }
     #[test]
     fn skips_empty_rows_and_data_columns_independently_and_saves_options() {
@@ -295,6 +352,7 @@ mod tests {
         let mut p = Project::restore(value, 0).unwrap();
         let options = |r, c| Command::SetCsvOptions {
             id: "table-2".into(),
+            has_headers: true,
             skip_empty_rows: r,
             skip_empty_columns: c,
         };
@@ -328,16 +386,17 @@ mod tests {
         let mut t = table();
         import(&mut t, "空.csv".into(), "A,B\n,", true).unwrap();
         let before = serde_json::to_value(&t).unwrap();
-        assert!(set_options(&mut t, true, true).is_err());
+        assert!(set_options(&mut t, true, true, true).is_err());
         assert_eq!(serde_json::to_value(&t).unwrap(), before);
-        set_options(&mut t, true, false).unwrap();
+        set_options(&mut t, true, true, false).unwrap();
         assert!(t.rows.is_empty());
-        set_options(&mut t, false, false).unwrap();
+        set_options(&mut t, true, false, false).unwrap();
         assert_eq!(t.rows, [vec!["", ""]]);
         t.csv.as_mut().unwrap().original = None;
+        t.csv.as_mut().unwrap().source_text = None;
         t.csv.as_mut().unwrap().skip_empty_rows = true;
         assert!(
-            set_options(&mut t, false, false)
+            set_options(&mut t, true, false, false)
                 .unwrap_err()
                 .contains("一度だけ")
         );

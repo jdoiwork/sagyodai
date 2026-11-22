@@ -134,11 +134,13 @@ impl Project {
         match command {
             Command::SetCsvOptions {
                 id,
+                has_headers,
                 skip_empty_rows,
                 skip_empty_columns,
             } => {
                 crate::csv_source::set_options(
                     table_mut(tables, &id)?,
+                    has_headers,
                     skip_empty_rows,
                     skip_empty_columns,
                 )?;

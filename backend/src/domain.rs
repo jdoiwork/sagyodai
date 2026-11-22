@@ -140,6 +140,7 @@ pub struct Snapshot {
 pub enum Command {
     SetCsvOptions {
         id: String,
+        has_headers: bool,
         skip_empty_rows: bool,
         skip_empty_columns: bool,
     },

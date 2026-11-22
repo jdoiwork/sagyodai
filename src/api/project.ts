@@ -83,6 +83,7 @@ export type Projection = z.infer<typeof projectionSchema>;
 const tableSchema = z.object({
   csv: z
     .object({
+      sourceText: z.string().nullable().optional(),
       original: z
         .object({
           columns: z.array(z.string()),
@@ -151,6 +152,7 @@ export type Command =
   | {
       type: "setCsvOptions";
       id: string;
+      hasHeaders: boolean;
       skipEmptyRows: boolean;
       skipEmptyColumns: boolean;
     }

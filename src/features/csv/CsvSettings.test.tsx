@@ -33,9 +33,7 @@ function file(bytes: Uint8Array, size = bytes.length) {
 }
 it("選択したUTF-8ファイルとヘッダー設定を共通操作へ渡す", async () => {
   const ui = render(<CsvSettings table={table} />);
-  fireEvent.click(
-    ui.getByRole("checkbox", { name: "1行目を列名として使う（次の読込）" }),
-  );
+  fireEvent.click(ui.getByRole("checkbox", { name: "1行目を列名として使う" }));
   const text = "001,日本語\n002,abc";
   fireEvent.change(ui.getByLabelText("CSV 1 CSVファイル"), {
     target: { files: [file(new TextEncoder().encode(text))] },
@@ -102,6 +100,7 @@ it("保存済みスキップ設定をファイル選択なしで変更する", a
     expect(importCsv).toHaveBeenCalledExactlyOnceWith({
       type: "setCsvOptions",
       id: table.id,
+      hasHeaders: true,
       skipEmptyRows: true,
       skipEmptyColumns: false,
     }),
@@ -145,4 +144,42 @@ it("設定変更が失敗したらエラーを表示してチェックを元に�
   importCsv.mockResolvedValueOnce(undefined);
   fireEvent.click(ui.getByRole("checkbox", { name: "空行をスキップ" }));
   await waitFor(() => expect(ui.queryByRole("alert")).toBeNull());
+});
+
+it("ヘッダー設定を即時適用し、失敗時はチェックを戻せる", async () => {
+  const ui = render(
+    <CsvSettings
+      table={{
+        ...table,
+        csv: {
+          fileName: "商品.csv",
+          hasHeaders: true,
+          skipEmptyRows: true,
+          skipEmptyColumns: false,
+        },
+      }}
+    />,
+  );
+  const header = ui.getByRole("checkbox", {
+    name: "1行目を列名として使う",
+  }) as HTMLInputElement;
+  importCsv.mockRejectedValueOnce(
+    new Error("データ行は5000行以内にしてください"),
+  );
+  fireEvent.click(header);
+  await waitFor(() =>
+    expect(ui.getByRole("alert").textContent).toContain("5000"),
+  );
+  expect(header.checked).toBe(true);
+  importCsv.mockResolvedValueOnce(undefined);
+  fireEvent.click(header);
+  await waitFor(() => expect(ui.queryByRole("alert")).toBeNull());
+  expect(importCsv).toHaveBeenLastCalledWith({
+    type: "setCsvOptions",
+    id: table.id,
+    hasHeaders: false,
+    skipEmptyRows: true,
+    skipEmptyColumns: false,
+  });
+  expect(header.checked).toBe(false);
 });
