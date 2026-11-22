@@ -66,7 +66,16 @@ export function OutputColumns({
         <span className="condition-draft-status">出力列に未適用の変更あり</span>
       )}
       <details className="output-column-settings" hidden={table.compact}>
-        <summary>出力列の設定{dirty ? " · 未適用" : ""}</summary>
+        <summary>
+          <Icon name="table" />
+          <span className="output-column-settings-label">
+            <strong>出力列の設定{dirty ? " · 未適用" : ""}</strong>
+            <span>列の選択・並び順・名前</span>
+          </span>
+          <span className="output-column-settings-chevron">
+            <Icon name="expand" />
+          </span>
+        </summary>
         <form
           onSubmit={(e) => {
             e.preventDefault();

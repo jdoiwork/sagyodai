@@ -1462,8 +1462,41 @@ button.action-danger:hover {
   margin: 8px 0;
 }
 .output-column-settings summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #a5cbb5;
+  border-radius: 6px;
+  background: #e9f4ed;
   cursor: pointer;
-  color: #386e61;
+  color: #235a45;
+  list-style: none;
+}
+.output-column-settings summary::-webkit-details-marker {
+  display: none;
+}
+.output-column-settings summary:hover {
+  background: #dceee2;
+}
+.output-column-settings summary:focus-visible {
+  outline: 2px solid #386e61;
+  outline-offset: 2px;
+}
+.output-column-settings-label {
+  display: grid;
+  gap: 3px;
+}
+.output-column-settings-label > span {
+  font-size: 12px;
+  color: #527165;
+}
+.output-column-settings-chevron {
+  display: flex;
+  margin-left: auto;
+}
+.output-column-settings[open] .output-column-settings-chevron {
+  transform: rotate(180deg);
 }
 .output-column-list {
   max-height: 240px;
