@@ -17,7 +17,14 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const text = isFile
     ? (table.textSource?.text ?? "")
     : (table.note?.text ?? "");
-  const [plainText, setPlainText] = useState(false);
+  const plainText = table.textDisplay === "plain";
+  function setPlainText(plain: boolean) {
+    dispatch({
+      type: "setTextDisplay",
+      id: table.id,
+      display: plain ? "plain" : "markdown",
+    });
+  }
   const [editing, setEditing] = useState(!isFile && !text);
   const [draft, setDraft] = useState(text);
   const [original, setOriginal] = useState(text);
@@ -148,12 +155,17 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             aria-label={`${table.title} 表示形式`}
           >
             <button
+              disabled={pending > 0}
               aria-pressed={!plainText}
               onClick={() => setPlainText(false)}
             >
               Markdown
             </button>
-            <button aria-pressed={plainText} onClick={() => setPlainText(true)}>
+            <button
+              disabled={pending > 0}
+              aria-pressed={plainText}
+              onClick={() => setPlainText(true)}
+            >
               テキスト
             </button>
           </div>

@@ -45,6 +45,8 @@ pub struct Table {
     pub manual: bool,
     #[serde(default)]
     pub compact: bool,
+    #[serde(default)]
+    pub text_display: crate::text_source::TextDisplay,
     pub stale: bool,
     pub error: Option<String>,
     pub id: String,
@@ -161,6 +163,10 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetTextDisplay {
+        id: String,
+        display: crate::text_source::TextDisplay,
+    },
     SetNote {
         id: String,
         text: String,
@@ -431,6 +437,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         filter: None,
         manual: false,
         compact: false,
+        text_display: Default::default(),
         view: Default::default(),
         stale: false,
         error: None,

@@ -3,6 +3,14 @@ use crate::domain::{Kind, Table};
 use crate::storage::{MAX_CELL_BYTES, MAX_ROWS};
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TextDisplay {
+    #[default]
+    Markdown,
+    Plain,
+}
+
 pub const MAX_TEXT_BYTES: usize = 1024 * 1024;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -73,6 +81,80 @@ mod tests {
             expected_revision: p.snapshot().revision,
             command,
         })
+    }
+    #[test]
+    fn display_mode_roundtrips_undoes_and_leaves_manual_output_fresh() {
+        let mut p = Project::default();
+        for kind in [Kind::Text, Kind::Display] {
+            run(
+                &mut p,
+                Command::AddNode {
+                    kind,
+                    position: None,
+                    sheet_id: None,
+                },
+            )
+            .unwrap();
+        }
+        run(
+            &mut p,
+            Command::ImportText {
+                id: "table-2".into(),
+                file_name: "a.txt".into(),
+                text: "# 日本語\n  本文".into(),
+            },
+        )
+        .unwrap();
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-3".into(),
+                source: Some("table-2".into()),
+            },
+        )
+        .unwrap();
+        run(
+            &mut p,
+            Command::Configure {
+                id: "table-3".into(),
+                filter: None,
+                manual: true,
+            },
+        )
+        .unwrap();
+        let before = p.snapshot().tables;
+        run(
+            &mut p,
+            Command::SetTextDisplay {
+                id: "table-2".into(),
+                display: TextDisplay::Plain,
+            },
+        )
+        .unwrap();
+        let now = p.snapshot().tables;
+        assert_eq!(now[1].rows, before[1].rows);
+        assert_eq!(now[2].rows, before[2].rows);
+        assert!(!now[2].stale);
+        let restored =
+            Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
+        assert_eq!(
+            restored.snapshot().tables[1].text_display,
+            TextDisplay::Plain
+        );
+        run(&mut p, Command::Undo).unwrap();
+        assert_eq!(p.snapshot().tables[1].text_display, TextDisplay::Markdown);
+        run(&mut p, Command::Redo).unwrap();
+        assert_eq!(p.snapshot().tables[1].text_display, TextDisplay::Plain);
+        assert!(
+            run(
+                &mut p,
+                Command::SetTextDisplay {
+                    id: "table-1".into(),
+                    display: TextDisplay::Plain
+                }
+            )
+            .is_err()
+        );
     }
     #[test]
     fn preserves_lines_bom_whitespace_and_rejects_invalid_imports_atomically() {

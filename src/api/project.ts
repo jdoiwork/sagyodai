@@ -153,6 +153,7 @@ const tableSchema = z.object({
   source: z.string().nullable(),
   filter: filterSchema.nullable(),
   manual: z.boolean(),
+  textDisplay: z.enum(["markdown", "plain"]).optional(),
   compact: z.boolean().default(false),
   stale: z.boolean(),
   error: z.string().nullable(),
@@ -175,6 +176,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setTextDisplay"; id: string; display: "markdown" | "plain" }
   | { type: "setNote"; id: string; text: string; expectedText: string }
   | { type: "setReplacement"; id: string; config: Replacement }
   | { type: "setPortSide"; id: string; input: boolean; side: PortSide }

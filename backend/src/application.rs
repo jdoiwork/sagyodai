@@ -142,6 +142,13 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetTextDisplay { id, display } => {
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Text {
+                    return Err("テキスト入力ノードではありません。".into());
+                }
+                table.text_display = display;
+            }
             Command::SetNote {
                 id,
                 text,

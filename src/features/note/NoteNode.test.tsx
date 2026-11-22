@@ -91,11 +91,24 @@ it("テキスト表示は記号・改行・空白を保持し、出力を変更�
   };
   const ui = render(<NoteNode {...node} />);
   fireEvent.click(ui.getByRole("button", { name: /^テキスト$/ }));
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "setTextDisplay",
+    id: "memo",
+    display: "plain",
+  });
+  node.data.table = { ...node.data.table, textDisplay: "plain" };
+  ui.rerender(<NoteNode {...node} />);
   expect(ui.container.querySelector("pre")?.textContent).toBe(text);
   expect(ui.container.querySelector("script")).toBeNull();
   expect(ui.queryByRole("heading", { name: "見出し" })).toBeNull();
   fireEvent.click(ui.getByRole("button", { name: "Markdown" }));
+  expect(dispatch).toHaveBeenLastCalledWith({
+    type: "setTextDisplay",
+    id: "memo",
+    display: "markdown",
+  });
+  node.data.table = { ...node.data.table, textDisplay: "markdown" };
+  ui.rerender(<NoteNode {...node} />);
   expect(ui.getByRole("heading", { name: "見出し" })).toBeTruthy();
   expect(ui.container.querySelector("pre")).toBeNull();
-  expect(dispatch).not.toHaveBeenCalled();
 });
