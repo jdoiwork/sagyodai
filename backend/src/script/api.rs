@@ -71,15 +71,20 @@ fn key(snapshot: &Snapshot, id: &str) -> Result<(String, Config, Vec<u8>), Strin
         .config
         .clone();
     config.validate()?;
-    let s = snapshot
-        .tables
-        .iter()
-        .find(|s| Some(&s.id) == t.source.as_ref())
-        .ok_or("入力が未接続です。")?;
-    if s.stale || s.error.is_some() {
-        return Err("入力が更新待ちです。".into());
-    }
-    let input = encode(s)?;
+    // 未接続は生成用スクリプトとして実行し、空の標準入力をEOFで閉じる。
+    let input = if let Some(source) = &t.source {
+        let s = snapshot
+            .tables
+            .iter()
+            .find(|s| &s.id == source)
+            .ok_or("入力ノードがありません。")?;
+        if s.stale || s.error.is_some() {
+            return Err("入力が更新待ちです。".into());
+        }
+        encode(s)?
+    } else {
+        Vec::new()
+    };
     let info = serde_json::to_vec(&(t.source.as_ref(), t.manual, &config, digest(&input)))
         .map_err(|e| e.to_string())?;
     Ok((digest(&info), config, input))

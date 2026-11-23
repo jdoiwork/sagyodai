@@ -362,3 +362,48 @@ async fn input_column_reorder_does_not_remap_script_output_columns() {
     assert!(response.is_err());
     assert_eq!(f.snapshot().revision, before.revision);
 }
+
+#[tokio::test]
+async fn source_free_execution_propagates_restores_and_keeps_cache_on_failure() {
+    let f = Fixture::new(
+        "import sys,json\nassert sys.stdin.read() == ''\nprint(json.dumps({'format':'sagyodai-table','version':1,'columns':['generated']}))\nprint(json.dumps(['hello']))\n",
+    );
+    f.setup().await;
+    f.edit(Command::Connect {
+        id: "table-2".into(),
+        source: None,
+    })
+    .await;
+    assert!(f.snapshot().tables[1].error.is_none());
+    f.start(false).await;
+    assert_eq!(f.wait().await["state"], "succeeded");
+    let s = f.snapshot();
+    assert_eq!(s.tables[1].rows, vec![vec!["hello"]]);
+    assert_eq!(s.tables[1].rows, s.tables[2].rows);
+    assert!(!s.tables[1].stale);
+    let restored = f.shared.autosave.load().unwrap().unwrap().snapshot();
+    assert_eq!(restored.tables[1].rows, s.tables[1].rows);
+    assert!(!restored.tables[1].stale);
+    std::fs::write(&f.config.script_path, "import sys;sys.exit(7)").unwrap();
+    f.start(false).await;
+    assert_eq!(f.wait().await["state"], "failed");
+    assert_eq!(f.snapshot().tables[1].rows, s.tables[1].rows);
+}
+
+#[tokio::test]
+async fn connecting_or_disconnecting_during_execution_discards_result() {
+    let f = Fixture::new(
+        "import sys,time,json\nsys.stdin.read()\ntime.sleep(.2)\nprint(json.dumps({'format':'sagyodai-table','version':1,'columns':['generated']}))\nprint(json.dumps(['old']))\n",
+    );
+    f.setup().await;
+    for source in [None, Some("table-1".into())] {
+        f.start(false).await;
+        f.edit(Command::Connect {
+            id: "table-2".into(),
+            source,
+        })
+        .await;
+        assert_eq!(f.wait().await["state"], "discarded");
+        assert!(f.snapshot().tables[1].rows.is_empty());
+    }
+}

@@ -126,7 +126,7 @@ export function ScriptSettings({ table }: { table: TableData }) {
                 })
               }
             >
-              <option value="">未接続</option>
+              <option value="">入力なし（標準入力は空）</option>
               {project?.tables
                 .filter((t) => t.id !== table.id)
                 .map((t) => (

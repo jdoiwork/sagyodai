@@ -197,10 +197,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             if changed {
                 node.error = None;
             }
-            if inputs.is_empty() {
-                node.stale = true;
-                node.error = Some("入力が未接続です。".into());
-            } else if inputs.iter().any(|s| s.stale || s.error.is_some()) {
+            if inputs.iter().any(|s| s.stale || s.error.is_some()) {
                 node.stale = true;
             }
             continue;

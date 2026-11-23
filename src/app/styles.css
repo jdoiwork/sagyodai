@@ -1951,6 +1951,7 @@ button.action-danger:hover {
 }
 
 .script-settings {
+  cursor: default;
   padding: 10px;
   overflow: auto;
   min-height: 0;
@@ -2105,4 +2106,13 @@ button.action-danger:hover {
 .path-icon .action-icon {
   width: 22px;
   height: 22px;
+}
+
+.script-settings summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.script-settings pre {
+  cursor: text;
+  user-select: text;
 }
