@@ -93,6 +93,8 @@ export const replacementSchema = z.object({
 });
 export type Replacement = z.infer<typeof replacementSchema>;
 export const scriptConfigSchema = z.object({
+  inputRowFormat: z.enum(["list", "dict"]).default("list"),
+  outputRowFormat: z.enum(["list", "dict"]).default("list"),
   outputMode: z.enum(["table", "text"]).default("table"),
   program: z.string(),
   scriptPath: z.string(),

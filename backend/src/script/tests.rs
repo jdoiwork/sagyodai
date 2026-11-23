@@ -36,6 +36,8 @@ impl Fixture {
             args: vec![],
             timeout_seconds: 3,
             output_mode: OutputMode::Table,
+            input_row_format: RowFormat::List,
+            output_row_format: RowFormat::List,
         };
         let shared = SharedProject {
             project: Arc::new(Mutex::new(Project::default())),
@@ -139,17 +141,17 @@ const ECHO: &str = "import sys\ndata=sys.stdin.buffer.read()\nprint('日本語�
 #[test]
 fn protocol_preserves_strings_empty_results_and_rejects_invalid_output() {
     let t = crate::domain::sample_table("t".into(), 0);
-    let d = decode(&encode(&t).unwrap()).unwrap();
+    let d = decode(&encode(&t, RowFormat::List).unwrap(), RowFormat::List).unwrap();
     assert_eq!(d.rows, t.rows);
     let header = b"{\"format\":\"sagyodai-table\",\"version\":1,\"columns\":[\"a\"]}\n";
-    assert!(decode(header).unwrap().rows.is_empty());
+    assert!(decode(header, RowFormat::List).unwrap().rows.is_empty());
     for suffix in ["[1]\n", "[null]\n", "[\"a\",\"b\"]\n", "debug\n", "\n"] {
         let mut bytes = header.to_vec();
         bytes.extend_from_slice(suffix.as_bytes());
-        assert!(decode(&bytes).is_err());
+        assert!(decode(&bytes, RowFormat::List).is_err());
     }
-    assert!(decode(b"not json").is_err());
-    assert!(decode(&vec![b' '; MAX_BYTES + 1]).is_err());
+    assert!(decode(b"not json", RowFormat::List).is_err());
+    assert!(decode(&vec![b' '; MAX_BYTES + 1], RowFormat::List).is_err());
 }
 #[tokio::test]
 async fn success_propagates_logs_restores_and_shares_undo() {
@@ -443,9 +445,21 @@ async fn text_output_preserves_whitespace_restores_and_switches_modes() {
     f.start(false).await;
     assert_eq!(f.wait().await["state"], "failed");
     assert_eq!(f.snapshot().tables[1].rows, rows);
-    assert!(decode_output(&[], OutputMode::Text).unwrap().rows == vec![vec![""]]);
-    assert!(decode_output(&[255], OutputMode::Text).is_err());
-    assert!(decode_output(&vec![b'x'; MAX_BYTES + 1], OutputMode::Text).is_err());
+    assert!(
+        decode_output(&[], OutputMode::Text, RowFormat::List)
+            .unwrap()
+            .rows
+            == vec![vec![""]]
+    );
+    assert!(decode_output(&[255], OutputMode::Text, RowFormat::List).is_err());
+    assert!(
+        decode_output(
+            &vec![b'x'; MAX_BYTES + 1],
+            OutputMode::Text,
+            RowFormat::List
+        )
+        .is_err()
+    );
 }
 
 #[tokio::test]
@@ -468,4 +482,79 @@ async fn output_mode_change_discards_running_output_and_revokes_permission() {
     f.start(false).await;
     assert_eq!(f.wait().await["state"], "succeeded");
     assert_eq!(f.snapshot().tables[1].rows, vec![vec!["text result\n"]]);
+}
+
+#[test]
+fn dict_rows_validate_keys_types_and_column_order() {
+    let header = "{\"format\":\"sagyodai-table\",\"version\":1,\"columns\":[\"名前\",\"数量\"]}\n";
+    let valid = format!("{header}{{\"数量\":\"2\",\"名前\":\"りんご\"}}\n");
+    assert_eq!(
+        decode(valid.as_bytes(), RowFormat::Dict).unwrap().rows,
+        vec![vec!["りんご", "2"]]
+    );
+    assert!(
+        decode(header.as_bytes(), RowFormat::Dict)
+            .unwrap()
+            .rows
+            .is_empty()
+    );
+    for row in [
+        r#"["りんご","2"]"#,
+        r#"{"名前":"a"}"#,
+        r#"{"名前":"a","数量":"2","extra":"x"}"#,
+        r#"{"名前":"a","数量":2}"#,
+        r#"{"名前":"a","数量":null}"#,
+        r#"{"名前":"a","名前":"b","数量":"2"}"#,
+    ] {
+        assert!(
+            decode(format!("{header}{row}\n").as_bytes(), RowFormat::Dict).is_err(),
+            "{row}"
+        );
+    }
+    assert!(decode(valid.as_bytes(), RowFormat::List).is_err());
+    let mut t = crate::domain::sample_table("t".into(), 0);
+    t.columns = vec!["同名".into(), "同名".into()];
+    t.rows = vec![vec!["a".into(), "b".into()]];
+    assert!(encode(&t, RowFormat::Dict).is_err());
+    let list = encode(&t, RowFormat::List).unwrap();
+    assert!(decode(&list, RowFormat::Dict).is_err());
+    assert!(decode(&list, RowFormat::List).is_ok());
+}
+
+#[tokio::test]
+async fn list_and_dict_can_be_selected_independently_and_restored() {
+    for input in [RowFormat::List, RowFormat::Dict] {
+        for output in [RowFormat::List, RowFormat::Dict] {
+            let code = format!(
+                "import sys,json\nh=json.loads(sys.stdin.readline())\nprint(json.dumps(h))\nfor line in sys.stdin:\n r=json.loads(line)\n assert isinstance(r,{})\n values=[r[c] for c in h['columns']] if isinstance(r,dict) else r\n print(json.dumps({}))\n",
+                if input == RowFormat::Dict {
+                    "dict"
+                } else {
+                    "list"
+                },
+                if output == RowFormat::Dict {
+                    "dict(zip(h['columns'],values))"
+                } else {
+                    "values"
+                }
+            );
+            let mut f = Fixture::new(&code);
+            f.config.input_row_format = input;
+            f.config.output_row_format = output;
+            f.setup().await;
+            f.start(false).await;
+            assert_eq!(f.wait().await["state"], "succeeded");
+            let snapshot = f.snapshot();
+            assert_eq!(snapshot.tables[0].rows, snapshot.tables[2].rows);
+            let restored = f.shared.autosave.load().unwrap().unwrap().snapshot();
+            assert_eq!(restored.tables[1].script.as_ref().unwrap().config, f.config);
+            assert_eq!(restored.tables[1].rows, snapshot.tables[0].rows);
+            if output == RowFormat::Dict {
+                std::fs::write(&f.config.script_path,"import sys,json\nh=json.loads(sys.stdin.readline())\nsys.stdin.read()\nprint(json.dumps(h))\nprint('{}')\n").unwrap();
+                f.start(false).await;
+                assert_eq!(f.wait().await["state"], "failed");
+                assert_eq!(f.snapshot().tables[1].rows, snapshot.tables[1].rows);
+            }
+        }
+    }
 }

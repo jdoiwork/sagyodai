@@ -15,6 +15,8 @@ export function ScriptSettings({ table }: { table: TableData }) {
     cwd: "",
     timeoutSeconds: 30,
     outputMode: "table",
+    inputRowFormat: "list",
+    outputRowFormat: "list",
   };
   const [draft, setDraft] = useState(saved);
   const [original, setOriginal] = useState(saved);
@@ -205,6 +207,41 @@ export function ScriptSettings({ table }: { table: TableData }) {
               <option value="text">テキスト（UTF-8）</option>
             </select>
           </label>
+          <label>
+            入力JSONLの行形式
+            <select
+              aria-label="入力JSONLの行形式"
+              value={draft.inputRowFormat}
+              onChange={(e) =>
+                update(
+                  "inputRowFormat",
+                  e.target.value === "dict" ? "dict" : "list",
+                )
+              }
+            >
+              <option value="list">リスト（配列）</option>
+              <option value="dict">dict（列名 → 値）</option>
+            </select>
+          </label>
+          {draft.outputMode === "table" && (
+            <label>
+              出力JSONLの行形式
+              <select
+                aria-label="出力JSONLの行形式"
+                value={draft.outputRowFormat}
+                onChange={(e) =>
+                  update(
+                    "outputRowFormat",
+                    e.target.value === "dict" ? "dict" : "list",
+                  )
+                }
+              >
+                <option value="list">リスト（配列）</option>
+                <option value="dict">dict（列名 → 値）</option>
+              </select>
+            </label>
+          )}
+          <small>先頭行は列情報です。dict形式の値も文字列で指定します。</small>
           <div className="condition-actions">
             <button
               disabled={!dirty || pending > 0}

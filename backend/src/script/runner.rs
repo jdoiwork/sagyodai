@@ -120,7 +120,7 @@ pub async fn execute(
         if !status.success() {
             return Err(format!("外部プロセスが異常終了しました: {status}"));
         }
-        decode_output(&bytes, config.output_mode)
+        decode_output(&bytes, config.output_mode, config.output_row_format)
     };
     let result = tokio::select! {
         result=work=>result,

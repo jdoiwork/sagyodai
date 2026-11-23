@@ -26,6 +26,8 @@ const config = {
   cwd: "/tmp",
   timeoutSeconds: 30,
   outputMode: "table" as const,
+  inputRowFormat: "list" as const,
+  outputRowFormat: "list" as const,
 };
 const table = {
   id: "script",
@@ -59,6 +61,12 @@ it("設定編集では実行せず、他タブ更新でも日本語の下書き�
   expect(
     (ui.getByLabelText("スクリプトのパス") as HTMLInputElement).value,
   ).toBe("/tmp/日本語.py");
+  fireEvent.change(ui.getByLabelText("入力JSONLの行形式"), {
+    target: { value: "dict" },
+  });
+  fireEvent.change(ui.getByLabelText("出力JSONLの行形式"), {
+    target: { value: "dict" },
+  });
   fireEvent.change(ui.getByLabelText("出力モード"), {
     target: { value: "text" },
   });
@@ -66,7 +74,13 @@ it("設定編集では実行せず、他タブ更新でも日本語の下書き�
   expect(dispatch).toHaveBeenCalledWith({
     type: "setScript",
     id: "script",
-    config: { ...config, scriptPath: "/tmp/日本語.py", outputMode: "text" },
+    config: {
+      ...config,
+      scriptPath: "/tmp/日本語.py",
+      outputMode: "text",
+      inputRowFormat: "dict",
+      outputRowFormat: "dict",
+    },
   });
   expect(
     fetch.mock.calls.every(

@@ -81,7 +81,7 @@ fn key(snapshot: &Snapshot, id: &str) -> Result<(String, Config, Vec<u8>), Strin
         if s.stale || s.error.is_some() {
             return Err("入力が更新待ちです。".into());
         }
-        encode(s)?
+        encode(s, config.input_row_format)?
     } else {
         Vec::new()
     };
