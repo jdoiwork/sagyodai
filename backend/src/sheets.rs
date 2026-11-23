@@ -66,6 +66,65 @@ pub fn rename(sheets: &mut [Sheet], id: &str, title: &str, expected: &str) -> Re
     Ok(())
 }
 
+pub fn move_sheet(
+    sheets: &mut Vec<Sheet>,
+    id: &str,
+    target: &str,
+    after: bool,
+) -> Result<(), String> {
+    let from = sheets
+        .iter()
+        .position(|s| s.id == id)
+        .ok_or("シートが見つかりません。")?;
+    if !sheets.iter().any(|s| s.id == target) {
+        return Err("移動先のシートが見つかりません。".into());
+    }
+    if id == target {
+        return Ok(());
+    }
+    let sheet = sheets.remove(from);
+    let to = sheets
+        .iter()
+        .position(|s| s.id == target)
+        .ok_or("移動先のシートが見つかりません。")?;
+    sheets.insert(to + usize::from(after), sheet);
+    Ok(())
+}
+pub fn remove(
+    sheets: &mut Vec<Sheet>,
+    tables: &mut Vec<Table>,
+    id: &str,
+    expected: &[String],
+) -> Result<(), String> {
+    if !sheets.iter().any(|s| s.id == id) {
+        return Err("シートが見つかりません。".into());
+    }
+    if sheets.len() == 1 {
+        return Err("最後のシートは削除できません。".into());
+    }
+    let removed: HashSet<String> = tables
+        .iter()
+        .filter(|t| t.sheet_id == id)
+        .map(|t| t.id.clone())
+        .collect();
+    if removed != expected.iter().cloned().collect() {
+        return Err("シート内のノードが変更されました。削除対象を確認し直してください。".into());
+    }
+    tables.retain(|t| !removed.contains(&t.id));
+    for t in tables {
+        t.union_inputs
+            .retain(|input| !removed.contains(&input.source));
+        if t.source
+            .as_ref()
+            .is_some_and(|source| removed.contains(source))
+        {
+            t.source = None;
+        }
+    }
+    sheets.retain(|s| s.id != id);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -78,6 +137,105 @@ mod tests {
             expected_revision: p.snapshot().revision,
             command,
         })
+    }
+
+    #[test]
+    fn reorder_delete_restore_and_conflicts() {
+        let mut p = Project::default();
+        run(&mut p, Command::AddSheet).unwrap();
+        run(&mut p, Command::AddSheet).unwrap();
+        run(
+            &mut p,
+            Command::AddNode {
+                kind: Kind::Display,
+                sheet_id: Some("sheet-2".into()),
+                position: None,
+            },
+        )
+        .unwrap();
+        run(
+            &mut p,
+            Command::Connect {
+                id: "table-2".into(),
+                source: Some("table-1".into()),
+            },
+        )
+        .unwrap();
+        let good = p.snapshot().tables[1].rows.clone();
+        run(
+            &mut p,
+            Command::MoveSheet {
+                id: "sheet-3".into(),
+                target: "sheet-1".into(),
+                after: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            p.snapshot()
+                .sheets
+                .iter()
+                .map(|s| s.id.as_str())
+                .collect::<Vec<_>>(),
+            ["sheet-3", "sheet-1", "sheet-2"]
+        );
+        let before = p.export().unwrap();
+        assert!(
+            run(
+                &mut p,
+                Command::RemoveSheet {
+                    id: "sheet-1".into(),
+                    expected_nodes: vec![]
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(before, p.export().unwrap());
+        run(
+            &mut p,
+            Command::RemoveSheet {
+                id: "sheet-1".into(),
+                expected_nodes: vec!["table-1".into()],
+            },
+        )
+        .unwrap();
+        assert_eq!(p.snapshot().tables.len(), 1);
+        assert!(p.snapshot().tables[0].source.is_none());
+        assert_eq!(p.snapshot().tables[0].rows, good);
+        let restored =
+            Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0).unwrap();
+        assert_eq!(restored.snapshot().sheets[0].id, "sheet-3");
+        run(&mut p, Command::Undo).unwrap();
+        assert_eq!(p.export().unwrap(), before);
+        run(&mut p, Command::Redo).unwrap();
+        run(
+            &mut p,
+            Command::RemoveSheet {
+                id: "sheet-2".into(),
+                expected_nodes: vec!["table-2".into()],
+            },
+        )
+        .unwrap();
+        assert!(
+            Project::restore(serde_json::from_slice(&p.export().unwrap()).unwrap(), 0)
+                .unwrap()
+                .snapshot()
+                .tables
+                .is_empty()
+        );
+        assert!(
+            run(
+                &mut p,
+                Command::RemoveSheet {
+                    id: "sheet-3".into(),
+                    expected_nodes: vec![]
+                }
+            )
+            .is_err()
+        );
+        // 既定のシート1がなくても、APIからノードを追加できる。
+        run(&mut p, Command::AddTable).unwrap();
+        assert_eq!(p.snapshot().tables[0].sheet_id, "sheet-3");
     }
     #[test]
     fn sheets_share_references_updates_history_and_saved_cache() {

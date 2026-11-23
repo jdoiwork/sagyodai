@@ -56,8 +56,8 @@ pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
     }
     let file: ProjectFile =
         serde_json::from_value(value).map_err(|_| "プロジェクトファイルの構造が不正です。")?;
-    if file.tables.is_empty() || file.tables.len() > MAX_NODES {
-        return Err(format!("ノード数は1〜{MAX_NODES}個にしてください。"));
+    if file.tables.len() > MAX_NODES {
+        return Err(format!("ノード数は{MAX_NODES}個以内にしてください。"));
     }
     let mut ids = HashSet::new();
     for table in &file.tables {

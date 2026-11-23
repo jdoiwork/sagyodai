@@ -1933,3 +1933,19 @@ button.action-danger:hover {
   padding: 6px 9px;
   color: #587265;
 }
+
+.sheet-tabs .sheet-drop-before {
+  box-shadow: inset 3px 0 #259979;
+}
+.sheet-tabs .sheet-drop-after {
+  box-shadow: inset -3px 0 #259979;
+}
+.sheet-delete {
+  max-width: min(420px, calc(100vw - 40px));
+}
+.sheet-delete strong,
+.sheet-delete p {
+  width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}

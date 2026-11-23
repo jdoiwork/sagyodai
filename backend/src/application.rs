@@ -110,6 +110,13 @@ impl Project {
                 let mut sheets = self.sheets.clone();
                 match command {
                     Command::AddSheet => crate::sheets::add(&mut sheets)?,
+                    Command::MoveSheet { id, target, after } => {
+                        crate::sheets::move_sheet(&mut sheets, &id, &target, after)?
+                    }
+                    Command::RemoveSheet { id, expected_nodes } => {
+                        crate::sheets::remove(&mut sheets, &mut tables, &id, &expected_nodes)?
+                    }
+
                     Command::RenameSheet {
                         id,
                         title,
@@ -273,7 +280,11 @@ impl Project {
                     skip_empty_columns,
                 )?;
             }
-            Command::OpenProject { .. } | Command::AddSheet | Command::RenameSheet { .. } => {
+            Command::OpenProject { .. }
+            | Command::AddSheet
+            | Command::MoveSheet { .. }
+            | Command::RemoveSheet { .. }
+            | Command::RenameSheet { .. } => {
                 return Err("プロジェクト操作は共通操作から実行してください。".into());
             }
             Command::Rename {
@@ -538,7 +549,7 @@ impl Project {
                 } else {
                     (Kind::Input, None, None)
                 };
-                let sheet_id = sheet_id.unwrap_or_else(crate::sheets::default_sheet_id);
+                let sheet_id = sheet_id.unwrap_or_else(|| self.sheets[0].id.clone());
                 if !self.sheets.iter().any(|s| s.id == sheet_id) {
                     return Err("シートが見つかりません。".into());
                 }

@@ -266,6 +266,15 @@ pub enum Command {
         expected_sheet_id: String,
     },
     AddSheet,
+    MoveSheet {
+        id: String,
+        target: String,
+        after: bool,
+    },
+    RemoveSheet {
+        id: String,
+        expected_nodes: Vec<String>,
+    },
     RenameSheet {
         id: String,
         title: String,

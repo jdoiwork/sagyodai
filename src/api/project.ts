@@ -249,6 +249,8 @@ export type Command =
       expectedSheetId: string;
     }
   | { type: "addSheet" }
+  | { type: "moveSheet"; id: string; target: string; after: boolean }
+  | { type: "removeSheet"; id: string; expectedNodes: string[] }
   | { type: "renameSheet"; id: string; title: string; expectedTitle: string }
   | { type: "addTable" | "undo" | "redo" }
   | {

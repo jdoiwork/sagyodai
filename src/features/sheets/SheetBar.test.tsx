@@ -52,3 +52,38 @@ it("空のシート名を送信せず、修正した日本語名を確定する"
     expectedTitle: "入力",
   });
 });
+
+it("ドラッグの挿入位置を送り、選択シートは維持する", () => {
+  const select = vi.fn();
+  const ui = render(<SheetBar active="sheet-1" onSelect={select} />);
+  const dataTransfer = { setData: vi.fn(), effectAllowed: "", dropEffect: "" };
+  fireEvent.dragStart(ui.getByRole("tab", { name: "結果" }), { dataTransfer });
+  fireEvent.dragOver(ui.getByRole("tab", { name: "入力" }), {
+    dataTransfer,
+    clientX: 0,
+  });
+  fireEvent.drop(ui.getByRole("tab", { name: "入力" }), { dataTransfer });
+  expect(dispatch.mock.calls[0][0]).toEqual({
+    type: "moveSheet",
+    id: "sheet-2",
+    target: "sheet-1",
+    after: false,
+  });
+  expect(select).not.toHaveBeenCalled();
+});
+it("右クリックで対象を確認し、削除成功後に隣のシートを選ぶ", () => {
+  const select = vi.fn();
+  const ui = render(<SheetBar active="sheet-1" onSelect={select} />);
+  fireEvent.contextMenu(ui.getByRole("tab", { name: "入力" }));
+  expect(ui.getByRole("dialog").textContent).toContain("入力");
+  fireEvent.click(ui.getByRole("button", { name: "シートを削除" }));
+  const [command, settled] = dispatch.mock.calls[0];
+  expect(command).toEqual({
+    type: "removeSheet",
+    id: "sheet-1",
+    expectedNodes: [],
+  });
+  expect(select).not.toHaveBeenCalled();
+  settled(true);
+  expect(select).toHaveBeenCalledWith("sheet-2");
+});
