@@ -9,9 +9,10 @@
     "dev:core": "cargo run --manifest-path backend/Cargo.toml",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "check": "npm run build && npm test && cargo test --manifest-path backend/Cargo.toml && cargo clippy --manifest-path backend/Cargo.toml -- -D warnings",
+    "check": "npm run build && npm test && cargo test --manifest-path backend/Cargo.toml && cargo clippy --manifest-path backend/Cargo.toml -- -D warnings && npm run test:mcp",
     "format": "prettier --write src scripts *.ts *.json index.html && cargo fmt --manifest-path backend/Cargo.toml",
-    "format:check": "prettier --check src scripts *.ts *.json index.html && cargo fmt --manifest-path backend/Cargo.toml -- --check"
+    "format:check": "prettier --check src scripts *.ts *.json index.html && cargo fmt --manifest-path backend/Cargo.toml -- --check",
+    "test:mcp": "cargo build --manifest-path backend/Cargo.toml && node scripts/mcp-smoke.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^13.0.2",

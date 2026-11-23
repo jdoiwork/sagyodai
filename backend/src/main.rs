@@ -10,6 +10,7 @@ mod group;
 mod group_stats;
 mod http_api;
 mod http_source;
+mod mcp;
 mod note;
 mod projection;
 mod replacement;
@@ -128,6 +129,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port: u16 = std::env::var("SAGYODAI_CORE_PORT")
         .unwrap_or_else(|_| "4318".into())
         .parse()?;
+    if std::env::args().nth(1).as_deref() == Some("--mcp") {
+        return mcp::serve_stdio(port).await;
+    }
     let path = std::env::var_os("SAGYODAI_AUTOSAVE_PATH")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| {
@@ -150,6 +154,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 初期データも保存。既存の自動保存が不正なら、ここまで到達しない。
     autosave.save(&project)?;
     let app = Router::new()
+        .route("/api/mcp/project", get(mcp::api::overview))
+        .route("/api/mcp/node", post(mcp::api::node))
+        .route("/api/mcp/command", post(mcp::api::apply))
         .route("/api/project", get(snapshot))
         .route("/api/project/events", get(events))
         .route("/api/command", post(command))
