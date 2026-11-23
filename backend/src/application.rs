@@ -189,6 +189,20 @@ impl Project {
                 crate::note::validate_text(&text)?;
                 note.text = text;
             }
+            Command::SetScript { id, config } => {
+                config.validate()?;
+                let t = table_mut(tables, &id)?;
+                let script = t
+                    .script
+                    .as_mut()
+                    .ok_or("スクリプトノードではありません。")?;
+                script.config = config;
+                t.stale = true;
+                t.error = None;
+            }
+            Command::CompleteScript { id, result } => {
+                crate::script::complete(table_mut(tables, &id)?, result)?
+            }
             Command::SetReplacement { id, config } => {
                 config.validate()?;
                 let table = table_mut(tables, &id)?;
@@ -523,7 +537,9 @@ impl Project {
                 table.compact = compact;
             }
             Command::Run { id } => {
-                table_mut(tables, &id)?;
+                if table_mut(tables, &id)?.kind == Kind::Script {
+                    return Err("スクリプトは専用の実行操作から起動してください。".into());
+                }
             }
             Command::RemoveNode { id } => {
                 table_mut(tables, &id)?;
@@ -582,7 +598,9 @@ impl Project {
                     t.kind = kind;
                     t.title = format!(
                         "{} {}",
-                        if kind == Kind::Note {
+                        if kind == Kind::Script {
+                            "スクリプト"
+                        } else if kind == Kind::Note {
                             "メモ"
                         } else if kind == Kind::Replace {
                             "置換"
@@ -641,6 +659,11 @@ impl Project {
                     }
                     if matches!(kind, Kind::JsonSelect | Kind::JsonTable) {
                         t.width = 520.0;
+                    }
+                    if kind == Kind::Script {
+                        t.script = Some(Default::default());
+                        t.width = 580.0;
+                        t.height = 700.0;
                     }
                     if kind == Kind::Http {
                         t.http = Some(Default::default());

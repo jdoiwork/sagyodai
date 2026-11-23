@@ -29,6 +29,7 @@ pub struct Edit {
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum NodeKind {
+    Script,
     Input,
     Filter,
     Display,
@@ -49,6 +50,10 @@ pub struct Location {
     deny_unknown_fields
 )]
 pub enum Operation {
+    SetScript {
+        id: String,
+        config: crate::script::Config,
+    },
     /// 作成後のIDは応答のnodesで確認する。手入力表はGUIと同じサンプル入り。
     AddNode {
         kind: NodeKind,
@@ -124,12 +129,14 @@ pub enum Operation {
 impl From<Edit> for Request {
     fn from(edit: Edit) -> Self {
         let command = match edit.command {
+            Operation::SetScript { id, config } => Command::SetScript { id, config },
             Operation::AddNode {
                 kind,
                 sheet_id,
                 position,
             } => Command::AddNode {
                 kind: match kind {
+                    NodeKind::Script => Kind::Script,
                     NodeKind::Input => Kind::Input,
                     NodeKind::Filter => Kind::Filter,
                     NodeKind::Display => Kind::Display,

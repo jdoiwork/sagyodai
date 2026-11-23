@@ -66,6 +66,58 @@ impl rmcp::ServerHandler for McpBridge {}
 #[tool_router]
 impl McpBridge {
     #[tool(
+        description = "外部スクリプトを実行する。ファイル書き込み・通信などの副作用はUndoできない。expectedRevisionで確認済みの設定を指定。allowAutomatic=trueは同じ設定・スクリプトの自動実行をコア終了まで許可する。実行IDを返すのでscript_statusで結果・ログを確認する。",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = true,
+            open_world_hint = true
+        )
+    )]
+    async fn start_script(
+        &self,
+        Parameters(request): Parameters<crate::script::api::Start>,
+    ) -> CallToolResult {
+        self.request("/api/script/start", Some(json!(request)))
+            .await
+    }
+    #[tool(
+        description = "スクリプトの実行状態と上限付きログを取得する。",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
+    async fn script_status(
+        &self,
+        Parameters(request): Parameters<crate::script::api::Node>,
+    ) -> CallToolResult {
+        self.request("/api/script/status", Some(json!(request)))
+            .await
+    }
+    #[tool(
+        description = "実行IDを指定して外部スクリプトを停止し、自動実行許可も解除する。外部副作用は戻らない。",
+        annotations(
+            read_only_hint = false,
+            destructive_hint = true,
+            open_world_hint = true
+        )
+    )]
+    async fn cancel_script(
+        &self,
+        Parameters(request): Parameters<crate::script::api::Cancel>,
+    ) -> CallToolResult {
+        self.request("/api/script/cancel", Some(json!(request)))
+            .await
+    }
+    #[tool(
+        description = "設定済みスクリプトのUTF-8原文を読み取り専用で取得する（最大100000バイト）。",
+        annotations(read_only_hint = true, open_world_hint = true)
+    )]
+    async fn script_source(
+        &self,
+        Parameters(request): Parameters<crate::script::api::Node>,
+    ) -> CallToolResult {
+        self.request("/api/script/source", Some(json!(request)))
+            .await
+    }
+    #[tool(
         description = "起動中の作業台のrevision、シート、ノードID・接続・件数・更新状態・Undo可否を取得。セルデータはget_nodeで部分取得する。",
         annotations(
             read_only_hint = true,
@@ -90,12 +142,12 @@ impl McpBridge {
     }
 
     #[tool(
-        description = "共通操作APIで1操作を実行し自動保存・画面同期する。expectedRevisionは直前に観測したrevisionを指定。手入力表(input)・フィルタ(filter)・結果表(display)を追加可能。手入力表にはサンプルが入るため必要に応じ置換・行削除する。Undo/RedoはGUIを含むプロジェクト共通。失敗時は再取得して判断し、盲目的に再試行しない。HTTP取得・外部スクリプト・ファイル書き出しは公開しない。",
+        description = "共通操作APIで1操作を実行し自動保存・画面同期する。expectedRevisionは直前に観測したrevisionを指定。手入力表(input)・フィルタ(filter)・結果表(display)・スクリプト(script)を追加可能。手入力表にはサンプルが入るため必要に応じ置換・行削除する。Undo/RedoはGUIを含むプロジェクト共通。失敗時は再取得して判断し、盲目的に再試行しない。外部スクリプトの明示実行はstart_scriptを使う。許可済み自動スクリプトは入力の変更に応じて実行される。HTTP取得・ファイル書き出しは公開しない。",
         annotations(
             read_only_hint = false,
             destructive_hint = true,
             idempotent_hint = false,
-            open_world_hint = false
+            open_world_hint = true
         )
     )]
     async fn apply_operation(&self, Parameters(edit): Parameters<Edit>) -> CallToolResult {

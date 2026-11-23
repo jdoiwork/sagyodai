@@ -245,6 +245,7 @@ async fn delayed_response_never_overwrites_new_request_or_edited_project() {
         autosave: Arc::new(autosave::Autosave::open(dir.join("project.json")).unwrap()),
         changes: tokio::sync::watch::channel(1).0,
         http_runs: Default::default(),
+        scripts: Default::default(),
     };
     let request = |path: &str, rev| Request {
         expected_revision: rev,

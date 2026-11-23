@@ -89,6 +89,7 @@ pub async fn node(
         "revision": snapshot.revision, "id": table.id, "kind": table.kind,
         "title": table.title, "sheetId": table.sheet_id, "columns": table.columns,
         "source": table.source, "sources": table.sources(), "filter": table.filter,
+        "script": table.script,
         "manual": table.manual, "stale": table.stale, "error": table.error,
         "x": table.x, "y": table.y, "width": table.width, "height": table.height,
         "rowCount": table.rows.len(), "offset": read.offset, "rows": rows,

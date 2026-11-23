@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub script: Option<crate::script::Script>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub json_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub http: Option<crate::http_source::HttpSource>,
@@ -112,6 +114,7 @@ pub enum ColorTarget {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Kind {
+    Script,
     Note,
     Replace,
     Input,
@@ -172,6 +175,15 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetScript {
+        id: String,
+        config: crate::script::Config,
+    },
+    #[serde(skip_deserializing)]
+    CompleteScript {
+        id: String,
+        result: Result<crate::script::Data, String>,
+    },
     SetTextDisplay {
         id: String,
         display: crate::text_source::TextDisplay,
@@ -451,6 +463,7 @@ pub struct Request {
 
 pub fn sample_table(id: String, index: usize) -> Table {
     Table {
+        script: None,
         replacement: None,
         input_side: None,
         output_side: None,

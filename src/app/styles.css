@@ -1949,3 +1949,47 @@ button.action-danger:hover {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.script-settings {
+  padding: 10px;
+  overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.script-settings label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.script-settings input:not([type="checkbox"]),
+.script-settings textarea,
+.script-settings select {
+  flex: 1;
+  min-width: 0;
+}
+.script-settings textarea {
+  min-height: 44px;
+}
+.script-settings pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+}
+.script-settings input:not([type="checkbox"]),
+.script-settings textarea,
+.script-settings select {
+  background: #fff;
+  color: #263c34;
+  border: 1px solid #d5dfd8;
+  border-radius: 5px;
+  padding: 5px 7px;
+  font: inherit;
+}
+.script-settings input[type="checkbox"] {
+  accent-color: #34856a;
+  color-scheme: light;
+}

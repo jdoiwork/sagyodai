@@ -42,6 +42,7 @@ async fn harness() -> Harness {
         autosave,
         changes: tokio::sync::watch::channel(0).0,
         http_runs: Default::default(),
+        scripts: Default::default(),
     };
     let router = Router::new()
         .route("/api/mcp/project", get(api::overview))

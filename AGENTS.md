@@ -8,7 +8,7 @@
 
 - 合意した要件、設計案、未決定事項を区別する。候補技術を採用済みと扱わない。
 - 中核は Rust、画面の言語は TypeScript とする。キャンバス試作では React・React Flow・Vite と、ローカル接続用の axum を使用する。MCP の stdio アダプタには rmcp を使用する。Tauri、Glide Data Grid、Polars、SQLite の採用は未確定。
-- 起動と検証は [README](README.md)、現状と次段階への引き継ぎは [試作の到達点](docs/prototype-review.md)、操作・検証記録は [キャンバス試作](docs/canvas-prototype.md) を参照する。2026-11-24に今回の試作は一区切りとしたが、外部スクリプト・MCPを含む初期目標の完了を意味しない。次段階として[MCPの基本操作](docs/mcp.md)を追加済み。その他の次段階の範囲は未決定。保存仕様は [プロジェクトファイル](docs/project-files.md) を参照する。
+- 起動と検証は [README](README.md)、現状と次段階への引き継ぎは [試作の到達点](docs/prototype-review.md)、操作・検証記録は [キャンバス試作](docs/canvas-prototype.md) を参照する。2026-11-24に今回の試作は一区切りとしたが、外部スクリプト・MCPを含む初期目標の完了を意味しない。次段階として[MCPの基本操作](docs/mcp.md)と[外部スクリプトの文字列表加工](docs/external-scripts.md)を追加済み。その他の次段階の範囲は未決定。保存仕様は [プロジェクトファイル](docs/project-files.md) を参照する。
 - ユーザーの最新の指示を優先し、仕様が変更された場合は関連ドキュメントも整合させる。
 - 設計相談やドキュメント作成の依頼を、実装開始の依頼と解釈しない。
 - 初期対象外の機能を、必要性のないまま実装範囲へ追加しない。

@@ -8,6 +8,7 @@ const sourceChoices = [
   { kind: "note", label: "メモ", icon: "note" },
 ] as const;
 const processingChoices = [
+  { kind: "script", label: "スクリプト", icon: "note" },
   { kind: "filter", label: "フィルタ", icon: "filter" },
   { kind: "sort", label: "ソート", icon: "sort" },
   { kind: "union", label: "結合", icon: "union" },

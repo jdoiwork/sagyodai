@@ -92,7 +92,16 @@ export const replacementSchema = z.object({
   columnName: z.string().default(""),
 });
 export type Replacement = z.infer<typeof replacementSchema>;
+export const scriptConfigSchema = z.object({
+  program: z.string(),
+  scriptPath: z.string(),
+  args: z.array(z.string()),
+  cwd: z.string(),
+  timeoutSeconds: z.number().int().min(1).max(3600),
+});
+export type ScriptConfig = z.infer<typeof scriptConfigSchema>;
 const tableSchema = z.object({
+  script: z.object({ config: scriptConfigSchema }).optional(),
   note: z.object({ text: z.string() }).nullable().optional(),
   replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
@@ -160,6 +169,7 @@ const tableSchema = z.object({
     "csv",
     "text",
     "http",
+    "script",
     "filter",
     "display",
     "textDisplay",
@@ -200,6 +210,7 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | { type: "setScript"; id: string; config: ScriptConfig }
   | { type: "setTextDisplay"; id: string; display: "markdown" | "plain" }
   | { type: "setNote"; id: string; text: string; expectedText: string }
   | { type: "setReplacement"; id: string; config: Replacement }
@@ -261,6 +272,7 @@ export type Command =
         | "csv"
         | "text"
         | "http"
+        | "script"
         | "filter"
         | "display"
         | "textDisplay"

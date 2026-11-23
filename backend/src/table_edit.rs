@@ -72,7 +72,8 @@ pub fn remove_column(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
-        if (tables[n].kind == Kind::Aggregate || tables[n].projection.is_some())
+        if (matches!(tables[n].kind, Kind::Aggregate | Kind::Script)
+            || tables[n].projection.is_some())
             && tables[n]
                 .source
                 .as_ref()
@@ -189,7 +190,8 @@ pub fn move_columns(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
-        if (tables[n].kind == Kind::Aggregate || tables[n].projection.is_some())
+        if (matches!(tables[n].kind, Kind::Aggregate | Kind::Script)
+            || tables[n].projection.is_some())
             && tables[n]
                 .source
                 .as_ref()
@@ -343,7 +345,8 @@ pub fn insert(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
-        if (tables[n].kind == Kind::Aggregate || tables[n].projection.is_some())
+        if (matches!(tables[n].kind, Kind::Aggregate | Kind::Script)
+            || tables[n].projection.is_some())
             && tables[n]
                 .source
                 .as_ref()

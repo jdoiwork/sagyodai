@@ -14,6 +14,7 @@ mod mcp;
 mod note;
 mod projection;
 mod replacement;
+mod script;
 #[cfg(test)]
 mod sheet_move_tests;
 mod sheets;
@@ -43,6 +44,7 @@ struct SharedProject {
     project: Arc<Mutex<Project>>,
     autosave: Arc<autosave::Autosave>,
     changes: tokio::sync::watch::Sender<u64>,
+    scripts: Arc<Mutex<script::api::Runs>>,
     http_runs: Arc<Mutex<std::collections::HashMap<String, u64>>>,
 }
 type ApiError = (StatusCode, Json<serde_json::Value>);
@@ -65,6 +67,10 @@ async fn command(
     State(project): State<SharedProject>,
     Json(mut request): Json<Request>,
 ) -> Result<Json<Snapshot>, ApiError> {
+    let reset_scripts = matches!(
+        &request.command,
+        domain::Command::Undo | domain::Command::Redo | domain::Command::OpenProject { .. }
+    );
     let http_run = http_api::prepare(&project, &mut request).await?;
     let mut state = project
         .project
@@ -80,6 +86,10 @@ async fn command(
         ));
     }
     let next = project.autosave.apply(&mut state, request).map_err(error)?;
+    if reset_scripts {
+        script::api::reset_permissions(&project);
+    }
+    script::api::invalidate(&project, &next);
     project.changes.send_replace(next.revision);
     Ok(Json(next))
 }
@@ -153,7 +163,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     // 初期データも保存。既存の自動保存が不正なら、ここまで到達しない。
     autosave.save(&project)?;
+    let shared = SharedProject {
+        changes: tokio::sync::watch::channel(project.snapshot().revision).0,
+        http_runs: Default::default(),
+        scripts: Default::default(),
+        project: Arc::new(Mutex::new(project)),
+        autosave,
+    };
+    script::api::start_scheduler(shared.clone());
     let app = Router::new()
+        .route("/api/script/start", post(script::api::start))
+        .route("/api/script/status", post(script::api::status))
+        .route("/api/script/cancel", post(script::api::cancel))
+        .route("/api/script/source", post(script::api::source))
         .route("/api/mcp/project", get(mcp::api::overview))
         .route("/api/mcp/node", post(mcp::api::node))
         .route("/api/mcp/command", post(mcp::api::apply))
@@ -162,15 +184,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/command", post(command))
         .route("/api/project/export", get(export))
         .layer(DefaultBodyLimit::max(storage::MAX_FILE_BYTES + 1024))
-        .with_state(SharedProject {
-            changes: tokio::sync::watch::channel(project.snapshot().revision).0,
-            http_runs: Default::default(),
-            project: Arc::new(Mutex::new(project)),
-            autosave,
-        });
+        .with_state(shared.clone());
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     println!("作業台の試作コア: http://127.0.0.1:{port}");
-    axum::serve(listener, app).await?;
+    // SSE接続の終了待ちで停止が永久に止まらないよう、子プロセス回収後に接続を閉じる。
+    tokio::select! {
+        result = async { axum::serve(listener, app).await } => result?,
+        _ = script::api::shutdown(shared) => {},
+    }
     Ok(())
 }
 

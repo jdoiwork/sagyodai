@@ -9,6 +9,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
         crate::csv_source::validate(t)?;
         crate::text_source::validate(t)?;
         crate::http_source::validate(t)?;
+        crate::script::validate(t)?;
         crate::json_transform::validate(t)?;
         crate::note::validate(t)?;
         if (t.kind == Kind::Replace) != t.replacement.is_some() {
@@ -170,6 +171,8 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             .collect();
         let changed = old.is_none_or(|n| {
             n.sources() != tables[i].sources()
+                || n.script.as_ref().map(|s| &s.config)
+                    != tables[i].script.as_ref().map(|s| &s.config)
                 || n.filter != tables[i].filter
                 || n.sort_keys != tables[i].sort_keys
                 || n.json_key != tables[i].json_key
@@ -189,6 +192,19 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                 })
         });
         let node = &mut tables[i];
+        if node.kind == Kind::Script {
+            node.stale |= changed;
+            if changed {
+                node.error = None;
+            }
+            if inputs.is_empty() {
+                node.stale = true;
+                node.error = Some("入力が未接続です。".into());
+            } else if inputs.iter().any(|s| s.stale || s.error.is_some()) {
+                node.stale = true;
+            }
+            continue;
+        }
         if node.manual && run != Some(node.id.as_str()) {
             node.stale |= changed;
             continue;

@@ -1,3 +1,4 @@
+import { ScriptSettings } from "../script/ScriptSettings";
 import { NoteNode } from "../note/NoteNode";
 import { CsvSettings } from "../csv/CsvSettings";
 import { useTableView } from "../table/useTableView";
@@ -66,27 +67,29 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div
             className="table-icon"
             title={
-              table.kind === "jsonSelect"
-                ? "JSONキー抽出"
-                : table.kind === "jsonTable"
-                  ? "JSONを表に変換"
-                  : table.kind === "input"
-                    ? "手入力の表"
-                    : table.kind === "text"
-                      ? "テキスト入力"
-                      : table.kind === "csv"
-                        ? "CSV入力"
-                        : table.kind === "replace"
-                          ? "置換"
-                          : table.kind === "aggregate"
-                            ? "集計"
-                            : table.kind === "sort"
-                              ? "ソート"
-                              : table.kind === "filter"
-                                ? "フィルタ"
-                                : table.kind === "union"
-                                  ? "結合"
-                                  : "結果表"
+              table.kind === "script"
+                ? "外部スクリプト"
+                : table.kind === "jsonSelect"
+                  ? "JSONキー抽出"
+                  : table.kind === "jsonTable"
+                    ? "JSONを表に変換"
+                    : table.kind === "input"
+                      ? "手入力の表"
+                      : table.kind === "text"
+                        ? "テキスト入力"
+                        : table.kind === "csv"
+                          ? "CSV入力"
+                          : table.kind === "replace"
+                            ? "置換"
+                            : table.kind === "aggregate"
+                              ? "集計"
+                              : table.kind === "sort"
+                                ? "ソート"
+                                : table.kind === "filter"
+                                  ? "フィルタ"
+                                  : table.kind === "union"
+                                    ? "結合"
+                                    : "結果表"
             }
           >
             <Icon
@@ -118,27 +121,29 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div>
             <NodeTitle table={table} />
             <span>
-              {table.kind === "jsonSelect"
-                ? "JSONの値を取り出す"
-                : table.kind === "jsonTable"
-                  ? "JSON配列を行と列に変換"
-                  : table.kind === "input"
-                    ? "入力ソース"
-                    : table.kind === "text"
-                      ? "テキストファイルの読み込み"
-                      : table.kind === "csv"
-                        ? "CSVファイルの読み込み"
-                        : table.kind === "replace"
-                          ? "文字列の加工"
-                          : table.kind === "aggregate"
-                            ? "グループ集計"
-                            : table.kind === "sort"
-                              ? "行の並べ替え"
-                              : table.kind === "filter"
-                                ? "行の絞り込み"
-                                : table.kind === "union"
-                                  ? "表の結合"
-                                  : "結果の表示"}
+              {table.kind === "script"
+                ? "別プロセスで表を加工"
+                : table.kind === "jsonSelect"
+                  ? "JSONの値を取り出す"
+                  : table.kind === "jsonTable"
+                    ? "JSON配列を行と列に変換"
+                    : table.kind === "input"
+                      ? "入力ソース"
+                      : table.kind === "text"
+                        ? "テキストファイルの読み込み"
+                        : table.kind === "csv"
+                          ? "CSVファイルの読み込み"
+                          : table.kind === "replace"
+                            ? "文字列の加工"
+                            : table.kind === "aggregate"
+                              ? "グループ集計"
+                              : table.kind === "sort"
+                                ? "行の並べ替え"
+                                : table.kind === "filter"
+                                  ? "行の絞り込み"
+                                  : table.kind === "union"
+                                    ? "表の結合"
+                                    : "結果の表示"}
             </span>
           </div>
           <button
@@ -166,7 +171,9 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
             ⠿
           </span>
         </header>
-        {table.kind === "input" && table.compact ? (
+        {table.kind === "script" ? (
+          <ScriptSettings table={table} />
+        ) : table.kind === "input" && table.compact ? (
           <div className="node-settings node-settings-compact">
             <span className="compact-condition">
               {table.rows.length} 行 × {table.columns.length} 列

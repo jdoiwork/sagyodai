@@ -96,8 +96,12 @@ try {
   const listed = await request("tools/list", {});
   assert.deepEqual(listed.result.tools.map((tool) => tool.name).sort(), [
     "apply_operation",
+    "cancel_script",
     "get_node",
     "get_project",
+    "script_source",
+    "script_status",
+    "start_script",
   ]);
   assert.ok(
     listed.result.tools.find((tool) => tool.name === "apply_operation")
@@ -137,6 +141,52 @@ try {
   assert.ok(invalid.error || invalid.result?.isError);
   const page = await call("get_node", { id: gui.tables[0].id, limit: 1 });
   assert.equal(page.structuredContent.rows[0][0], "MCPから日本語");
+  // 同じstdio接続から、設定・外部実行・ログ・結果取得まで確認する。
+  async function operation(command) {
+    const current = (await call("get_project")).structuredContent;
+    const result = await call("apply_operation", {
+      expectedRevision: current.revision,
+      command,
+    });
+    assert.notEqual(result.isError, true, JSON.stringify(result));
+    return result.structuredContent;
+  }
+  const added = await operation({ type: "addNode", kind: "script" });
+  const scriptId = added.nodes.find((node) => node.kind === "script").id;
+  await operation({ type: "connect", id: scriptId, source: gui.tables[0].id });
+  await operation({
+    type: "setScript",
+    id: scriptId,
+    config: {
+      program: "/usr/bin/python3",
+      scriptPath: fileURLToPath(
+        new URL("../examples/script-uppercase.py", import.meta.url),
+      ),
+      args: [],
+      cwd: directory,
+      timeoutSeconds: 5,
+    },
+  });
+  const source = await call("script_source", { id: scriptId });
+  assert.ok(source.structuredContent.text.includes("json.loads"));
+  const revision = (await call("get_project")).structuredContent.revision;
+  const started = await call("start_script", {
+    id: scriptId,
+    expectedRevision: revision,
+    allowAutomatic: false,
+  });
+  assert.notEqual(started.isError, true, JSON.stringify(started));
+  let run;
+  for (let n = 0; n < 100; n++) {
+    run = (await call("script_status", { id: scriptId })).structuredContent;
+    if (run.state !== "running") break;
+    await delay(30);
+  }
+  assert.equal(run.state, "succeeded", JSON.stringify(run));
+  assert.match(run.log, /行を加工しました/);
+  const output = (await call("get_node", { id: scriptId, limit: 1 }))
+    .structuredContent;
+  assert.equal(output.rows[0][0], "MCPから日本語");
   await reader.cancel();
   reader = undefined;
   await stop(core);
