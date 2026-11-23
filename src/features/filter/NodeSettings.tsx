@@ -110,7 +110,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         />
       )}
       {(table.kind === "jsonSelect" || table.kind === "jsonTable") && (
-        <JsonConditions table={table} />
+        <JsonConditions table={table} source={source} />
       )}
       {table.kind === "replace" && (
         <ReplaceConditions table={table} source={source} />

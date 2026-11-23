@@ -1899,3 +1899,37 @@ button.action-danger:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.json-key-input {
+  position: relative;
+  min-width: 0;
+}
+.json-key-popup {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  max-height: 150px;
+  overflow: auto;
+  border: 1px solid #b9cdc2;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 12px #173c2426;
+}
+.json-key-popup [role="option"] {
+  padding: 6px 9px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.json-key-popup [role="option"]:hover,
+.json-key-popup .active {
+  background: #e3f0e9;
+}
+.json-key-popup small {
+  display: block;
+  padding: 6px 9px;
+  color: #587265;
+}

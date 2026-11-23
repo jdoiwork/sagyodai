@@ -1,8 +1,15 @@
+import { JsonKeyInput } from "./JsonKeyInput";
 import { useEffect, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
-export function JsonConditions({ table }: { table: TableData }) {
+export function JsonConditions({
+  table,
+  source,
+}: {
+  table: TableData;
+  source?: TableData;
+}) {
   const { dispatch, pending } = useProject();
   const saved = table.jsonKey ?? "";
   const [key, setKey] = useState(saved);
@@ -43,21 +50,14 @@ export function JsonConditions({ table }: { table: TableData }) {
       >
         <label>
           キー名
-          <input
-            aria-label={`${table.title} キー名`}
-            aria-invalid={!!error}
+          <JsonKeyInput
+            source={source}
             value={key}
-            placeholder="chapters"
-            onChange={(e) => {
+            label={`${table.title} キー名`}
+            invalid={!!error}
+            onChange={(value) => {
               editing.current = true;
-              setKey(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (
-                e.key === "Enter" &&
-                (e.nativeEvent.isComposing || e.keyCode === 229)
-              )
-                e.preventDefault();
+              setKey(value);
             }}
           />
         </label>
