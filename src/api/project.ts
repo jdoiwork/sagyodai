@@ -93,6 +93,7 @@ export const replacementSchema = z.object({
 });
 export type Replacement = z.infer<typeof replacementSchema>;
 export const scriptConfigSchema = z.object({
+  outputMode: z.enum(["table", "text"]).default("table"),
   program: z.string(),
   scriptPath: z.string(),
   args: z.array(z.string()),

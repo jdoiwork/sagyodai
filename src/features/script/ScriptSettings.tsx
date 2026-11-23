@@ -8,12 +8,13 @@ import { createsCycle } from "../../validation/input";
 import { scriptRequest, runSchema, type ScriptRun } from "./api";
 export function ScriptSettings({ table }: { table: TableData }) {
   const { project, dispatch, pending } = useProject();
-  const saved = table.script?.config ?? {
+  const saved: ScriptConfig = table.script?.config ?? {
     program: "",
     scriptPath: "",
     args: [],
     cwd: "",
     timeoutSeconds: 30,
+    outputMode: "table",
   };
   const [draft, setDraft] = useState(saved);
   const [original, setOriginal] = useState(saved);
@@ -188,6 +189,22 @@ export function ScriptSettings({ table }: { table: TableData }) {
               onChange={(e) => update("timeoutSeconds", Number(e.target.value))}
             />
           </label>
+          <label>
+            出力モード
+            <select
+              aria-label="出力モード"
+              value={draft.outputMode}
+              onChange={(e) =>
+                update(
+                  "outputMode",
+                  e.target.value === "text" ? "text" : "table",
+                )
+              }
+            >
+              <option value="table">表（JSON Lines）</option>
+              <option value="text">テキスト（UTF-8）</option>
+            </select>
+          </label>
           <div className="condition-actions">
             <button
               disabled={!dirty || pending > 0}
@@ -261,6 +278,16 @@ export function ScriptSettings({ table }: { table: TableData }) {
               削除
             </button>
           </div>
+          {table.columns.length === 1 &&
+            table.columns[0] === "本文" &&
+            table.rows.length === 1 && (
+              <details>
+                <summary>
+                  出力プレビュー{table.stale ? "（前回の結果）" : ""}
+                </summary>
+                <pre>{table.rows[0][0] || "（空の出力）"}</pre>
+              </details>
+            )}
           {source && (
             <details open>
               <summary>スクリプト（読み取り専用）</summary>

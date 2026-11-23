@@ -25,6 +25,7 @@ const config = {
   args: [],
   cwd: "/tmp",
   timeoutSeconds: 30,
+  outputMode: "table" as const,
 };
 const table = {
   id: "script",
@@ -58,11 +59,14 @@ it("設定編集では実行せず、他タブ更新でも日本語の下書き�
   expect(
     (ui.getByLabelText("スクリプトのパス") as HTMLInputElement).value,
   ).toBe("/tmp/日本語.py");
+  fireEvent.change(ui.getByLabelText("出力モード"), {
+    target: { value: "text" },
+  });
   fireEvent.click(ui.getByRole("button", { name: "設定を適用" }));
   expect(dispatch).toHaveBeenCalledWith({
     type: "setScript",
     id: "script",
-    config: { ...config, scriptPath: "/tmp/日本語.py" },
+    config: { ...config, scriptPath: "/tmp/日本語.py", outputMode: "text" },
   });
   expect(
     fetch.mock.calls.every(

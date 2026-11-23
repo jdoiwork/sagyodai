@@ -8,6 +8,14 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum OutputMode {
+    #[default]
+    Table,
+    Text,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
@@ -16,6 +24,8 @@ pub struct Config {
     pub args: Vec<String>,
     pub cwd: String,
     pub timeout_seconds: u64,
+    #[serde(default)]
+    pub output_mode: OutputMode,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -25,6 +35,7 @@ impl Default for Config {
             args: vec![],
             cwd: String::new(),
             timeout_seconds: 30,
+            output_mode: OutputMode::Table,
         }
     }
 }
@@ -124,6 +135,20 @@ pub fn decode(bytes: &[u8]) -> Result<Data, String> {
     Ok(Data {
         columns: header.columns,
         rows,
+    })
+}
+pub fn decode_output(bytes: &[u8], mode: OutputMode) -> Result<Data, String> {
+    if mode == OutputMode::Table {
+        return decode(bytes);
+    }
+    if bytes.len() > MAX_BYTES {
+        return Err("スクリプト出力は10 MiB以内です。".into());
+    }
+    let text = std::str::from_utf8(bytes).map_err(|_| "出力がUTF-8ではありません。")?;
+    // 改行・空白・空出力をそのまま保持し、既存の結果テキストへ渡せる1セルにする。
+    Ok(Data {
+        columns: vec!["本文".into()],
+        rows: vec![vec![text.into()]],
     })
 }
 pub fn validate(t: &Table) -> Result<(), String> {

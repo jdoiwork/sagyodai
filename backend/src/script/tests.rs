@@ -35,6 +35,7 @@ impl Fixture {
             cwd: dir.to_string_lossy().into(),
             args: vec![],
             timeout_seconds: 3,
+            output_mode: OutputMode::Table,
         };
         let shared = SharedProject {
             project: Arc::new(Mutex::new(Project::default())),
@@ -406,4 +407,65 @@ async fn connecting_or_disconnecting_during_execution_discards_result() {
         assert_eq!(f.wait().await["state"], "discarded");
         assert!(f.snapshot().tables[1].rows.is_empty());
     }
+}
+
+#[tokio::test]
+async fn text_output_preserves_whitespace_restores_and_switches_modes() {
+    let mut f = Fixture::new("import sys\nsys.stdout.write(' 日本語\\r\\n\\n末尾\\n')\n");
+    f.config.output_mode = OutputMode::Text;
+    f.setup().await;
+    f.edit(Command::Connect {
+        id: "table-2".into(),
+        source: None,
+    })
+    .await;
+    f.start(false).await;
+    assert_eq!(f.wait().await["state"], "succeeded");
+    let rows = vec![vec![" 日本語\r\n\n末尾\n".to_string()]];
+    assert_eq!(f.snapshot().tables[2].rows, rows);
+    let restored = f.shared.autosave.load().unwrap().unwrap().snapshot();
+    assert_eq!(restored.tables[1].rows, rows);
+    assert_eq!(
+        restored.tables[1]
+            .script
+            .as_ref()
+            .unwrap()
+            .config
+            .output_mode,
+        OutputMode::Text
+    );
+    f.config.output_mode = OutputMode::Table;
+    f.edit(Command::SetScript {
+        id: "table-2".into(),
+        config: f.config.clone(),
+    })
+    .await;
+    f.start(false).await;
+    assert_eq!(f.wait().await["state"], "failed");
+    assert_eq!(f.snapshot().tables[1].rows, rows);
+    assert!(decode_output(&[], OutputMode::Text).unwrap().rows == vec![vec![""]]);
+    assert!(decode_output(&[255], OutputMode::Text).is_err());
+    assert!(decode_output(&vec![b'x'; MAX_BYTES + 1], OutputMode::Text).is_err());
+}
+
+#[tokio::test]
+async fn output_mode_change_discards_running_output_and_revokes_permission() {
+    let f =
+        Fixture::new("import sys,time\nsys.stdin.read()\ntime.sleep(.2)\nprint('text result')\n");
+    f.setup().await;
+    f.start(true).await;
+    let mut config = f.config.clone();
+    config.output_mode = OutputMode::Text;
+    f.edit(Command::SetScript {
+        id: "table-2".into(),
+        config,
+    })
+    .await;
+    let status = f.wait().await;
+    assert_eq!(status["state"], "discarded");
+    assert_eq!(status["automaticAllowed"], false);
+    assert!(f.snapshot().tables[1].rows.is_empty());
+    f.start(false).await;
+    assert_eq!(f.wait().await["state"], "succeeded");
+    assert_eq!(f.snapshot().tables[1].rows, vec![vec!["text result\n"]]);
 }

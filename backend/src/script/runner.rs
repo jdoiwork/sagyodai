@@ -1,5 +1,5 @@
 //! パイプを並行処理し、停止時にはプロセスグループを終了・回収する。
-use super::{Config, Data, MAX_BYTES, decode};
+use super::{Config, Data, MAX_BYTES, decode_output};
 use std::{
     process::Stdio,
     sync::{Arc, Mutex},
@@ -120,7 +120,7 @@ pub async fn execute(
         if !status.success() {
             return Err(format!("外部プロセスが異常終了しました: {status}"));
         }
-        decode(&bytes)
+        decode_output(&bytes, config.output_mode)
     };
     let result = tokio::select! {
         result=work=>result,
