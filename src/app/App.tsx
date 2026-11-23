@@ -1,3 +1,4 @@
+import { ZoomToolbar } from "../features/canvas/ZoomToolbar";
 import { AddNodeMenu } from "../features/canvas/AddNodeMenu";
 import { NodeNavigation } from "../features/canvas/NodeActions";
 import { nodeSize } from "../features/canvas/layout";
@@ -10,14 +11,13 @@ import { createsCycle, MAX_NODES } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
-  useViewport,
 } from "@xyflow/react";
 import { useProject } from "./ProjectContext";
 import { TableNode } from "../features/canvas/TableNode";
@@ -35,9 +35,29 @@ function Canvas() {
   const activeSheet = sheetsOf(project).some((s) => s.id === selectedSheet)
     ? selectedSheet
     : sheetsOf(project)[0].id;
-  const visibleTables =
-    project?.tables.filter((t) => sheetOf(t) === activeSheet) ?? [];
-  const visibleIds = new Set(visibleTables.map((t) => t.id));
+  const visibleTables = useMemo(
+    () => project?.tables.filter((t) => sheetOf(t) === activeSheet) ?? [],
+    [project, activeSheet],
+  );
+  const visibleIds = useMemo(
+    () => new Set(visibleTables.map((t) => t.id)),
+    [visibleTables],
+  );
+  const flowNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        const visible = visibleIds.has(node.id);
+        return {
+          ...node,
+          selected: visible && node.selected,
+          draggable: visible,
+          selectable: visible,
+          style: { ...node.style, display: visible ? undefined : "none" },
+        };
+      }),
+    [nodes, visibleIds],
+  );
+
   const [edgeMenu, setEdgeMenu] = useState<{
     x: number;
     y: number;
@@ -48,9 +68,7 @@ function Canvas() {
   const connectionFromInput = useRef(false);
   const [connectionColor, setConnectionColor] = useState<string>();
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
-  const { zoomTo, fitView, screenToFlowPosition, getViewport, setViewport } =
-    useReactFlow();
-  const { zoom } = useViewport();
+  const { screenToFlowPosition, getViewport, setViewport } = useReactFlow();
   const viewports = useRef(
     new Map<string, { x: number; y: number; zoom: number }>(),
   );
@@ -121,6 +139,7 @@ function Canvas() {
       project.tables.length >= MAX_NODES
     )
       return;
+    const { zoom } = getViewport();
     const rect = canvas.current.getBoundingClientRect();
     const guideRect = guide.current?.getBoundingClientRect();
     const right = guideRect?.width ? guideRect.left - 16 : rect.right - 24;
@@ -250,17 +269,8 @@ function Canvas() {
           )}
         <main ref={canvas} className="canvas-shell">
           <ReactFlow
-            // 非表示シートの入力途中の値を保持するため、ノードをアンマウントしない。
-            nodes={nodes.map((node) => ({
-              ...node,
-              selected: visibleIds.has(node.id) && node.selected,
-              draggable: visibleIds.has(node.id),
-              selectable: visibleIds.has(node.id),
-              style: {
-                ...node.style,
-                visibility: visibleIds.has(node.id) ? "visible" : "hidden",
-              },
-            }))}
+            // 下書きのためマウントを維持し、別シートはdisplay:noneで描画対象から外す。
+            nodes={flowNodes}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             deleteKeyCode={null}
@@ -517,40 +527,7 @@ function Canvas() {
           {!project && !error && (
             <div className="loading">キャンバスを準備しています…</div>
           )}
-          <div className="zoom-toolbar">
-            <button
-              aria-label="縮小"
-              onClick={() => zoomTo(Math.max(0.4, zoom - 0.1))}
-            >
-              <Icon name="minus" />
-            </button>
-            <button
-              className="zoom-value"
-              title="100% に戻す"
-              onClick={() => zoomTo(1)}
-            >
-              {Math.round(zoom * 100)}%
-            </button>
-            <button
-              aria-label="拡大"
-              onClick={() => zoomTo(Math.min(2, zoom + 0.1))}
-            >
-              <Icon name="plus" />
-            </button>
-            <div className="toolbar-separator" />
-            <button
-              onClick={() =>
-                fitView({
-                  nodes: visibleTables.map((t) => ({ id: t.id })),
-                  padding: 0.2,
-                  maxZoom: 1,
-                })
-              }
-            >
-              <Icon name="fit" />
-              全体表示
-            </button>
-          </div>
+          <ZoomToolbar nodeIds={[...visibleIds]} />
           <div className="canvas-hint">
             出力 → 入力へドラッグで接続 · 余白で移動 · ピンチでズーム
           </div>
