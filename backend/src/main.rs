@@ -15,6 +15,7 @@ mod note;
 mod projection;
 mod replacement;
 mod script;
+mod settings;
 #[cfg(test)]
 mod sheet_move_tests;
 mod sheets;
@@ -149,6 +150,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .join("../.sagyodai")
                 .join(format!("project-{port}.json"))
         });
+    let settings_path = path.with_extension("settings.json");
     let autosave = Arc::new(autosave::Autosave::open(path)?);
     let project = if let Some(saved) = autosave.load()? {
         saved
@@ -184,7 +186,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/command", post(command))
         .route("/api/project/export", get(export))
         .layer(DefaultBodyLimit::max(storage::MAX_FILE_BYTES + 1024))
-        .with_state(shared.clone());
+        .with_state(shared.clone())
+        .merge(settings::router(settings_path)?);
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     println!("作業台の試作コア: http://127.0.0.1:{port}");
     // SSE接続の終了待ちで停止が永久に止まらないよう、子プロセス回収後に接続を閉じる。

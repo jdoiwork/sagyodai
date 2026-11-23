@@ -1,3 +1,5 @@
+import { FavoritePicker } from "../settings/AppSettings";
+import { PathField } from "../settings/PathField";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { type TableData, type ScriptConfig } from "../../api/project";
@@ -58,7 +60,7 @@ export function ScriptSettings({ table }: { table: TableData }) {
     key: K,
     value: ScriptConfig[K],
   ) => {
-    setDraft({ ...draft, [key]: value });
+    setDraft((d) => ({ ...d, [key]: value }));
     setError("");
   };
   async function action(name: "start" | "cancel" | "source") {
@@ -138,33 +140,35 @@ export function ScriptSettings({ table }: { table: TableData }) {
                 ))}
             </select>
           </label>
-          <label>
-            実行プログラム
-            <input
-              aria-label="実行プログラム"
-              placeholder="/path/to/.venv/bin/python"
-              value={draft.program}
-              onChange={(e) => update("program", e.target.value)}
-            />
-          </label>
-          <label>
-            スクリプト
-            <input
-              aria-label="スクリプトのパス"
-              placeholder="/path/to/transform.py"
-              value={draft.scriptPath}
-              onChange={(e) => update("scriptPath", e.target.value)}
-            />
-          </label>
-          <label>
-            作業フォルダ
-            <input
-              aria-label="作業フォルダ"
-              placeholder="/path/to/project"
-              value={draft.cwd}
-              onChange={(e) => update("cwd", e.target.value)}
-            />
-          </label>
+          <FavoritePicker
+            onSelect={(f) => {
+              setDraft((d) => ({
+                ...d,
+                program: f.program,
+                ...(f.cwd ? { cwd: f.cwd } : {}),
+              }));
+              setError("");
+            }}
+          />
+          <PathField
+            label="実行プログラム"
+            value={draft.program}
+            placeholder="/path/to/.venv/bin/python"
+            onChange={(v) => update("program", v)}
+          />
+          <PathField
+            label="スクリプトのパス"
+            value={draft.scriptPath}
+            placeholder="/path/to/transform.py"
+            onChange={(v) => update("scriptPath", v)}
+          />
+          <PathField
+            label="作業フォルダ"
+            directory
+            value={draft.cwd}
+            placeholder="/path/to/project"
+            onChange={(v) => update("cwd", v)}
+          />
           <label>
             追加引数（1行に1個）
             <textarea

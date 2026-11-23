@@ -1,3 +1,4 @@
+import { AppSettings } from "../features/settings/AppSettings";
 import { ZoomToolbar } from "../features/canvas/ZoomToolbar";
 import { AddNodeMenu } from "../features/canvas/AddNodeMenu";
 import { NodeNavigation } from "../features/canvas/NodeActions";
@@ -211,6 +212,7 @@ function Canvas() {
           <span className="prototype-label">操作感の試作</span>
           <div className="header-right">
             <ProjectFiles />
+            <AppSettings />
             <button className="help-button" onClick={() => setHelp((v) => !v)}>
               <Icon name="help" />
               操作ガイド

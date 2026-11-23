@@ -1993,3 +1993,88 @@ button.action-danger:hover {
   accent-color: #34856a;
   color-scheme: light;
 }
+
+.app-settings-dialog {
+  width: min(680px, 90vw);
+  max-height: 85vh;
+  overflow: auto;
+  border: 1px solid #ccd4da;
+  border-radius: 12px;
+  padding: 24px;
+  color: #24323d;
+  background: #fff;
+  box-shadow: 0 16px 64px #0003;
+}
+.app-settings-dialog::backdrop {
+  background: #17293766;
+}
+.app-settings-dialog label {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.app-settings-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  color: #24323d;
+  background: #fff;
+  border: 1px solid #b9c6cf;
+  border-radius: 4px;
+}
+.app-settings-dialog button {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.app-settings-dialog fieldset {
+  border: 0;
+  padding: 0;
+}
+.favorite-editor {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.path-field {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.path-field > label {
+  flex: 1;
+  min-width: 0;
+}
+.path-field > button {
+  flex-shrink: 0;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+  margin-top: 20px;
+}
+.path-picker form {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.path-picker p {
+  overflow-wrap: anywhere;
+}
+.path-entries {
+  height: 40vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+.path-entries button {
+  text-align: left;
+  overflow-wrap: anywhere;
+  flex-shrink: 0;
+}
