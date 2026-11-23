@@ -238,7 +238,16 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
               <JsonTree text={text} />
             ) : text ? (
               isViewer && plainText ? (
-                <pre className="text-file-plain">{text}</pre>
+                <>
+                  {isHttp && text.length > 20000 && (
+                    <p className="note-empty">
+                      プレビューは先頭20,000文字です。出力・保存は全文を保持しています。
+                    </p>
+                  )}
+                  <pre className="text-file-plain">
+                    {isHttp ? text.slice(0, 20000) : text}
+                  </pre>
+                </>
               ) : (
                 <Markdown
                   remarkPlugins={[remarkGfm]}

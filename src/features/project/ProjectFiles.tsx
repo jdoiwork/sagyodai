@@ -1,7 +1,7 @@
 import { Icon } from "../../components/Icon";
 import { useRef, useState } from "react";
 import { useProject } from "../../app/ProjectContext";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_FILE_BYTES = 128 * 1024 * 1024;
 export function ProjectFiles() {
   const { project, openProject, prepareExport, markExported, dirty, pending } =
     useProject();
@@ -41,7 +41,7 @@ export function ProjectFiles() {
     setMessage("");
     try {
       if (file.size > MAX_FILE_BYTES)
-        throw new Error("プロジェクトファイルの上限は8 MiBです。");
+        throw new Error("プロジェクトファイルの上限は128 MiBです。");
       let document: unknown;
       try {
         document = JSON.parse(await file.text());

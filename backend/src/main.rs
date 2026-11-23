@@ -141,7 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else if let Ok(path) = std::env::var("SAGYODAI_STARTUP_PROJECT") {
         let bytes = std::fs::read(path)?;
         if bytes.len() > storage::MAX_FILE_BYTES {
-            return Err("起動ファイルが8 MiBを超えています。".into());
+            return Err("起動ファイルが128 MiBを超えています。".into());
         }
         Project::restore(serde_json::from_slice(&bytes)?, 0)?
     } else {
@@ -154,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/project/events", get(events))
         .route("/api/command", post(command))
         .route("/api/project/export", get(export))
-        .layer(DefaultBodyLimit::max(16 * 1024 * 1024))
+        .layer(DefaultBodyLimit::max(storage::MAX_FILE_BYTES + 1024))
         .with_state(SharedProject {
             changes: tokio::sync::watch::channel(project.snapshot().revision).0,
             http_runs: Default::default(),

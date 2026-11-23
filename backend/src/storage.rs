@@ -4,11 +4,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub const FORMAT_VERSION: u32 = 2;
-pub const MAX_FILE_BYTES: usize = 8 * 1024 * 1024;
+pub const MAX_FILE_BYTES: usize = 128 * 1024 * 1024;
 pub const MAX_NODES: usize = 100;
 pub const MAX_ROWS: usize = 5000;
 pub const MAX_COLS: usize = 50;
 pub const MAX_CELL_BYTES: usize = 100_000;
+// 外部レスポンスと後続ノードのキャッシュには長いJSON行を許容する。手入力の上限は維持。
+pub const MAX_OUTPUT_CELL_BYTES: usize = 11 * 1024 * 1024;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -36,7 +38,7 @@ pub fn encode_project(
     };
     let bytes = serde_json::to_vec_pretty(&file).map_err(|_| "ファイルを生成できませんでした。")?;
     if bytes.len() > MAX_FILE_BYTES {
-        return Err("プロジェクトファイルの上限は8 MiBです。".into());
+        return Err("プロジェクトファイルの上限は128 MiBです。".into());
     }
     Ok(bytes)
 }
@@ -86,10 +88,15 @@ pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
         {
             return Err("表の大きさは1〜5000行・1〜50列にしてください。".into());
         }
+        let cell_limit = if table.kind == Kind::Input {
+            MAX_CELL_BYTES
+        } else {
+            MAX_OUTPUT_CELL_BYTES
+        };
         if table
             .rows
             .iter()
-            .any(|r| r.len() != table.columns.len() || r.iter().any(|c| c.len() > MAX_CELL_BYTES))
+            .any(|r| r.len() != table.columns.len() || r.iter().any(|c| c.len() > cell_limit))
         {
             return Err("行の列数が一致しないか、セルの内容が長すぎます。".into());
         }

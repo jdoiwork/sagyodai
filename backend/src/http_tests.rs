@@ -167,7 +167,7 @@ fn output_switch_cache_failure_restore_manual_downstream_and_undo() {
 async fn rejects_large_binary_responses_and_does_not_follow_redirects() {
     let (url, task) = server(
         Router::new()
-            .route("/large", any(|| async { "a".repeat(1024 * 1024 + 1) }))
+            .route("/large", any(|| async { "a".repeat(MAX_RESPONSE + 1) }))
             .route("/binary", any(|| async { vec![0xffu8] }))
             .route(
                 "/redirect",
@@ -179,7 +179,7 @@ async fn rejects_large_binary_responses_and_does_not_follow_redirects() {
         fetch(&config(format!("{url}/large")))
             .await
             .unwrap_err()
-            .contains("1 MiB")
+            .contains("10 MiB")
     );
     assert!(
         fetch(&config(format!("{url}/binary")))
@@ -295,4 +295,48 @@ async fn delayed_response_never_overwrites_new_request_or_edited_project() {
     drop(shared);
     task.abort();
     std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn ten_mib_single_line_json_survives_tree_and_project_roundtrip() {
+    let mut p = Project::default();
+    for kind in [Kind::Http, Kind::TreeDisplay] {
+        run(
+            &mut p,
+            Command::AddNode {
+                kind,
+                position: None,
+                sheet_id: None,
+            },
+        );
+    }
+    run(
+        &mut p,
+        Command::Connect {
+            id: "table-3".into(),
+            source: Some("table-2".into()),
+        },
+    );
+    let response = HttpResponse {
+        status_line: "HTTP/1.1 200 OK".into(),
+        headers: "x: y".into(),
+        body: format!("\"{}\"", "a".repeat(MAX_RESPONSE - 6)),
+    };
+    assert_eq!(response.headers.len() + response.body.len(), MAX_RESPONSE);
+    run(
+        &mut p,
+        Command::CompleteHttp {
+            id: "table-2".into(),
+            config: config("http://localhost/data".into()),
+            result: Ok(response),
+        },
+    );
+    let snapshot = p.snapshot();
+    assert!(snapshot.tables[1].error.is_none());
+    assert!(snapshot.tables[2].error.is_none());
+    assert!(snapshot.tables[2].rows[0][0].len() > 10_000_000);
+    let saved = p.export().unwrap();
+    assert!(saved.len() > 8 * 1024 * 1024);
+    let restored = Project::restore(serde_json::from_slice(&saved).unwrap(), 0).unwrap();
+    assert_eq!(restored.snapshot().tables[2].rows, snapshot.tables[2].rows);
 }

@@ -6,7 +6,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-const MAX_RESPONSE: usize = 1024 * 1024;
+pub const MAX_RESPONSE: usize = 10 * 1024 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -106,7 +106,9 @@ impl HttpResponse {
     }
     fn validate(&self) -> Result<(), String> {
         if self.status_line.len() > 1024 || self.headers.len() + self.body.len() > MAX_RESPONSE {
-            return Err("HTTPレスポンスはヘッダーと本文を合わせて1 MiB以内にしてください。".into());
+            return Err(
+                "HTTPレスポンスはヘッダーと本文を合わせて10 MiB以内にしてください。".into(),
+            );
         }
         Ok(())
     }
@@ -125,9 +127,9 @@ fn rows(response: &HttpResponse, output: HttpOutput) -> Result<Vec<Vec<String>>,
     if lines.len() > crate::storage::MAX_ROWS
         || lines
             .iter()
-            .any(|s| s.len() > crate::storage::MAX_CELL_BYTES)
+            .any(|s| s.len() > crate::storage::MAX_OUTPUT_CELL_BYTES)
     {
-        return Err("HTTP出力は5000行以内、1行100000バイト以内にしてください。".into());
+        return Err("HTTP出力は5000行以内、1行11 MiB以内にしてください。".into());
     }
     Ok(lines
         .into_iter()
@@ -220,7 +222,7 @@ pub async fn fetch(config: &HttpConfig) -> Result<HttpResponse, String> {
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(network_error)? {
         if headers.len() + bytes.len() + chunk.len() > MAX_RESPONSE {
-            return Err("HTTPレスポンスが1 MiBを超えています。".into());
+            return Err("HTTPレスポンスが10 MiBを超えています。".into());
         }
         bytes.extend_from_slice(&chunk);
     }
