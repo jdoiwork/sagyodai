@@ -1,3 +1,4 @@
+import { HttpSettings } from "../http/HttpSettings";
 import { JsonTree } from "../tree/JsonTree";
 import { NodeSettings } from "../filter/NodeSettings";
 import { TextSettings } from "../text/TextSettings";
@@ -15,16 +16,18 @@ import { useProject } from "../../app/ProjectContext";
 export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
   const { dispatch, pending, project } = useProject();
   const table = data.table;
+  const isHttp = table.kind === "http";
   const isTree = table.kind === "treeDisplay";
   const isResult = table.kind === "textDisplay" || isTree;
-  const isViewer = isResult || table.kind === "text";
+  const isViewer = isResult || table.kind === "text" || isHttp;
   const isFile = table.kind === "text";
-  const text = isResult
-    ? table.rows.map((row) => row.join("\t")).join("\n")
-    : isFile
-      ? (table.textSource?.text ?? "")
-      : (table.note?.text ?? "");
-  const plainText = table.textDisplay === "plain";
+  const text =
+    isResult || isHttp
+      ? table.rows.map((row) => row.join("\t")).join("\n")
+      : isFile
+        ? (table.textSource?.text ?? "")
+        : (table.note?.text ?? "");
+  const plainText = isHttp || table.textDisplay === "plain";
   function setPlainText(plain: boolean) {
     dispatch({
       type: "setTextDisplay",
@@ -82,25 +85,29 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div
             className="table-icon"
             title={
-              isTree
-                ? "結果ツリー"
-                : isResult
-                  ? "結果テキスト"
-                  : isFile
-                    ? "テキスト入力"
-                    : "メモ"
+              isHttp
+                ? "HTTP入力"
+                : isTree
+                  ? "結果ツリー"
+                  : isResult
+                    ? "結果テキスト"
+                    : isFile
+                      ? "テキスト入力"
+                      : "メモ"
             }
           >
-            <Icon name={isTree ? "tree" : "note"} />
+            <Icon name={isHttp ? "http" : isTree ? "tree" : "note"} />
           </div>
           <div>
             <NodeTitle table={table} />
             <span>
-              {isTree
-                ? "結果ツリー · JSON"
-                : isViewer
-                  ? `${isResult ? "結果テキスト" : "テキストファイル"} · ${plainText ? "テキスト" : "Markdown"}`
-                  : "メモ · Markdown"}
+              {isHttp
+                ? "HTTPレスポンス"
+                : isTree
+                  ? "結果ツリー · JSON"
+                  : isViewer
+                    ? `${isResult ? "結果テキスト" : "テキストファイル"} · ${plainText ? "テキスト" : "Markdown"}`
+                    : "メモ · Markdown"}
             </span>
           </div>
           {isViewer && (
@@ -125,7 +132,9 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             ⠿
           </span>
         </header>
-        {isResult ? (
+        {isHttp ? (
+          <HttpSettings table={table} />
+        ) : isResult ? (
           <NodeSettings table={table} />
         ) : isFile ? (
           <TextSettings table={table} />
@@ -170,7 +179,7 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
             </button>
           </div>
         )}
-        {isViewer && !isTree && !table.compact && (
+        {isViewer && !isTree && !isHttp && !table.compact && (
           <div
             className="note-actions nodrag nopan"
             role="group"
@@ -252,13 +261,15 @@ export function NoteNode({ data, selected }: NodeProps<TableFlowNode>) {
               )
             ) : (
               <p className="note-empty">
-                {isResult
-                  ? "表示する結果はありません。"
-                  : isFile
-                    ? table.textSource
-                      ? "ファイルは空です。"
-                      : "ファイルを選択すると本文を表示します。"
-                    : "メモは空です。「編集」から入力できます。"}
+                {isHttp
+                  ? "リクエストするとレスポンスを表示します。"
+                  : isResult
+                    ? "表示する結果はありません。"
+                    : isFile
+                      ? table.textSource
+                        ? "ファイルは空です。"
+                        : "ファイルを選択すると本文を表示します。"
+                      : "メモは空です。「編集」から入力できます。"}
               </p>
             )}
           </div>

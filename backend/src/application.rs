@@ -142,6 +142,15 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::FetchHttp { .. } => {
+                return Err("HTTPリクエストは非同期の操作APIから実行してください。".into());
+            }
+            Command::CompleteHttp { id, config, result } => {
+                crate::http_source::complete(table_mut(tables, &id)?, config, result)?
+            }
+            Command::SetHttpOutput { id, output } => {
+                crate::http_source::set_output(table_mut(tables, &id)?, output)?
+            }
             Command::SetTextDisplay { id, display } => {
                 let table = table_mut(tables, &id)?;
                 if !matches!(table.kind, Kind::Text | Kind::TextDisplay) {
@@ -178,7 +187,7 @@ impl Project {
                 if input {
                     if matches!(
                         table.kind,
-                        Kind::Input | Kind::Csv | Kind::Text | Kind::Note
+                        Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
                     ) {
                         return Err("このノードに入力端子はありません。".into());
                     }
@@ -308,7 +317,10 @@ impl Project {
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note) {
+                if matches!(
+                    t.kind,
+                    Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
+                ) {
                     return Err("入力ソースには接続できません。".into());
                 }
                 if t.kind == Kind::Union {
@@ -363,7 +375,10 @@ impl Project {
             }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note) {
+                if matches!(
+                    t.kind,
+                    Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
+                ) {
                     return Err("入力ソースには加工設定を指定できません。".into());
                 }
                 t.filter = filter;
@@ -556,6 +571,8 @@ impl Project {
                             "結果ツリー"
                         } else if kind == Kind::TextDisplay {
                             "結果テキスト"
+                        } else if kind == Kind::Http {
+                            "HTTP"
                         } else if kind == Kind::Text {
                             "テキスト"
                         } else if kind == Kind::Csv {
@@ -595,6 +612,11 @@ impl Project {
                         t.width = 520.0;
                         t.height = 480.0;
                         t.text_display = crate::text_source::TextDisplay::Plain;
+                    }
+                    if kind == Kind::Http {
+                        t.http = Some(Default::default());
+                        t.width = 520.0;
+                        t.height = 560.0;
                     }
                     if kind == Kind::Note {
                         t.note = Some(Default::default());

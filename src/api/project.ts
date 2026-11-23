@@ -97,6 +97,24 @@ const tableSchema = z.object({
   replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
   outputSide: portSideSchema.nullable().optional(),
+  http: z
+    .object({
+      config: z.object({
+        url: z.string(),
+        method: z.string(),
+        headers: z.string(),
+        body: z.string(),
+      }),
+      output: z.enum(["raw", "headers", "body"]),
+      response: z
+        .object({
+          statusLine: z.string(),
+          headers: z.string(),
+          body: z.string(),
+        })
+        .nullable(),
+    })
+    .optional(),
   textSource: z
     .object({ fileName: z.string(), text: z.string() })
     .nullable()
@@ -140,6 +158,7 @@ const tableSchema = z.object({
     "input",
     "csv",
     "text",
+    "http",
     "filter",
     "display",
     "textDisplay",
@@ -236,6 +255,7 @@ export type Command =
         | "input"
         | "csv"
         | "text"
+        | "http"
         | "filter"
         | "display"
         | "textDisplay"
@@ -353,6 +373,12 @@ export type Command =
       expectedColumns: string[];
       expectedRows: string[][];
     }
+  | {
+      type: "fetchHttp";
+      id: string;
+      config: { url: string; method: string; headers: string; body: string };
+    }
+  | { type: "setHttpOutput"; id: string; output: "raw" | "headers" | "body" }
   | { type: "addColumn"; id: string }
   | {
       type: "place";

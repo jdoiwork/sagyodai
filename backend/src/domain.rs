@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http: Option<crate::http_source::HttpSource>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<crate::note::Note>,
     #[serde(default)]
     pub replacement: Option<crate::replacement::Replacement>,
@@ -113,6 +115,7 @@ pub enum Kind {
     Input,
     Csv,
     Text,
+    Http,
     Filter,
     Display,
     TextDisplay,
@@ -192,6 +195,20 @@ pub enum Command {
         has_headers: bool,
         skip_empty_rows: bool,
         skip_empty_columns: bool,
+    },
+    FetchHttp {
+        id: String,
+        config: crate::http_source::HttpConfig,
+    },
+    SetHttpOutput {
+        id: String,
+        output: crate::http_source::HttpOutput,
+    },
+    #[serde(skip_deserializing)]
+    CompleteHttp {
+        id: String,
+        config: crate::http_source::HttpConfig,
+        result: Result<crate::http_source::HttpResponse, String>,
     },
     ImportText {
         id: String,
@@ -422,6 +439,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         output_side: None,
         csv: None,
         text_source: None,
+        http: None,
         sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,
         input_color: None,

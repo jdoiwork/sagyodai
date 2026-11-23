@@ -12,6 +12,7 @@ it("入力元をメニューから選択し、選択後に閉じる", () => {
     ["表を追加", "input"],
     ["CSV", "csv"],
     ["テキスト", "text"],
+    ["HTTP", "http"],
     ["メモ", "note"],
   ]) {
     fireEvent.click(ui.getByRole("button", { name: "入力を追加" }));

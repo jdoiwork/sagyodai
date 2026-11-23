@@ -4,6 +4,7 @@ const sourceChoices = [
   { kind: "input", label: "表を追加", icon: "editableTable" },
   { kind: "csv", label: "CSV", icon: "folder" },
   { kind: "text", label: "テキスト", icon: "note" },
+  { kind: "http", label: "HTTP", icon: "http" },
   { kind: "note", label: "メモ", icon: "note" },
 ] as const;
 const processingChoices = [

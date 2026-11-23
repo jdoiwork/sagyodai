@@ -28,7 +28,14 @@ type ProjectContextValue = {
   importSource: (
     command: Extract<
       Command,
-      { type: "importCsv" | "setCsvOptions" | "importText" }
+      {
+        type:
+          | "importCsv"
+          | "setCsvOptions"
+          | "importText"
+          | "fetchHttp"
+          | "setHttpOutput";
+      }
     >,
   ) => Promise<void>;
   prepareExport: () => Promise<{ blob: Blob; revision: number }>;
@@ -228,7 +235,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   async function importSource(
     command: Extract<
       Command,
-      { type: "importCsv" | "setCsvOptions" | "importText" }
+      {
+        type:
+          | "importCsv"
+          | "setCsvOptions"
+          | "importText"
+          | "fetchHttp"
+          | "setHttpOutput";
+      }
     >,
   ) {
     await enqueue(command, false);

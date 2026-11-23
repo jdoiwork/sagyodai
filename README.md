@@ -21,6 +21,8 @@ npm run dev
 
 ## 試せること
 
+- [HTTP入力](docs/http-input.md)でレスポンスのraw／headers／bodyを選んで出力。
+
 - [結果ツリー](docs/tree-output.md)でJSONを開閉可能なツリー表示。
 
 - [結果テキスト](docs/text-output.md)で加工結果をテキスト／Markdown表示。

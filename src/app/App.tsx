@@ -72,6 +72,7 @@ function Canvas() {
       | "input"
       | "csv"
       | "text"
+      | "http"
       | "filter"
       | "display"
       | "textDisplay"
@@ -98,6 +99,7 @@ function Canvas() {
       | "input"
       | "csv"
       | "text"
+      | "http"
       | "filter"
       | "display"
       | "textDisplay"
@@ -333,6 +335,7 @@ function Canvas() {
                   t.id === connection.target &&
                   t.kind !== "input" &&
                   t.kind !== "csv" &&
+                  t.kind !== "http" &&
                   t.kind !== "text" &&
                   t.kind !== "note" &&
                   (t.kind !== "union" || connection.targetHandle === "in"),

@@ -8,6 +8,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     for t in tables {
         crate::csv_source::validate(t)?;
         crate::text_source::validate(t)?;
+        crate::http_source::validate(t)?;
         crate::note::validate(t)?;
         if (t.kind == Kind::Replace) != t.replacement.is_some() {
             return Err("置換設定とノードの種類が一致しません。".into());
@@ -33,8 +34,10 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("ソート設定とノードの種類が一致しません。".into());
         }
 
-        if matches!(t.kind, Kind::Input | Kind::Csv | Kind::Text | Kind::Note)
-            && (t.source.is_some() || t.filter.is_some() || t.manual)
+        if matches!(
+            t.kind,
+            Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
+        ) && (t.source.is_some() || t.filter.is_some() || t.manual)
         {
             return Err("入力ソースには入力接続や加工設定を指定できません。".into());
         }
@@ -154,7 +157,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         crate::note::refresh(&mut tables[i]);
         if matches!(
             tables[i].kind,
-            Kind::Input | Kind::Csv | Kind::Text | Kind::Note
+            Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
         ) {
             continue;
         }

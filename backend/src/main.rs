@@ -8,6 +8,8 @@ mod graph;
 mod graph_tests;
 mod group;
 mod group_stats;
+mod http_api;
+mod http_source;
 mod note;
 mod projection;
 mod replacement;
@@ -40,6 +42,7 @@ struct SharedProject {
     project: Arc<Mutex<Project>>,
     autosave: Arc<autosave::Autosave>,
     changes: tokio::sync::watch::Sender<u64>,
+    http_runs: Arc<Mutex<std::collections::HashMap<String, u64>>>,
 }
 type ApiError = (StatusCode, Json<serde_json::Value>);
 fn error(message: impl ToString) -> ApiError {
@@ -59,17 +62,19 @@ async fn snapshot(State(project): State<SharedProject>) -> Result<Json<Snapshot>
 }
 async fn command(
     State(project): State<SharedProject>,
-    Json(request): Json<Request>,
+    Json(mut request): Json<Request>,
 ) -> Result<Json<Snapshot>, ApiError> {
+    let http_run = http_api::prepare(&project, &mut request).await?;
     let mut state = project
         .project
         .lock()
         .map_err(|_| error("内部状態にアクセスできません。"))?;
+    http_api::check_generation(&project, http_run)?;
     if request.expected_revision != state.snapshot().revision {
         return Err((
             StatusCode::CONFLICT,
             Json(
-                serde_json::json!({"error": "別の操作で状態が更新されました。入力は保持されています。"}),
+                serde_json::json!({"error": "別の操作で状態が更新されました。操作結果は反映していません。入力を確認して再実行してください。"}),
             ),
         ));
     }
@@ -152,6 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(DefaultBodyLimit::max(16 * 1024 * 1024))
         .with_state(SharedProject {
             changes: tokio::sync::watch::channel(project.snapshot().revision).0,
+            http_runs: Default::default(),
             project: Arc::new(Mutex::new(project)),
             autosave,
         });
@@ -165,3 +171,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod text_display_tests;
 
 mod tree_display;
+
+#[cfg(test)]
+mod http_tests;

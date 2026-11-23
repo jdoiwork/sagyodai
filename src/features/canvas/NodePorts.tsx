@@ -24,6 +24,7 @@ export function NodePorts({ table }: { table: TableData }) {
       inputSide === outputSide &&
       table.kind !== "input" &&
       table.kind !== "csv" &&
+      table.kind !== "http" &&
       table.kind !== "text" &&
       table.kind !== "note";
     const count =
@@ -151,6 +152,7 @@ export function NodePorts({ table }: { table: TableData }) {
         })}
       {table.kind !== "input" &&
         table.kind !== "csv" &&
+        table.kind !== "http" &&
         table.kind !== "text" &&
         table.kind !== "note" && (
           <Handle
