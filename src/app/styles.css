@@ -2078,3 +2078,31 @@ button.action-danger:hover {
   overflow-wrap: anywhere;
   flex-shrink: 0;
 }
+
+.path-search {
+  margin-top: 16px;
+}
+.path-entries button {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+}
+.path-icon {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.path-icon-folder {
+  color: #975a08;
+  background: #fff0c2;
+}
+.path-icon-file {
+  color: #2262a4;
+  background: #e4efff;
+}
+.path-icon .action-icon {
+  width: 22px;
+  height: 22px;
+}

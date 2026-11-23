@@ -1,3 +1,4 @@
+import { Icon } from "../../components/Icon";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod";
@@ -74,6 +75,7 @@ function PathPicker({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [path, setPath] = useState(initial);
+  const [query, setQuery] = useState("");
   const [listing, setListing] = useState<z.infer<typeof listingSchema> | null>(
     null,
   );
@@ -89,6 +91,7 @@ function PathPicker({
       if (current === generation.current) {
         setListing(next);
         setPath(next.path);
+        setQuery("");
       }
     } catch (e) {
       if (current === generation.current)
@@ -104,6 +107,12 @@ function PathPicker({
       generation.current++;
     };
   }, [initial]);
+  const entries =
+    listing?.entries.filter(
+      (entry) =>
+        (!directory || entry.directory) &&
+        entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+    ) ?? [];
   return (
     <dialog
       ref={ref}
@@ -144,23 +153,43 @@ function PathPicker({
       </button>
       {error && <p role="alert">{error}</p>}
       {busy && <p role="status">読み込み中…</p>}
+      <label className="path-search">
+        名前で絞り込み
+        <input
+          type="search"
+          aria-label="名前で絞り込み"
+          placeholder="ファイル・フォルダ名の一部"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </label>
       <div className="path-entries">
-        {listing?.entries
-          .filter((e) => !directory || e.directory)
-          .map((e) => (
-            <button
-              key={e.path}
-              disabled={busy}
-              onClick={() =>
-                e.directory ? void load(e.path) : onSelect(e.path)
+        {!busy && listing && entries.length === 0 && (
+          <p role="status">一致する候補がありません。</p>
+        )}
+        {entries.map((e) => (
+          <button
+            key={e.path}
+            disabled={busy}
+            onClick={() => (e.directory ? void load(e.path) : onSelect(e.path))}
+          >
+            <span
+              className={
+                e.directory
+                  ? "path-icon path-icon-folder"
+                  : "path-icon path-icon-file"
               }
             >
-              {e.directory ? "📁" : "📄"} {e.name}
-            </button>
-          ))}
+              <Icon name={e.directory ? "folder" : "note"} />
+            </span>
+            <span>{e.name}</span>
+          </button>
+        ))}
       </div>
       {listing?.truncated && (
-        <p>項目が多いため一部を省略しました。パスを直接指定できます。</p>
+        <p>
+          項目が多いため一部を省略しました。絞り込みは取得済みの候補が対象です。パスを直接指定できます。
+        </p>
       )}
       <div className="dialog-actions">
         {directory && (

@@ -77,6 +77,8 @@ it("ファイルとフォルダを選択でき、キャンセルは入力を変�
         truncated: false,
         entries: [
           { name: "日本語.py", path: "/tmp/日本語.py", directory: false },
+          { name: "Other.PY", path: "/tmp/Other.PY", directory: false },
+          { name: "scripts", path: "/tmp/scripts", directory: true },
         ],
       }),
     }),
@@ -86,7 +88,18 @@ it("ファイルとフォルダを選択でき、キャンセルは入力を変�
     <PathField label="スクリプトのパス" value="/old.py" onChange={change} />,
   );
   fireEvent.click(ui.getByRole("button", { name: "スクリプトのパスを選択" }));
-  fireEvent.click(await ui.findByRole("button", { name: "📄 日本語.py" }));
+  await ui.findByRole("button", { name: "日本語.py" });
+  const search = ui.getByRole("searchbox", { name: "名前で絞り込み" });
+  fireEvent.change(search, { target: { value: ".py" } });
+  expect(ui.getByRole("button", { name: "Other.PY" })).toBeTruthy();
+  expect(ui.queryByRole("button", { name: "scripts" })).toBeNull();
+  fireEvent.change(search, { target: { value: "該当なし" } });
+  expect(ui.getByRole("status").textContent).toContain(
+    "一致する候補がありません",
+  );
+  fireEvent.change(search, { target: { value: "日本語" } });
+  expect(ui.queryByRole("button", { name: "Other.PY" })).toBeNull();
+  fireEvent.click(ui.getByRole("button", { name: "日本語.py" }));
   expect(change).toHaveBeenCalledWith("/tmp/日本語.py");
   ui.rerender(
     <PathField label="作業フォルダ" value="/tmp" directory onChange={change} />,
@@ -101,7 +114,7 @@ it("ファイルとフォルダを選択でき、キャンセルは入力を変�
       ).disabled,
     ).toBe(false),
   );
-  expect(within(ui.getByRole("dialog")).queryByText("📄 日本語.py")).toBeNull();
+  expect(within(ui.getByRole("dialog")).queryByText("日本語.py")).toBeNull();
   fireEvent.click(ui.getByRole("button", { name: "このフォルダを選択" }));
   expect(change).toHaveBeenLastCalledWith("/tmp");
   change.mockClear();
