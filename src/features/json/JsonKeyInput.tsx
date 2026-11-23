@@ -1,3 +1,4 @@
+import { isContainerPath, pathSuggestions } from "./jsonPath";
 import { useEffect, useId, useMemo, useState } from "react";
 import type { TableData } from "../../api/project";
 
@@ -23,19 +24,14 @@ export function JsonKeyInput({
       ? source.rows.map((row) => row[0]).join("\n")
       : "";
   // 同じ本文なら、他ノードの編集やキー入力のたびに大きなJSONを解析し直さない。
-  const keys = useMemo(() => {
+  const json: unknown = useMemo(() => {
     try {
-      const json: unknown = JSON.parse(text);
-      return json !== null && typeof json === "object" && !Array.isArray(json)
-        ? Object.keys(json)
-        : [];
+      return JSON.parse(text) as unknown;
     } catch {
-      return [];
+      return undefined;
     }
   }, [text]);
-  const matches = keys.filter((key) =>
-    key.toLocaleLowerCase().includes(value.toLocaleLowerCase()),
-  );
+  const matches = pathSuggestions(json, value);
   const candidates = matches.slice(0, 100);
   const visible = open && !composing && candidates.length > 0;
   const highlighted = active >= 0 && active < candidates.length ? active : -1;
@@ -50,7 +46,7 @@ export function JsonKeyInput({
   }, [id, visible, highlighted]);
   function choose(key: string) {
     onChange(key);
-    setOpen(false);
+    setOpen(isContainerPath(json, key));
     setActive(-1);
   }
   return (
@@ -67,7 +63,7 @@ export function JsonKeyInput({
         }
         autoComplete="off"
         value={value}
-        placeholder="chapters"
+        placeholder="chapters[0].title"
         onFocus={() => {
           setOpen(true);
           setActive(-1);
@@ -130,7 +126,7 @@ export function JsonKeyInput({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(key)}
               >
-                {key === "" ? "（空のキー）" : key}
+                {key}
               </div>
             ))}
           </div>

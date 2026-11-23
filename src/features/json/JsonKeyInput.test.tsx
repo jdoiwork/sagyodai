@@ -29,11 +29,12 @@ it("入力元の直下のキーを絞り込み、キーボード・マウスで�
   fireEvent.keyDown(field, { key: "ArrowDown" });
   fireEvent.keyDown(field, { key: "Enter" });
   expect(change).toHaveBeenLastCalledWith("chapters");
+  ui.rerender(<JsonKeyInput {...props} value="chapters" />);
   expect(ui.queryByRole("listbox")).toBeNull();
   ui.rerender(<JsonKeyInput {...props} />);
   fireEvent.focus(field);
-  fireEvent.click(ui.getByRole("option", { name: "（空のキー）" }));
-  expect(change).toHaveBeenLastCalledWith("");
+  fireEvent.click(ui.getByRole("option", { name: '[""]' }));
+  expect(change).toHaveBeenLastCalledWith('[""]');
   fireEvent.focus(field);
   fireEvent.keyDown(field, { key: "Escape" });
   expect(ui.queryByRole("listbox")).toBeNull();
@@ -59,12 +60,31 @@ it("IME変換中は補完せず、入力元の変更・無効なJSONに追従す
   expect(ui.getByRole("option").textContent).toBe("日本語");
   ui.rerender(<JsonKeyInput {...props} source={source('{"次":2}')} />);
   expect(ui.getByRole("option").textContent).toBe("次");
-  for (const text of ["bad", "null", "[1,2]", "3"]) {
+  for (const text of ["bad", "null", "3"]) {
     ui.rerender(<JsonKeyInput {...props} source={source(text)} />);
     expect(ui.queryByRole("listbox")).toBeNull();
   }
   ui.rerender(
     <JsonKeyInput {...props} source={{ ...props.source, stale: true }} />,
   );
+  expect(ui.queryByRole("listbox")).toBeNull();
+});
+
+it("候補を選びながら配列とオブジェクトの階層を進める", () => {
+  const onChange = vi.fn();
+  const props = {
+    source: source('{"chapters":[{"title":"日本語"}]}'),
+    value: "",
+    onChange,
+    label: "キー",
+    invalid: false,
+  };
+  const ui = render(<JsonKeyInput {...props} />);
+  fireEvent.focus(ui.getByRole("combobox"));
+  for (const value of ["chapters", "chapters[0]", "chapters[0].title"]) {
+    fireEvent.click(ui.getByRole("option", { name: value }));
+    expect(onChange).toHaveBeenLastCalledWith(value);
+    ui.rerender(<JsonKeyInput {...props} value={value} />);
+  }
   expect(ui.queryByRole("listbox")).toBeNull();
 });

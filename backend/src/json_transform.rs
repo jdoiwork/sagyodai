@@ -8,9 +8,9 @@ use std::collections::BTreeSet;
 
 pub fn validate_key(key: &str) -> Result<(), String> {
     if key.len() > 1024 {
-        Err("JSONのキー名は1024バイト以内にしてください。".into())
+        Err("JSONのパスは1024バイト以内にしてください。".into())
     } else {
-        Ok(())
+        crate::json_path::parse(key).map(|_| ())
     }
 }
 pub fn validate(node: &Table) -> Result<(), String> {
@@ -70,12 +70,7 @@ pub fn evaluate(source: &Table, node: &Table) -> Result<(Vec<String>, Vec<Vec<St
             .json_key
             .as_deref()
             .ok_or("キー名を指定してください。")?;
-        let object = value
-            .as_object()
-            .ok_or("キー抽出の入力はJSONオブジェクトにしてください。")?;
-        let selected = object
-            .get(key)
-            .ok_or_else(|| format!("キー「{key}」がありません。"))?;
+        let selected = crate::json_path::select(&value, key)?;
         let text = json(selected)?;
         if text.len() > MAX_OUTPUT_CELL_BYTES {
             return Err("抽出結果が11 MiBを超えています。".into());
@@ -186,7 +181,7 @@ mod tests {
         }
         assert!(evaluate(&input("{}"), &select).is_err());
         let mut key = node(Kind::JsonSelect);
-        key.json_key = Some("a.b".into());
+        key.json_key = Some(r#"["a.b"]"#.into());
         assert_eq!(
             evaluate(&input(r#"{"a.b":null}"#), &key).unwrap().1,
             [vec!["null"]]
@@ -222,7 +217,7 @@ mod tests {
             &mut p,
             Command::SetNote {
                 id: "table-2".into(),
-                text: r#"{"items":[{"name":"ペン","count":3}]}"#.into(),
+                text: r#"{"groups":[{"items":[{"name":"ペン","count":3}]}]}"#.into(),
                 expected_text: String::new(),
             },
         );
@@ -230,7 +225,7 @@ mod tests {
             &mut p,
             Command::SetJsonKey {
                 id: "table-3".into(),
-                key: "items".into(),
+                key: "groups[0].items".into(),
             },
         );
         for (id, source) in [

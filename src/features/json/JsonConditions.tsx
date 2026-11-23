@@ -1,3 +1,4 @@
+import { pathError } from "./jsonPath";
 import { JsonKeyInput } from "./JsonKeyInput";
 import { useEffect, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
@@ -18,10 +19,7 @@ export function JsonConditions({
     if (!editing.current) setKey(saved);
   }, [saved]);
   const dirty = key !== saved;
-  const error =
-    new TextEncoder().encode(key).length > 1024
-      ? "キー名は1024バイト以内にしてください。"
-      : "";
+  const error = pathError(key);
   if (table.kind === "jsonTable")
     return (
       <p className={table.compact ? "compact-condition" : "sort-hint"}>
@@ -62,7 +60,8 @@ export function JsonConditions({
           />
         </label>
         <p className="sort-hint">
-          直下のキー名をそのまま指定します。入れ子は抽出ノードをつないで取り出せます。
+          chapters[0].title のように階層を指定できます。記号を含むキーは
+          ["キー名"] で指定します。
         </p>
         {error && (
           <p className="node-error" role="alert">
