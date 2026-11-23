@@ -13,6 +13,8 @@ const processingChoices = [
   { kind: "union", label: "結合", icon: "union" },
   { kind: "aggregate", label: "集計", icon: "aggregate" },
   { kind: "replace", label: "置換", icon: "replace" },
+  { kind: "jsonSelect", label: "JSONキー抽出", icon: "jsonSelect" },
+  { kind: "jsonTable", label: "JSONを表に変換", icon: "jsonTable" },
 ] as const;
 const outputChoices = [
   { kind: "display", label: "結果表", icon: "table" },

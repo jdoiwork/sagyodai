@@ -60,6 +60,8 @@ it("加工をメニューから選択し、入力メニューと同時に開か�
     ["結合", "union"],
     ["集計", "aggregate"],
     ["置換", "replace"],
+    ["JSONキー抽出", "jsonSelect"],
+    ["JSONを表に変換", "jsonTable"],
   ]) {
     fireEvent.click(ui.getByRole("button", { name: "加工を追加" }));
     expect(ui.queryByRole("menu", { name: "入力ノードを追加" })).toBeNull();

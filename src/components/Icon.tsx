@@ -1,6 +1,8 @@
 // 装飾用のアイコン。操作名はボタンの文字・aria-label に任せる。
 const paths = {
   http: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0M3 12h18M12 3c4 5 4 13 0 18-4-5-4-13 0-18",
+  jsonSelect: "M8 3H5v6l-2 3 2 3v6h3M16 3h3v6l2 3-2 3v6h-3M9 12h6m-3-3 3 3-3 3",
+  jsonTable: "M3 4h18v16H3ZM3 9h18M9 9v11M3 14h18",
   tree: "M4 3h6v5H4ZM7 8v12h7M7 13h7M14 10h6v5h-6ZM14 18h6v5h-6Z",
   note: "M4 3h16v14l-4 4H4ZM16 21v-4h4M8 7h8M8 11h8",
   replace: "M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4",

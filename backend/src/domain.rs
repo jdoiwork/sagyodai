@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub json_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub http: Option<crate::http_source::HttpSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<crate::note::Note>,
@@ -120,6 +122,8 @@ pub enum Kind {
     Display,
     TextDisplay,
     TreeDisplay,
+    JsonSelect,
+    JsonTable,
     Union,
     Sort,
     Aggregate,
@@ -199,6 +203,10 @@ pub enum Command {
     FetchHttp {
         id: String,
         config: crate::http_source::HttpConfig,
+    },
+    SetJsonKey {
+        id: String,
+        key: String,
     },
     SetHttpOutput {
         id: String,
@@ -439,6 +447,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         output_side: None,
         csv: None,
         text_source: None,
+        json_key: None,
         http: None,
         sheet_id: crate::sheets::default_sheet_id(),
         edge_color: None,

@@ -170,6 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod text_display_tests;
 
+mod json_transform;
 mod tree_display;
 
 #[cfg(test)]

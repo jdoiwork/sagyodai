@@ -21,6 +21,8 @@ npm run dev
 
 ## 試せること
 
+- [JSON加工](docs/json-transform.md)：指定キーの抽出とJSON配列の表への変換。
+
 - [HTTP入力](docs/http-input.md)でレスポンスのraw／headers／bodyを選んで出力。
 
 - [結果ツリー](docs/tree-output.md)でJSONを開閉可能なツリー表示。

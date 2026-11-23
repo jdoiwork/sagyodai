@@ -1,3 +1,4 @@
+import { JsonConditions } from "../json/JsonConditions";
 import { ReplaceConditions } from "../replace/ReplaceConditions";
 import { OutputColumns } from "../projection/OutputColumns";
 import { GroupConditions } from "../group/GroupConditions";
@@ -49,7 +50,7 @@ export function NodeSettings({ table }: { table: TableData }) {
         JSON.stringify(table.filter?.values ?? []));
   return (
     <div
-      className={`node-settings nodrag nopan${(table.kind === "display" || table.kind === "textDisplay" || table.kind === "treeDisplay") && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.kind === "replace" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
+      className={`node-settings nodrag nopan${(table.kind === "display" || table.kind === "textDisplay" || table.kind === "treeDisplay") && !table.compact ? " display-settings" : ""}${table.kind === "filter" || table.kind === "sort" || table.kind === "aggregate" || table.kind === "replace" || table.kind === "jsonSelect" || table.kind === "jsonTable" || table.compact ? "" : " nowheel"}${table.compact ? " node-settings-compact" : ""}`}
     >
       {table.compact && table.kind === "display" && (
         <div className="compact-condition">
@@ -107,6 +108,9 @@ export function NodeSettings({ table }: { table: TableData }) {
           open={columnsOpen}
           onClose={() => setColumnsOpen(false)}
         />
+      )}
+      {(table.kind === "jsonSelect" || table.kind === "jsonTable") && (
+        <JsonConditions table={table} />
       )}
       {table.kind === "replace" && (
         <ReplaceConditions table={table} source={source} />

@@ -142,6 +142,14 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetJsonKey { id, key } => {
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::JsonSelect {
+                    return Err("JSONキー抽出ノードではありません。".into());
+                }
+                crate::json_transform::validate_key(&key)?;
+                table.json_key = Some(key);
+            }
             Command::FetchHttp { .. } => {
                 return Err("HTTPリクエストは非同期の操作APIから実行してください。".into());
             }
@@ -567,6 +575,10 @@ impl Project {
                             "メモ"
                         } else if kind == Kind::Replace {
                             "置換"
+                        } else if kind == Kind::JsonSelect {
+                            "JSONキー抽出"
+                        } else if kind == Kind::JsonTable {
+                            "JSONを表に変換"
                         } else if kind == Kind::TreeDisplay {
                             "結果ツリー"
                         } else if kind == Kind::TextDisplay {
@@ -612,6 +624,12 @@ impl Project {
                         t.width = 520.0;
                         t.height = 480.0;
                         t.text_display = crate::text_source::TextDisplay::Plain;
+                    }
+                    if kind == Kind::JsonSelect {
+                        t.json_key = Some(String::new());
+                    }
+                    if matches!(kind, Kind::JsonSelect | Kind::JsonTable) {
+                        t.width = 520.0;
                     }
                     if kind == Kind::Http {
                         t.http = Some(Default::default());

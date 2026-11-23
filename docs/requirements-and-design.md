@@ -53,6 +53,8 @@ flowchart LR
 
 ### 2.2 入力と出力
 
+- [JSON加工](json-transform.md)でキーの値を抽出し、JSON配列を表へ変換できる。
+
 - [HTTP入力](http-input.md)でリクエストのレスポンスを取得し、raw／headers／bodyを選んで出力する。外部通信は明示的なリクエスト操作で行う。
 
 - UTF-8の[テキストファイル入力](text-input.md)に対応し、改行ごとに1列の表として後続ノードへ出力できる。

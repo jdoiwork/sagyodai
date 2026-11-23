@@ -97,6 +97,7 @@ const tableSchema = z.object({
   replacement: replacementSchema.nullable().optional(),
   inputSide: portSideSchema.nullable().optional(),
   outputSide: portSideSchema.nullable().optional(),
+  jsonKey: z.string().optional(),
   http: z
     .object({
       config: z.object({
@@ -163,6 +164,8 @@ const tableSchema = z.object({
     "display",
     "textDisplay",
     "treeDisplay",
+    "jsonSelect",
+    "jsonTable",
     "union",
     "sort",
     "aggregate",
@@ -260,6 +263,8 @@ export type Command =
         | "display"
         | "textDisplay"
         | "treeDisplay"
+        | "jsonSelect"
+        | "jsonTable"
         | "union"
         | "sort"
         | "aggregate"
@@ -379,6 +384,7 @@ export type Command =
       config: { url: string; method: string; headers: string; body: string };
     }
   | { type: "setHttpOutput"; id: string; output: "raw" | "headers" | "body" }
+  | { type: "setJsonKey"; id: string; key: string }
   | { type: "addColumn"; id: string }
   | {
       type: "place";

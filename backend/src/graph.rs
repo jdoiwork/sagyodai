@@ -9,6 +9,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
         crate::csv_source::validate(t)?;
         crate::text_source::validate(t)?;
         crate::http_source::validate(t)?;
+        crate::json_transform::validate(t)?;
         crate::note::validate(t)?;
         if (t.kind == Kind::Replace) != t.replacement.is_some() {
             return Err("置換設定とノードの種類が一致しません。".into());
@@ -171,6 +172,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             n.sources() != tables[i].sources()
                 || n.filter != tables[i].filter
                 || n.sort_keys != tables[i].sort_keys
+                || n.json_key != tables[i].json_key
                 || n.replacement != tables[i].replacement
                 || n.group != tables[i].group
                 || n.projection != tables[i].projection
@@ -204,6 +206,9 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                     .as_ref()
                     .ok_or_else(|| "出力列設定がありません。".into())
                     .and_then(|config| config.evaluate(&s)),
+                Some(s) if matches!(node.kind, Kind::JsonSelect | Kind::JsonTable) => {
+                    crate::json_transform::evaluate(&s, node)
+                }
                 Some(s) if node.kind == Kind::TreeDisplay => crate::tree_display::evaluate(&s),
                 Some(s) if node.kind == Kind::Aggregate => node
                     .group
