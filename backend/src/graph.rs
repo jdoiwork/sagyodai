@@ -157,6 +157,14 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
 pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> Result<(), String> {
     for i in order(tables)? {
         crate::note::refresh(&mut tables[i]);
+        if tables[i].kind == Kind::Input {
+            crate::column_types::refresh_input(&mut tables[i]);
+        } else if matches!(
+            tables[i].kind,
+            Kind::Csv | Kind::Text | Kind::Http | Kind::Note
+        ) {
+            crate::column_types::refresh_source(&mut tables[i]);
+        }
         if matches!(
             tables[i].kind,
             Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
@@ -168,6 +176,19 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             .sources()
             .iter()
             .filter_map(|id| tables.iter().find(|t| &t.id == *id).cloned())
+            .map(|mut t| {
+                if t.kind == Kind::Input
+                    && !t.stale
+                    && let Some(output) = &t.output
+                {
+                    t.rows = output
+                        .rows
+                        .iter()
+                        .map(|r| r.iter().map(crate::column_types::Value::text).collect())
+                        .collect();
+                }
+                t
+            })
             .collect();
         let changed = old.is_none_or(|n| {
             n.sources() != tables[i].sources()
@@ -180,12 +201,14 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
                 || n.group != tables[i].group
                 || n.projection != tables[i].projection
                 || n.union_distinct != tables[i].union_distinct
+                || n.type_conversion != tables[i].type_conversion
         }) || inputs.iter().any(|current| {
             previous
                 .iter()
                 .find(|t| t.id == current.id)
                 .is_none_or(|old| {
-                    current.rows != old.rows
+                    current.output != old.output
+                        || (current.kind != Kind::Input && current.rows != old.rows)
                         || current.columns != old.columns
                         || current.stale != old.stale
                         || current.error != old.error
@@ -202,10 +225,29 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
             }
             continue;
         }
+        let binding_error = inputs
+            .first()
+            .and_then(|s| crate::column_bindings::resolve(node, s).err());
         if node.manual && run != Some(node.id.as_str()) {
             node.stale |= changed;
             continue;
         }
+        if let Some(error) = binding_error {
+            node.stale = true;
+            node.error = Some(error);
+            continue;
+        }
+        if let Some(result) = crate::typed_graph::evaluate(node, &inputs) {
+            match result {
+                Ok(data) => crate::column_types::commit(node, data),
+                Err(error) => {
+                    node.stale = true;
+                    node.error = Some(error);
+                }
+            }
+            continue;
+        }
+        let source_for_schema = inputs.first().cloned();
         let result = if node.kind == Kind::Union {
             crate::union::merge(&inputs, node.union_distinct)
         } else {
@@ -248,12 +290,13 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         };
         match result {
             Ok((columns, rows)) => {
-                node.column_widths.truncate(columns.len());
-                if let Some(footer) = &mut node.footer {
-                    footer.resize(columns.len(), Default::default());
-                }
-                node.columns = columns;
-                node.rows = rows;
+                let data = crate::typed_graph::legacy_result(
+                    node,
+                    source_for_schema.as_ref(),
+                    columns,
+                    rows,
+                );
+                crate::column_types::commit(node, data);
                 node.stale = false;
                 node.error = None;
             }

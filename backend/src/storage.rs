@@ -3,7 +3,7 @@ use crate::domain::{Kind, Table};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-pub const FORMAT_VERSION: u32 = 2;
+pub const FORMAT_VERSION: u32 = 3;
 pub const MAX_FILE_BYTES: usize = 128 * 1024 * 1024;
 pub const MAX_NODES: usize = 100;
 pub const MAX_ROWS: usize = 5000;
@@ -33,7 +33,14 @@ pub fn encode_project(
     let file = ProjectFile {
         format: "sagyodai".into(),
         format_version: FORMAT_VERSION,
-        tables: tables.to_vec(),
+        tables: tables
+            .iter()
+            .cloned()
+            .map(|mut t| {
+                crate::column_types::ensure_schema(&mut t);
+                t
+            })
+            .collect(),
         sheets: sheets.to_vec(),
     };
     let bytes = serde_json::to_vec_pretty(&file).map_err(|_| "ファイルを生成できませんでした。")?;
@@ -100,6 +107,7 @@ pub fn decode_project(value: serde_json::Value) -> Result<ProjectFile, String> {
         {
             return Err("行の列数が一致しないか、セルの内容が長すぎます。".into());
         }
+        crate::column_types::validate(table)?;
         if !valid_layout(table.x, table.y, table.width, table.height) {
             return Err("表の位置またはサイズが不正です。".into());
         }
@@ -130,6 +138,7 @@ mod tests {
         t.rows[0][0] = "日本語\n\"引用\"\tタブ".into();
         t.x = -24.5;
         t.width = 900.0;
+        crate::column_types::refresh_input(&mut t);
         let restored =
             decode(serde_json::from_slice(&encode(&[t.clone()]).unwrap()).unwrap()).unwrap();
         assert_eq!(

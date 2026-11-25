@@ -67,29 +67,31 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div
             className="table-icon"
             title={
-              table.kind === "script"
-                ? "外部スクリプト"
-                : table.kind === "jsonSelect"
-                  ? "JSONキー抽出"
-                  : table.kind === "jsonTable"
-                    ? "JSONを表に変換"
-                    : table.kind === "input"
-                      ? "手入力の表"
-                      : table.kind === "text"
-                        ? "テキスト入力"
-                        : table.kind === "csv"
-                          ? "CSV入力"
-                          : table.kind === "replace"
-                            ? "置換"
-                            : table.kind === "aggregate"
-                              ? "集計"
-                              : table.kind === "sort"
-                                ? "ソート"
-                                : table.kind === "filter"
-                                  ? "フィルタ"
-                                  : table.kind === "union"
-                                    ? "結合"
-                                    : "結果表"
+              table.kind === "convert"
+                ? "型変換"
+                : table.kind === "script"
+                  ? "外部スクリプト"
+                  : table.kind === "jsonSelect"
+                    ? "JSONキー抽出"
+                    : table.kind === "jsonTable"
+                      ? "JSONを表に変換"
+                      : table.kind === "input"
+                        ? "手入力の表"
+                        : table.kind === "text"
+                          ? "テキスト入力"
+                          : table.kind === "csv"
+                            ? "CSV入力"
+                            : table.kind === "replace"
+                              ? "置換"
+                              : table.kind === "aggregate"
+                                ? "集計"
+                                : table.kind === "sort"
+                                  ? "ソート"
+                                  : table.kind === "filter"
+                                    ? "フィルタ"
+                                    : table.kind === "union"
+                                      ? "結合"
+                                      : "結果表"
             }
           >
             <Icon
@@ -121,29 +123,31 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
           <div>
             <NodeTitle table={table} />
             <span>
-              {table.kind === "script"
-                ? "別プロセスで表を加工"
-                : table.kind === "jsonSelect"
-                  ? "JSONの値を取り出す"
-                  : table.kind === "jsonTable"
-                    ? "JSON配列を行と列に変換"
-                    : table.kind === "input"
-                      ? "入力ソース"
-                      : table.kind === "text"
-                        ? "テキストファイルの読み込み"
-                        : table.kind === "csv"
-                          ? "CSVファイルの読み込み"
-                          : table.kind === "replace"
-                            ? "文字列の加工"
-                            : table.kind === "aggregate"
-                              ? "グループ集計"
-                              : table.kind === "sort"
-                                ? "行の並べ替え"
-                                : table.kind === "filter"
-                                  ? "行の絞り込み"
-                                  : table.kind === "union"
-                                    ? "表の結合"
-                                    : "結果の表示"}
+              {table.kind === "convert"
+                ? "列の型と空欄を変換"
+                : table.kind === "script"
+                  ? "別プロセスで表を加工"
+                  : table.kind === "jsonSelect"
+                    ? "JSONの値を取り出す"
+                    : table.kind === "jsonTable"
+                      ? "JSON配列を行と列に変換"
+                      : table.kind === "input"
+                        ? "入力ソース"
+                        : table.kind === "text"
+                          ? "テキストファイルの読み込み"
+                          : table.kind === "csv"
+                            ? "CSVファイルの読み込み"
+                            : table.kind === "replace"
+                              ? "文字列の加工"
+                              : table.kind === "aggregate"
+                                ? "グループ集計"
+                                : table.kind === "sort"
+                                  ? "行の並べ替え"
+                                  : table.kind === "filter"
+                                    ? "行の絞り込み"
+                                    : table.kind === "union"
+                                      ? "表の結合"
+                                      : "結果の表示"}
             </span>
           </div>
           <button
@@ -183,7 +187,12 @@ function DataNode({ data, selected }: NodeProps<TableFlowNode>) {
         ) : table.kind === "input" ? (
           <>
             <div className="table-actions nodrag nopan">
-              <span className="table-mode">文字列の表</span>
+              <span className="table-mode">型付きの表</span>
+              {table.error && (
+                <span className="column-name-error" role="alert">
+                  {table.error}
+                </span>
+              )}
               <button
                 disabled={table.rows.length >= 5000}
                 title={

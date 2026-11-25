@@ -60,7 +60,7 @@ impl AggregateFunction {
 }
 impl GroupConfig {
     // 出力指定がない設定では、従来の集計項目から標準の列構成を作る。
-    fn output_columns(&self) -> Vec<GroupOutput> {
+    pub fn output_columns(&self) -> Vec<GroupOutput> {
         if let Some(outputs) = &self.outputs {
             return outputs.clone();
         }

@@ -1,3 +1,4 @@
+import { TypeConversion } from "../table/ColumnTypeSettings";
 import { JsonConditions } from "../json/JsonConditions";
 import { ReplaceConditions } from "../replace/ReplaceConditions";
 import { OutputColumns } from "../projection/OutputColumns";
@@ -11,10 +12,10 @@ import { useEffect, useRef, useState } from "react";
 import type { FilterConfig, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 const operators: [FilterConfig["operator"], string][] = [
-  ["equals", "文字列が一致"],
+  ["equals", "値が一致"],
   ["in", "いずれかに一致（IN）"],
   ["notIn", "いずれにも一致しない（NOT IN）"],
-  ["notEquals", "文字列が不一致"],
+  ["notEquals", "値が不一致"],
   ["contains", "文字列を含む"],
   ["searchAll", "全列を検索（大小文字を区別しない）"],
   ["numberEquals", "数値 ="],
@@ -101,6 +102,9 @@ export function NodeSettings({ table }: { table: TableData }) {
             ))}
         </select>
       </label>
+      {table.kind === "convert" && !table.compact && (
+        <TypeConversion table={table} source={source} />
+      )}
       {table.kind === "display" && (
         <OutputColumns
           table={table}
@@ -202,7 +206,14 @@ export function NodeSettings({ table }: { table: TableData }) {
             <InValues
               exclude={draft.operator === "notIn"}
               label={table.title}
-              values={source?.rows?.map((row) => row[draft.column] ?? "") ?? []}
+              values={
+                source?.output && !source.stale
+                  ? source.output.rows.flatMap((row) => {
+                      const v = row[draft.column];
+                      return !v || v.type === "null" ? [] : [String(v.value)];
+                    })
+                  : (source?.rows?.map((row) => row[draft.column] ?? "") ?? [])
+              }
               selected={draft.values ?? []}
               onChange={(values) => setDraft({ ...draft, values })}
             />

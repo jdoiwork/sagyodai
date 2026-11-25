@@ -2,6 +2,8 @@ import { cellInputError } from "../../validation/input";
 import { memo, useEffect, useRef, useState } from "react";
 type Props = {
   autoFocus?: boolean;
+  typeError?: string;
+  placeholder?: string;
   value: string;
   label: string;
   selected: boolean;
@@ -12,6 +14,8 @@ type Props = {
 };
 export const Cell = memo(function Cell({
   autoFocus,
+  typeError,
+  placeholder,
   value,
   label,
   selected,
@@ -34,8 +38,9 @@ export const Cell = memo(function Cell({
     <textarea
       autoFocus={autoFocus}
       aria-label={label}
-      aria-invalid={!!error}
-      title={error || undefined}
+      aria-invalid={!!error || !!typeError}
+      title={error || typeError || placeholder || undefined}
+      placeholder={placeholder}
       data-committed-value={value}
       className={selected ? "cell selected-cell" : "cell"}
       rows={1}

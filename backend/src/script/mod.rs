@@ -89,6 +89,7 @@ pub struct Script {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Data {
+    pub typed: Option<crate::column_types::Data>,
     pub columns: Vec<String>,
     pub rows: Vec<Vec<String>>,
 }
@@ -109,8 +110,11 @@ pub fn complete(t: &mut Table, result: Result<Data, String>) -> Result<(), Strin
     }
     match result {
         Ok(data) => {
-            t.columns = data.columns;
-            t.rows = data.rows;
+            let output = data.typed.unwrap_or_else(|| {
+                crate::typed_graph::legacy_result(t, None, data.columns, data.rows)
+            });
+            crate::column_types::validate_data(&output)?;
+            crate::column_types::commit(t, output);
             t.column_widths.truncate(t.columns.len());
             t.stale = false;
             t.error = None;

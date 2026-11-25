@@ -46,7 +46,9 @@ export function SummaryFooter({ table }: { table: TableData }) {
                 title={
                   table.footer?.[col] === "mode"
                     ? "空欄・空白のみは対象外。同率は元の行順で最初の値。表示の絞り込み・並べ替えには影響されません"
-                    : "空欄と数値以外は集計対象外"
+                    : table.columnSchema?.[col]?.config.dataType === "integer"
+                      ? "整数値を正確に集計。nullは除外し、入力の型エラーは表示します"
+                      : "空欄と数値以外は集計対象外"
                 }
               >
                 {table.footerTotals?.[col] ?? "—"}

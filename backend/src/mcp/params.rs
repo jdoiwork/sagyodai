@@ -29,6 +29,7 @@ pub struct Edit {
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum NodeKind {
+    Convert,
     Script,
     Input,
     Filter,
@@ -50,6 +51,19 @@ pub struct Location {
     deny_unknown_fields
 )]
 pub enum Operation {
+    SetColumnType {
+        id: String,
+        column_id: String,
+        config: crate::column_types::TypeConfig,
+        expected_config: crate::column_types::TypeConfig,
+    },
+    SetTypeConversion {
+        id: String,
+        columns: std::collections::BTreeMap<String, crate::column_types::TypeConfig>,
+        #[serde(default)]
+        expected_columns:
+            Option<std::collections::BTreeMap<String, crate::column_types::TypeConfig>>,
+    },
     SetScript {
         id: String,
         config: crate::script::Config,
@@ -129,6 +143,26 @@ pub enum Operation {
 impl From<Edit> for Request {
     fn from(edit: Edit) -> Self {
         let command = match edit.command {
+            Operation::SetColumnType {
+                id,
+                column_id,
+                config,
+                expected_config,
+            } => Command::SetColumnType {
+                id,
+                column_id,
+                config,
+                expected_config,
+            },
+            Operation::SetTypeConversion {
+                id,
+                columns,
+                expected_columns,
+            } => Command::SetTypeConversion {
+                id,
+                columns,
+                expected_columns,
+            },
             Operation::SetScript { id, config } => Command::SetScript { id, config },
             Operation::AddNode {
                 kind,
@@ -136,6 +170,7 @@ impl From<Edit> for Request {
                 position,
             } => Command::AddNode {
                 kind: match kind {
+                    NodeKind::Convert => Kind::Convert,
                     NodeKind::Script => Kind::Script,
                     NodeKind::Input => Kind::Input,
                     NodeKind::Filter => Kind::Filter,

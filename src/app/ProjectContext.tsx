@@ -300,6 +300,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           (s) => s.id === command.id,
         )?.title;
         dispatch({ ...command, expectedTitle: title ?? command.expectedTitle });
+      } else if (command.type === "setColumnType") {
+        const config = current.current?.tables
+          .find((t) => t.id === command.id)
+          ?.columnSchema?.find((c) => c.id === command.columnId)?.config;
+        dispatch({
+          ...command,
+          expectedConfig: config ?? command.expectedConfig,
+        });
+      } else if (command.type === "setTypeConversion") {
+        const columns =
+          current.current?.tables.find((t) => t.id === command.id)
+            ?.typeConversion ?? {};
+        dispatch({ ...command, expectedColumns: columns });
       } else if (command.type === "setNote") {
         const text = current.current?.tables.find((t) => t.id === command.id)
           ?.note?.text;

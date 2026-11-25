@@ -101,3 +101,14 @@ flowchart LR
 - 実プロセス: initialize、tools/list・tools/call、MCP編集→GUI用HTTP・SSEの反映、競合エラー、不正引数、コア停止時のエラー、コア再起動後のデータ復元。
 - テストは一時ディレクトリと別ポートを使い、利用中の保存先を変更しない。
 - 実MCPクライアントへの登録、ブラウザでの入力途中の競合や日本語IME操作は今回未検証。既存の同期UIは変更していない。
+
+## 列の型
+
+`addNode`の`kind: "convert"`で型変換ノードを追加できる。
+
+- `setColumnType`: 手入力ノードの`id`、列の`columnId`、`config`、観測した`expectedConfig`を指定する。
+- `setTypeConversion`: 型変換ノードの`id`と、入力列IDをキーとする`columns`（型設定のオブジェクト）を指定する。空のオブジェクトで全指定を解除する。`expectedColumns`で観測した設定との比較も指定できる。
+- 型設定例: `{"dataType":"integer","nullable":false,"empty":{"mode":"value","value":"0"}}`。
+- `get_node`の`columnSchema`で列IDと設定、`cellErrors`で入力エラーを取得する。`typedRows`は最新の成功結果がある場合だけ返す。整数は`{"type":"integer","value":"9007199254740993"}`、真偽値は`{"type":"boolean","value":false}`、nullは`{"type":"null"}`。文字列本文は既存のサイズ制限付き`rows`を使う。
+
+詳しい規則は[列の型](column-types.md)を参照。GUIと同じ検証・Undo・保存・更新伝播を使う。

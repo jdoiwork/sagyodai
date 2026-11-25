@@ -39,6 +39,7 @@ pub fn refresh(table: &mut Table) {
             .collect();
         table.stale = false;
         table.error = None;
+        crate::column_types::refresh_source(table);
     }
 }
 
@@ -130,6 +131,10 @@ mod tests {
         saved["tables"][1]["rows"] = serde_json::json!([[text]]);
         saved["tables"][2]["rows"] = serde_json::json!([[text]]);
         saved["tables"][3]["rows"] = serde_json::json!([[text]]);
+        for index in [1, 2, 3] {
+            saved["tables"][index]["output"]["rows"] =
+                serde_json::json!([[{"type":"string","value":text}]]);
+        }
         let reopened = Project::restore(saved, 0).unwrap();
         assert_eq!(reopened.snapshot().tables[1].rows.len(), 2);
         assert_eq!(reopened.snapshot().tables[3].rows, vec![vec!["# 重要"]]);

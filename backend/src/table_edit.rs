@@ -116,12 +116,13 @@ pub fn remove_column(
         }
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
-        if let Some(footer) = &mut t.footer
+        if t.id == id
+            && let Some(footer) = &mut t.footer
             && col < footer.len()
         {
             footer.remove(col);
         }
-        if col < t.column_widths.len() {
+        if t.id == id && col < t.column_widths.len() {
             t.column_widths.remove(col);
         }
         if let Some(f) = &mut t.filter
@@ -135,6 +136,7 @@ pub fn remove_column(
             }
         }
     }
+    tables[i].column_schema.remove(col);
     tables[i].columns.remove(col);
     for row in &mut tables[i].rows {
         row.remove(col);
@@ -190,31 +192,13 @@ pub fn move_columns(
     }
     let mut affected = vec![id.to_string()];
     for n in crate::graph::order(tables)? {
-        if (matches!(tables[n].kind, Kind::Aggregate | Kind::Script)
-            || tables[n].projection.is_some())
-            && tables[n]
-                .source
-                .as_ref()
-                .is_some_and(|s| affected.contains(s))
-        {
-            return Err("列構成を変更するノードへ接続中の列挿入・削除・並べ替えはできません。対象ノードの入力接続を外してから列構成を変更してください。".into());
-        }
-        if tables[n].kind == Kind::Union
-            && tables[n]
-                .union_inputs
-                .iter()
-                .any(|input| affected.contains(&input.source))
-        {
-            return Err("結合ノードへ接続中の列挿入・削除・並べ替えはできません。結合の入力接続を外してから列構成を変更してください。".into());
-        }
         if tables[n]
             .source
             .as_ref()
             .is_some_and(|s| affected.contains(s))
+            && !matches!(tables[n].kind, Kind::Aggregate | Kind::Script)
+            && tables[n].projection.is_none()
         {
-            if tables[n].manual || tables[n].stale || tables[n].error.is_some() {
-                return Err("接続先に手動更新・更新待ち・エラーがあります。自動更新に切り替えて問題を解消するか、接続を外してから列を並べ替えてください。".into());
-            }
             affected.push(tables[n].id.clone());
         }
     }
@@ -223,23 +207,35 @@ pub fn move_columns(
         new_index[*old] = new;
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
-        if let Some(footer) = &mut t.footer {
+        if t.id == id
+            && let Some(footer) = &mut t.footer
+        {
             *footer = order
                 .iter()
                 .map(|old| footer.get(*old).copied().unwrap_or_default())
                 .collect();
         }
-        t.column_widths = order
-            .iter()
-            .map(|old| t.column_widths.get(*old).copied().unwrap_or(160.0))
-            .collect();
-        if let Some(f) = &mut t.filter {
-            f.column = new_index[f.column];
+        if t.id == id {
+            t.column_widths = order
+                .iter()
+                .map(|old| t.column_widths.get(*old).copied().unwrap_or(160.0))
+                .collect();
+        }
+        if let Some(f) = &mut t.filter
+            && let Some(i) = new_index.get(f.column)
+        {
+            f.column = *i;
         }
         for key in &mut t.sort_keys {
-            key.column = new_index[key.column];
+            if let Some(i) = new_index.get(key.column) {
+                key.column = *i;
+            }
         }
     }
+    tables[i].column_schema = order
+        .iter()
+        .map(|old| tables[i].column_schema[*old].clone())
+        .collect();
     tables[i].columns = order.iter().map(|old| columns[*old].clone()).collect();
     tables[i].rows = rows
         .iter()
@@ -375,12 +371,16 @@ pub fn insert(
         }
     }
     for t in tables.iter_mut().filter(|t| affected.contains(&t.id)) {
-        if let Some(footer) = &mut t.footer {
+        if t.id == id
+            && let Some(footer) = &mut t.footer
+        {
             footer.resize(columns.len(), Default::default());
             footer.splice(at..at, vec![Default::default(); count]);
         }
-        t.column_widths.resize(columns.len(), 160.0);
-        t.column_widths.splice(at..at, vec![160.0; count]);
+        if t.id == id {
+            t.column_widths.resize(columns.len(), 160.0);
+            t.column_widths.splice(at..at, vec![160.0; count]);
+        }
         if let Some(f) = &mut t.filter
             && f.column >= at
         {
@@ -401,6 +401,11 @@ pub fn insert(
         }
         number += 1;
     }
+    let schema: Vec<_> = names
+        .iter()
+        .map(|name| crate::column_types::new_column(&tables[i], name.clone()))
+        .collect();
+    tables[i].column_schema.splice(at..at, schema);
     tables[i].columns.splice(at..at, names);
     for row in &mut tables[i].rows {
         row.splice(at..at, vec![String::new(); count]);

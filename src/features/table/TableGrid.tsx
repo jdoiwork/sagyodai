@@ -40,6 +40,21 @@ export function TableGrid({
   onCanvasScroll?: (dx: number, dy: number) => void;
 }) {
   const { dispatch } = useProject();
+  const cellErrors = useMemo(
+    () =>
+      new Map(
+        (table.cellErrors ?? []).map((e) => [`${e.row}:${e.col}`, e.message]),
+      ),
+    [table.cellErrors],
+  );
+  function emptyPlaceholder(col: number) {
+    const empty = table.columnSchema?.[col]?.config.empty;
+    return empty?.mode === "value"
+      ? empty.value || undefined
+      : empty?.mode === "null"
+        ? "null"
+        : undefined;
+  }
   const [localQuery, setLocalQuery] = useState("");
   const query = search?.value ?? localQuery;
   const [localFilters, setLocalFilters] = useState<ColumnFilterState>({
@@ -62,8 +77,9 @@ export function TableGrid({
         table.rows,
         matchingRows(table.rows, query, filters),
         sort,
+        !table.stale ? table.output?.rows : undefined,
       ),
-    [table.rows, query, filters, sort],
+    [table.rows, table.output, table.stale, query, filters, sort],
   );
   const visibleSet = new Set(visibleRows);
 
@@ -733,9 +749,19 @@ export function TableGrid({
                         }
                       >
                         {readOnly ? (
-                          <span className="result-cell">{value}</span>
+                          <span
+                            className={
+                              table.output?.rows[r]?.[c]?.type === "null"
+                                ? "result-cell null-cell"
+                                : "result-cell"
+                            }
+                          >
+                            {value}
+                          </span>
                         ) : (
                           <Cell
+                            typeError={cellErrors.get(`${r}:${c}`)}
+                            placeholder={emptyPlaceholder(c)}
                             onValidationError={setPasteError}
                             value={value}
                             label={`${table.title} ${r + 1}行 ${c + 1}列`}

@@ -139,6 +139,7 @@ pub fn import(
     });
     table.stale = false;
     table.error = None;
+    crate::column_types::refresh_source(table);
     Ok(())
 }
 
@@ -217,6 +218,7 @@ pub fn set_options(
     table.csv = Some(csv);
     table.stale = false;
     table.error = None;
+    crate::column_types::refresh_source(table);
     Ok(())
 }
 

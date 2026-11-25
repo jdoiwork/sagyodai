@@ -187,6 +187,50 @@ try {
   const output = (await call("get_node", { id: scriptId, limit: 1 }))
     .structuredContent;
   assert.equal(output.rows[0][0], "MCPから日本語");
+  // 型・原文・大きな整数をstdioとGUI共通状態で確認し、再起動後も保持する。
+  const typedBefore = (
+    await call("get_node", { id: gui.tables[0].id, limit: 1 })
+  ).structuredContent;
+  const column = typedBefore.columnSchema[1];
+  await operation({
+    type: "setColumnType",
+    id: gui.tables[0].id,
+    columnId: column.id,
+    expectedConfig: column.config,
+    config: {
+      dataType: "integer",
+      nullable: false,
+      empty: { mode: "value", value: "0" },
+    },
+  });
+  await operation({
+    type: "paste",
+    id: gui.tables[0].id,
+    row: 0,
+    col: 1,
+    values: [["9007199254740993"]],
+  });
+  const typed = (await call("get_node", { id: gui.tables[0].id, limit: 1 }))
+    .structuredContent;
+  assert.deepEqual(typed.typedRows[0][1], {
+    type: "integer",
+    value: "9007199254740993",
+  });
+  const typedGui = await (await fetch(`${base}/api/project`)).json();
+  assert.deepEqual(typedGui.tables[0].output.rows[0][1], typed.typedRows[0][1]);
+  await operation({
+    type: "paste",
+    id: gui.tables[0].id,
+    row: 0,
+    col: 1,
+    values: [["未定"]],
+  });
+  const invalidType = (
+    await call("get_node", { id: gui.tables[0].id, limit: 1 })
+  ).structuredContent;
+  assert.equal(invalidType.rows[0][1], "未定");
+  assert.equal(invalidType.cellErrors[0].col, 1);
+  await operation({ type: "undo" });
   await reader.cancel();
   reader = undefined;
   await stop(core);
@@ -198,6 +242,14 @@ try {
     try {
       const restored = await (await fetch(`${base}/api/project`)).json();
       assert.equal(restored.tables[0].rows[0][0], "MCPから日本語");
+      assert.equal(
+        restored.tables[0].columnSchema[1].config.dataType,
+        "integer",
+      );
+      assert.deepEqual(restored.tables[0].output.rows[0][1], {
+        type: "integer",
+        value: "9007199254740993",
+      });
       ready = true;
       break;
     } catch {

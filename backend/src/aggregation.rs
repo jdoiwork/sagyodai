@@ -47,6 +47,11 @@ pub fn totals(table: &Table) -> Vec<Option<String>> {
         .iter()
         .enumerate()
         .map(|(col, _)| {
+            if table.column_schema.get(col).is_some_and(|c| {
+                c.config.data_type != crate::column_types::DataType::String || c.config.nullable
+            }) {
+                return typed_total(table, col, footer.get(col).copied().unwrap_or_default());
+            }
             match footer.get(col).copied().unwrap_or_default() {
                 FooterAggregation::Enabled(false) => return None,
                 FooterAggregation::Function(FooterFunction::Mode) => return mode(table, col),
@@ -68,6 +73,50 @@ pub fn totals(table: &Table) -> Vec<Option<String>> {
             })
         })
         .collect()
+}
+
+fn typed_total(table: &Table, col: usize, kind: FooterAggregation) -> Option<String> {
+    use crate::column_types::Value;
+    if matches!(kind, FooterAggregation::Enabled(false)) {
+        return None;
+    }
+    if table.kind == crate::domain::Kind::Input && !table.cell_errors.is_empty() {
+        return Some("型エラー".into());
+    }
+    let data = table.output.as_ref()?;
+    let values: Vec<_> = data
+        .rows
+        .iter()
+        .filter_map(|r| r.get(col))
+        .filter(|v| **v != Value::Null)
+        .collect();
+    if matches!(kind, FooterAggregation::Function(FooterFunction::Mode)) {
+        let mut best = None;
+        let mut max = 0;
+        for v in &values {
+            let n = values.iter().filter(|x| *x == v).count();
+            if n > max {
+                max = n;
+                best = Some(v.text());
+            }
+        }
+        return best;
+    }
+    if data.columns.get(col)?.config.data_type != crate::column_types::DataType::Integer {
+        return Some("整数列を指定".into());
+    }
+    let total: i128 = values
+        .iter()
+        .filter_map(|v| match v {
+            Value::Integer(n) => Some(*n as i128),
+            _ => None,
+        })
+        .sum();
+    Some(
+        i64::try_from(total)
+            .map(|n| n.to_string())
+            .unwrap_or_else(|_| "集計範囲超過".into()),
+    )
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+import { ColumnTypeSettings } from "./ColumnTypeSettings";
 import { columnNameError } from "./columnName";
 import { useState } from "react";
 import type { TableData } from "../../api/project";
@@ -24,6 +25,7 @@ export function ColumnHeader({
   }
   return (
     <div className="column-heading">
+      <ColumnTypeSettings table={table} col={col} />
       {editing ? (
         <div
           className="column-name-editor"

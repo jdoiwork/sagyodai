@@ -362,8 +362,9 @@ async fn input_column_reorder_does_not_remap_script_output_columns() {
         }),
     )
     .await;
-    assert!(response.is_err());
-    assert_eq!(f.snapshot().revision, before.revision);
+    assert!(response.is_ok());
+    assert!(f.snapshot().tables[1].stale);
+    assert_eq!(f.snapshot().tables[1].output, before.tables[1].output);
 }
 
 #[tokio::test]
@@ -556,5 +557,63 @@ async fn list_and_dict_can_be_selected_independently_and_restored() {
                 assert_eq!(f.snapshot().tables[1].rows, snapshot.tables[1].rows);
             }
         }
+    }
+}
+
+#[tokio::test]
+async fn typed_list_and_dict_echo_preserves_i64_nulls_and_rejects_wrong_types() {
+    use crate::column_types::{DataType, EmptyValue, TypeConfig, Value};
+    for format in [RowFormat::List, RowFormat::Dict] {
+        let f = Fixture::new("import sys\nprint(sys.stdin.read(),end='')\n");
+        f.setup().await;
+        let mut cfg = f.config.clone();
+        cfg.input_row_format = format;
+        cfg.output_row_format = format;
+        f.edit(Command::SetScript {
+            id: "table-2".into(),
+            config: cfg,
+        })
+        .await;
+        f.edit(Command::Paste {
+            id: "table-1".into(),
+            row: 0,
+            col: 1,
+            values: vec![vec!["9223372036854775807".into()]],
+            expected_values: None,
+        })
+        .await;
+        let col = f.snapshot().tables[0].column_schema[1].clone();
+        f.edit(Command::SetColumnType {
+            id: "table-1".into(),
+            column_id: col.id,
+            expected_config: col.config,
+            config: TypeConfig {
+                data_type: DataType::Integer,
+                nullable: true,
+                empty: EmptyValue::Null,
+            },
+        })
+        .await;
+        f.start(false).await;
+        assert_eq!(f.wait().await["state"], "succeeded");
+        let good = f.snapshot();
+        assert_eq!(
+            good.tables[2].output.as_ref().unwrap().rows[0][1],
+            Value::Integer(i64::MAX)
+        );
+        assert_eq!(
+            good.tables[2].output.as_ref().unwrap().rows[3][1],
+            Value::Null
+        );
+        let bytes = protocol::encode(&good.tables[0], format).unwrap();
+        let bad = String::from_utf8(bytes).unwrap().replace(
+            "\"value\":\"9223372036854775807\"",
+            "\"value\":\"9223372036854775808\"",
+        );
+        assert!(protocol::decode(bad.as_bytes(), format).is_err());
+        std::fs::write(&f.config.script_path,"import sys\nprint(sys.stdin.read().replace('9223372036854775807','9223372036854775808'),end='')\n").unwrap();
+        f.start(false).await;
+        assert_eq!(f.wait().await["state"], "failed");
+        assert_eq!(f.snapshot().tables[1].output, good.tables[1].output);
     }
 }

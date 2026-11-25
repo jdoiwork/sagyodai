@@ -59,7 +59,7 @@ impl McpBridge {
 #[rmcp::tool_handler(
     name = "sagyodai",
     version = "0.1.0",
-    instructions = "起動中の作業台を操作します。最初にget_projectで状態を確認してください。GUIと状態・Undoを共有します。セルは文字列で行列は0始まりです。"
+    instructions = "起動中の作業台を操作します。最初にget_projectで状態を確認してください。GUIと状態・Undoを共有します。入力原文は文字列、列型はcolumnSchemaで確認します。整数は64ビット十進文字列です。行列は0始まりです。"
 )]
 impl rmcp::ServerHandler for McpBridge {}
 
@@ -130,7 +130,7 @@ impl McpBridge {
     }
 
     #[tool(
-        description = "ノードの列・条件・更新状態と指定範囲の行を取得。行列は0始まり、セルは文字列。最大100行、1セル2048バイト、合計32768バイトまで。truncatedCellsがある値は省略されており編集前の完全な値として扱わない。",
+        description = "ノードの列・条件・更新状態と指定範囲の行を取得。行列は0始まり、rowsは入力原文または結果の表示文字列。columnSchemaは型・空欄規則、typedRowsは最新結果の型付き値（文字列本文はrows参照）。最大100行、1セル2048バイト、合計32768バイトまで。truncatedCellsがある値は省略されており編集前の完全な値として扱わない。",
         annotations(
             read_only_hint = true,
             destructive_hint = false,

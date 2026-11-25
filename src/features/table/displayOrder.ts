@@ -1,3 +1,4 @@
+import type { TypedValue } from "../../api/project";
 export type DisplaySort = { column: number; direction: "asc" | "desc" };
 const collator = new Intl.Collator("ja", {
   numeric: true,
@@ -8,6 +9,7 @@ export function sortDisplayRows(
   rows: string[][],
   indices: number[],
   sort?: DisplaySort | null,
+  typedRows?: TypedValue[][],
 ): number[] {
   if (!sort) return indices;
   const values = rows
@@ -17,6 +19,18 @@ export function sortDisplayRows(
     values.length > 0 &&
     values.every((value) => Number.isFinite(Number(value)));
   return [...indices].sort((a, b) => {
+    const ta = typedRows?.[a]?.[sort.column],
+      tb = typedRows?.[b]?.[sort.column];
+    if (ta && tb) {
+      if (ta.type === "null" || tb.type === "null")
+        return Number(ta.type === "null") - Number(tb.type === "null") || a - b;
+      if (ta.type === "integer" && tb.type === "integer") {
+        const left = BigInt(ta.value),
+          right = BigInt(tb.value);
+        const comparison = left < right ? -1 : left > right ? 1 : 0;
+        return (sort.direction === "asc" ? comparison : -comparison) || a - b;
+      }
+    }
     const left = rows[a][sort.column] ?? "",
       right = rows[b][sort.column] ?? "";
     if (!left.trim() || !right.trim())

@@ -88,6 +88,7 @@ function Canvas() {
   const toolbar = useRef<HTMLDivElement>(null);
   const adding = useRef<{
     kind:
+      | "convert"
       | "input"
       | "csv"
       | "text"
@@ -118,6 +119,7 @@ function Canvas() {
   }, [project, pending, selectNode]);
   function addNode(
     kind:
+      | "convert"
       | "input"
       | "csv"
       | "text"

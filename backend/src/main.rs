@@ -1,6 +1,8 @@
 mod aggregation;
 mod application;
 mod autosave;
+mod column_bindings;
+mod column_types;
 mod csv_source;
 mod domain;
 mod graph;
@@ -24,6 +26,7 @@ mod storage;
 mod table_edit;
 mod table_view;
 mod text_source;
+mod typed_graph;
 mod union;
 #[cfg(test)]
 mod union_tests;
@@ -207,3 +210,6 @@ mod tree_display;
 
 #[cfg(test)]
 mod http_tests;
+
+#[cfg(test)]
+mod column_types_tests;

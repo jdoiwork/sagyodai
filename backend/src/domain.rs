@@ -3,6 +3,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Table {
+    #[serde(default)]
+    pub column_schema: Vec<crate::column_types::Column>,
+    #[serde(default)]
+    pub output: Option<crate::column_types::Data>,
+    #[serde(default)]
+    pub cell_errors: Vec<crate::column_types::CellError>,
+    #[serde(default)]
+    pub type_conversion: std::collections::BTreeMap<String, crate::column_types::TypeConfig>,
+    #[serde(default)]
+    pub column_bindings: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub script: Option<crate::script::Script>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -114,6 +124,7 @@ pub enum ColorTarget {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Kind {
+    Convert,
     Script,
     Note,
     Replace,
@@ -175,6 +186,19 @@ pub struct Snapshot {
     deny_unknown_fields
 )]
 pub enum Command {
+    SetColumnType {
+        id: String,
+        column_id: String,
+        config: crate::column_types::TypeConfig,
+        expected_config: crate::column_types::TypeConfig,
+    },
+    SetTypeConversion {
+        id: String,
+        columns: std::collections::BTreeMap<String, crate::column_types::TypeConfig>,
+        #[serde(default)]
+        expected_columns:
+            Option<std::collections::BTreeMap<String, crate::column_types::TypeConfig>>,
+    },
     SetScript {
         id: String,
         config: crate::script::Config,
@@ -462,7 +486,12 @@ pub struct Request {
 }
 
 pub fn sample_table(id: String, index: usize) -> Table {
-    Table {
+    let mut table = Table {
+        column_schema: vec![],
+        output: None,
+        cell_errors: vec![],
+        type_conversion: Default::default(),
+        column_bindings: Default::default(),
         script: None,
         replacement: None,
         input_side: None,
@@ -511,5 +540,7 @@ pub fn sample_table(id: String, index: usize) -> Table {
         y: 100.0 + index as f64 * 80.0,
         width: 760.0,
         height: 390.0,
-    }
+    };
+    crate::column_types::refresh_input(&mut table);
+    table
 }

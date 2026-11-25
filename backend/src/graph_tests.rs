@@ -511,6 +511,7 @@ fn structural_edits_reject_readonly_and_last_row_or_column() {
     let mut t = crate::domain::sample_table("table-1".into(), 0);
     t.columns = vec!["列".into()];
     t.rows = vec![vec!["値".into()]];
+    crate::column_types::refresh_input(&mut t);
     run(
         &mut p,
         Command::OpenProject {
@@ -726,7 +727,7 @@ fn column_reordering_preserves_filter_meaning_widths_and_history() {
                 expected_rows: current.rows
             }
         )
-        .is_err()
+        .is_ok()
     );
     let display = p.snapshot().tables[2].clone();
     assert!(
@@ -740,7 +741,7 @@ fn column_reordering_preserves_filter_meaning_widths_and_history() {
                 expected_rows: display.rows
             }
         )
-        .is_ok()
+        .is_err()
     );
 }
 

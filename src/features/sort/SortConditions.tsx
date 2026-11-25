@@ -115,7 +115,16 @@ export function SortConditions({
               </select>
               <select
                 aria-label={`${table.title} 比較方法 ${i + 1}`}
-                value={key.mode}
+                disabled={
+                  !!source?.columnSchema?.[key.column] &&
+                  source.columnSchema[key.column].config.dataType !== "string"
+                }
+                value={
+                  source?.columnSchema?.[key.column] &&
+                  source.columnSchema[key.column].config.dataType !== "string"
+                    ? "typed"
+                    : key.mode
+                }
                 onChange={(e) =>
                   update(
                     keys.map((k, n) =>
@@ -126,6 +135,9 @@ export function SortConditions({
                   )
                 }
               >
+                {source?.columnSchema?.[key.column] &&
+                  source.columnSchema[key.column].config.dataType !==
+                    "string" && <option value="typed">列の型で比較</option>}
                 <option value="text">テキスト</option>
                 <option value="number">数値</option>
               </select>

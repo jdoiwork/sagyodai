@@ -60,11 +60,21 @@ impl Projection {
             return Err("入力の列構成が変わりました。出力列を設定し直してください。".into());
         }
         let selected: Vec<_> = self.columns.iter().filter(|c| c.visible).collect();
+        // 手入力のrowsは原文。結果表の列操作では確定した型付き出力と照合する。
+        let effective_rows = source.output.as_ref().map(|data| {
+            data.rows
+                .iter()
+                .map(|r| {
+                    r.iter()
+                        .map(crate::column_types::Value::text)
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        });
+        let rows = effective_rows.as_ref().unwrap_or(&source.rows);
         Ok((
             selected.iter().map(|c| self.name(c)).collect(),
-            source
-                .rows
-                .iter()
+            rows.iter()
                 .map(|row| selected.iter().map(|c| row[c.column].clone()).collect())
                 .collect(),
         ))
@@ -145,23 +155,10 @@ pub fn move_columns(
     }
     config.validate()?;
     let table = &mut tables[i];
+    table.column_bindings.clear();
     table.projection = Some(config);
     table.view = Default::default();
-    // 自動更新なら同じ操作で列幅・フッターの対象も移動する。
-    if !table.manual {
-        table.column_widths = order
-            .iter()
-            .map(|i| table.column_widths.get(*i).copied().unwrap_or(160.0))
-            .collect();
-        if let Some(footer) = &table.footer {
-            table.footer = Some(
-                order
-                    .iter()
-                    .map(|i| footer.get(*i).copied().unwrap_or_default())
-                    .collect(),
-            );
-        }
-    }
+
     Ok(())
 }
 
@@ -217,6 +214,7 @@ pub fn rename_column(
         .ok_or("対象の列が見つかりません。")?;
     target.name = name;
     config.validate()?;
+    tables[i].column_bindings.clear();
     tables[i].projection = Some(config);
     tables[i].view = Default::default();
     Ok(())
@@ -275,18 +273,10 @@ pub fn hide_column(
         .visible = false;
     config.validate()?;
     let table = &mut tables[i];
+    table.column_bindings.clear();
     table.projection = Some(config);
     table.view = Default::default();
-    if !table.manual {
-        if col < table.column_widths.len() {
-            table.column_widths.remove(col);
-        }
-        if let Some(footer) = &mut table.footer
-            && col < footer.len()
-        {
-            footer.remove(col);
-        }
-    }
+
     Ok(())
 }
 

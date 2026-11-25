@@ -103,7 +103,57 @@ export const scriptConfigSchema = z.object({
   timeoutSeconds: z.number().int().min(1).max(3600),
 });
 export type ScriptConfig = z.infer<typeof scriptConfigSchema>;
+export const typeConfigSchema = z.object({
+  dataType: z.enum(["string", "integer", "boolean"]),
+  nullable: z.boolean(),
+  empty: z.discriminatedUnion("mode", [
+    z.object({ mode: z.literal("value"), value: z.string() }),
+    z.object({ mode: z.literal("null") }),
+    z.object({ mode: z.literal("error") }),
+  ]),
+});
+export type TypeConfig = z.infer<typeof typeConfigSchema>;
+export const columnSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  config: typeConfigSchema,
+});
+export const typedValueSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("string"), value: z.string() }),
+  z.object({
+    type: z.literal("integer"),
+    value: z
+      .string()
+      .regex(/^-?(0|[1-9][0-9]*)$/)
+      .refine(
+        (s) =>
+          BigInt(s) >= -9223372036854775808n &&
+          BigInt(s) <= 9223372036854775807n,
+      ),
+  }),
+  z.object({ type: z.literal("boolean"), value: z.boolean() }),
+  z.object({ type: z.literal("null") }),
+]);
+export type TypedValue = z.infer<typeof typedValueSchema>;
 const tableSchema = z.object({
+  columnSchema: z.array(columnSchema).optional(),
+  output: z
+    .object({
+      columns: z.array(columnSchema),
+      rows: z.array(z.array(typedValueSchema)),
+    })
+    .nullable()
+    .optional(),
+  cellErrors: z
+    .array(
+      z.object({
+        row: z.number().int().nonnegative(),
+        col: z.number().int().nonnegative(),
+        message: z.string(),
+      }),
+    )
+    .optional(),
+  typeConversion: z.record(z.string(), typeConfigSchema).optional(),
   script: z.object({ config: scriptConfigSchema }).optional(),
   note: z.object({ text: z.string() }).nullable().optional(),
   replacement: replacementSchema.nullable().optional(),
@@ -168,6 +218,7 @@ const tableSchema = z.object({
   footerTotals: z.array(z.string().nullable()).optional(),
   id: z.string(),
   kind: z.enum([
+    "convert",
     "input",
     "csv",
     "text",
@@ -213,6 +264,19 @@ const snapshotSchema = z.object({
 export type TableData = z.infer<typeof tableSchema>;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export type Command =
+  | {
+      type: "setColumnType";
+      id: string;
+      columnId: string;
+      config: TypeConfig;
+      expectedConfig: TypeConfig;
+    }
+  | {
+      type: "setTypeConversion";
+      id: string;
+      columns: Record<string, TypeConfig>;
+      expectedColumns?: Record<string, TypeConfig>;
+    }
   | { type: "setScript"; id: string; config: ScriptConfig }
   | { type: "setTextDisplay"; id: string; display: "markdown" | "plain" }
   | { type: "setNote"; id: string; text: string; expectedText: string }
@@ -271,6 +335,7 @@ export type Command =
       type: "addNode";
       sheetId?: string;
       kind:
+        | "convert"
         | "input"
         | "csv"
         | "text"

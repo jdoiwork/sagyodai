@@ -149,6 +149,41 @@ impl Project {
 
     fn edit(&mut self, tables: &mut Vec<Table>, command: Command) -> Result<(), String> {
         match command {
+            Command::SetColumnType {
+                id,
+                column_id,
+                config,
+                expected_config,
+            } => {
+                crate::column_types::set_column(
+                    table_mut(tables, &id)?,
+                    &column_id,
+                    config,
+                    expected_config,
+                )?;
+            }
+            Command::SetTypeConversion {
+                id,
+                columns,
+                expected_columns,
+            } => {
+                if columns.len() > MAX_COLS {
+                    return Err("型変換の列数が上限を超えています。".into());
+                }
+                for config in columns.values() {
+                    config.validate()?;
+                }
+                let table = table_mut(tables, &id)?;
+                if table.kind != Kind::Convert {
+                    return Err("型変換ノードではありません。".into());
+                }
+                if expected_columns.is_some_and(|expected| expected != table.type_conversion) {
+                    return Err(
+                        "型変換設定が変更されています。最新の設定を確認してください。".into(),
+                    );
+                }
+                table.type_conversion = columns;
+            }
             Command::SetJsonKey { id, key } => {
                 let table = table_mut(tables, &id)?;
                 if table.kind != Kind::JsonSelect {
@@ -209,6 +244,7 @@ impl Project {
                 if table.kind != Kind::Replace {
                     return Err("置換ノードではありません。".into());
                 }
+                table.column_bindings.clear();
                 table.replacement = Some(config);
             }
             Command::SetPortSide { id, input, side } => {
@@ -368,6 +404,9 @@ impl Project {
                         t.union_inputs.clear();
                     }
                 } else {
+                    if t.source != source {
+                        t.column_bindings.clear();
+                    }
                     t.source = source;
                 }
                 crate::graph::order(tables)?;
@@ -387,6 +426,7 @@ impl Project {
                 if table.kind != Kind::Display {
                     return Err("結果表ではありません。".into());
                 }
+                table.column_bindings.clear();
                 table.projection = config;
                 table.view = Default::default();
             }
@@ -396,6 +436,7 @@ impl Project {
                 if table.kind != Kind::Aggregate {
                     return Err("集計ノードではありません。".into());
                 }
+                table.column_bindings.clear();
                 table.group = Some(config);
             }
             Command::SetSort { id, keys } => {
@@ -404,6 +445,7 @@ impl Project {
                 if table.kind != Kind::Sort {
                     return Err("ソートノードではありません。".into());
                 }
+                table.column_bindings.clear();
                 table.sort_keys = keys;
             }
             Command::Configure { id, filter, manual } => {
@@ -413,6 +455,9 @@ impl Project {
                     Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
                 ) {
                     return Err("入力ソースには加工設定を指定できません。".into());
+                }
+                if t.filter != filter {
+                    t.column_bindings.clear();
                 }
                 t.filter = filter;
                 t.manual = manual;
@@ -547,7 +592,7 @@ impl Project {
                     return Err("最後のノードは削除できません。".into());
                 }
                 tables.retain(|t| t.id != id);
-                for t in tables {
+                for t in tables.iter_mut() {
                     t.union_inputs.retain(|input| input.source != id);
                     if t.source.as_ref() == Some(&id) {
                         t.source = None;
@@ -598,7 +643,9 @@ impl Project {
                     t.kind = kind;
                     t.title = format!(
                         "{} {}",
-                        if kind == Kind::Script {
+                        if kind == Kind::Convert {
+                            "型変換"
+                        } else if kind == Kind::Script {
                             "スクリプト"
                         } else if kind == Kind::Note {
                             "メモ"
@@ -631,6 +678,8 @@ impl Project {
                         },
                         self.next_id
                     );
+                    t.column_schema.clear();
+                    t.output = None;
                     t.columns.clear();
                     t.rows.clear();
                     t.width = match kind {
@@ -957,6 +1006,11 @@ impl Project {
             }
             Command::Undo | Command::Redo => unreachable!("履歴操作は apply で処理する"),
         }
+        for table in tables {
+            if table.kind == Kind::Input {
+                crate::column_types::ensure_schema(table);
+            }
+        }
         Ok(())
     }
 }
@@ -1012,6 +1066,7 @@ mod tests {
             sample_table("table-2".into(), 1),
         ];
         tables[0].rows[0][0] = "復元したデータ".into();
+        crate::column_types::refresh_input(&mut tables[0]);
         let document: serde_json::Value =
             serde_json::from_slice(&storage::encode(&tables).unwrap()).unwrap();
         let mut invalid = document.clone();
