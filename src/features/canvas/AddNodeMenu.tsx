@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../components/Icon";
+import { getNextMenuItemIndex } from "./menuKeyboard";
 const sourceChoices = [
   { kind: "input", label: "表を追加", icon: "editableTable" },
   { kind: "csv", label: "CSV", icon: "folder" },
@@ -107,15 +108,7 @@ export function AddNodeMenu({
               const current = items.indexOf(
                 document.activeElement as HTMLButtonElement,
               );
-              const next =
-                e.key === "Home"
-                  ? 0
-                  : e.key === "End"
-                    ? items.length - 1
-                    : (current +
-                        (e.key === "ArrowDown" ? 1 : -1) +
-                        items.length) %
-                      items.length;
+              const next = getNextMenuItemIndex(e.key, current, items.length);
               items[next]?.focus();
             }
           }}

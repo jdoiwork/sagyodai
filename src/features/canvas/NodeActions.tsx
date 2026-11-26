@@ -5,6 +5,7 @@ import { useProject } from "../../app/ProjectContext";
 import { Icon } from "../../components/Icon";
 import { PortSideMenu } from "./PortSideMenu";
 import { sheetOf, sheetsOf } from "../sheets/model";
+import { getNextMenuItemIndex } from "./menuKeyboard";
 
 export const NodeNavigation = createContext({
   activeSheet: "sheet-1",
@@ -121,15 +122,7 @@ export function NodeActions({ table }: { table: TableData }) {
                 const index = items.indexOf(
                   document.activeElement as HTMLButtonElement,
                 );
-                const next =
-                  e.key === "Home"
-                    ? 0
-                    : e.key === "End"
-                      ? items.length - 1
-                      : (index +
-                          (e.key === "ArrowDown" ? 1 : -1) +
-                          items.length) %
-                        items.length;
+                const next = getNextMenuItemIndex(e.key, index, items.length);
                 items[next]?.focus();
               }
             }}
