@@ -1,3 +1,6 @@
+import type { TableData } from "../api/project";
+import { useCanvasConnections } from "../features/canvas/useCanvasConnections";
+import { CanvasEdgeMenu } from "../features/canvas/CanvasEdgeMenu";
 import { AppSettings } from "../features/settings/AppSettings";
 import { ZoomToolbar } from "../features/canvas/ZoomToolbar";
 import { AddNodeMenu } from "../features/canvas/AddNodeMenu";
@@ -5,10 +8,7 @@ import { NodeNavigation } from "../features/canvas/NodeActions";
 import { nodeSize } from "../features/canvas/layout";
 import { SheetBar } from "../features/sheets/SheetBar";
 import { sheetOf, sheetsOf } from "../features/sheets/model";
-import { unionInputHandle } from "../features/union/ports";
-import { colorValue } from "../features/canvas/colors";
-import { EdgeContextMenu } from "../features/canvas/EdgeContextMenu";
-import { createsCycle, MAX_NODES } from "../validation/input";
+import { MAX_NODES } from "../validation/input";
 import { CANVAS_SCROLL_SPEED } from "../features/canvas/scroll";
 import { Icon } from "../components/Icon";
 import { SyncConflicts } from "../features/project/SyncConflicts";
@@ -59,15 +59,14 @@ function Canvas() {
     [nodes, visibleIds],
   );
 
-  const [edgeMenu, setEdgeMenu] = useState<{
-    x: number;
-    y: number;
-    target: string;
-    source: string;
-    revision: number;
-  } | null>(null);
-  const connectionFromInput = useRef(false);
-  const [connectionColor, setConnectionColor] = useState<string>();
+  const connections = useCanvasConnections(
+    project,
+    dispatch,
+    pending,
+    visibleTables,
+    visibleIds,
+  );
+  const { closeEdgeMenu } = connections;
   const [help, setHelp] = useState(() => window.innerWidth >= 1200);
   const { screenToFlowPosition, getViewport, setViewport } = useReactFlow();
   const viewports = useRef(
@@ -81,30 +80,13 @@ function Canvas() {
     void setViewport(
       viewports.current.get(activeSheet) ?? { x: 0, y: 0, zoom: 1 },
     );
-    setEdgeMenu(null);
-  }, [activeSheet, getViewport, setViewport]);
+    closeEdgeMenu();
+  }, [activeSheet, getViewport, setViewport, closeEdgeMenu]);
   const canvas = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const toolbar = useRef<HTMLDivElement>(null);
   const adding = useRef<{
-    kind:
-      | "convert"
-      | "input"
-      | "csv"
-      | "text"
-      | "http"
-      | "script"
-      | "filter"
-      | "display"
-      | "textDisplay"
-      | "treeDisplay"
-      | "jsonSelect"
-      | "jsonTable"
-      | "union"
-      | "sort"
-      | "aggregate"
-      | "replace"
-      | "note";
+    kind: TableData["kind"];
     ids: Set<string>;
   } | null>(null);
   useEffect(() => {
@@ -117,26 +99,7 @@ function Canvas() {
       adding.current = null;
     } else if (!pending) adding.current = null;
   }, [project, pending, selectNode]);
-  function addNode(
-    kind:
-      | "convert"
-      | "input"
-      | "csv"
-      | "text"
-      | "http"
-      | "script"
-      | "filter"
-      | "display"
-      | "textDisplay"
-      | "treeDisplay"
-      | "jsonSelect"
-      | "jsonTable"
-      | "union"
-      | "sort"
-      | "aggregate"
-      | "replace"
-      | "note",
-  ) {
+  function addNode(kind: TableData["kind"]) {
     if (
       !canvas.current ||
       !project ||
@@ -221,58 +184,10 @@ function Canvas() {
             </button>
           </div>
         </header>
-        {edgeMenu &&
-          project?.revision === edgeMenu.revision &&
-          project.tables.some(
-            (t) =>
-              t.id === edgeMenu.target &&
-              (t.source === edgeMenu.source ||
-                t.unionInputs?.some((i) => i.source === edgeMenu.source)),
-          ) && (
-            <EdgeContextMenu
-              x={edgeMenu.x}
-              y={edgeMenu.y}
-              color={
-                project.tables
-                  .find((t) => t.id === edgeMenu.target)
-                  ?.unionInputs?.find((i) => i.source === edgeMenu.source)
-                  ?.color ??
-                project.tables.find((t) => t.id === edgeMenu.target)?.edgeColor
-              }
-              onColor={(color) =>
-                dispatch(
-                  project.tables.find((t) => t.id === edgeMenu.target)?.kind ===
-                    "union"
-                    ? {
-                        type: "setUnionEdgeColor",
-                        id: edgeMenu.target,
-                        source: edgeMenu.source,
-                        color,
-                      }
-                    : {
-                        type: "setColor",
-                        id: edgeMenu.target,
-                        target: "edge",
-                        color,
-                      },
-                )
-              }
-              onClose={() => setEdgeMenu(null)}
-              onDisconnect={() => {
-                const t = project.tables.find((t) => t.id === edgeMenu.target)!;
-                if (t.kind === "union") {
-                  const sources = (t.unionInputs ?? []).map((i) => i.source);
-                  dispatch({
-                    type: "setUnion",
-                    id: t.id,
-                    sources: sources.filter((s) => s !== edgeMenu.source),
-                    expectedSources: sources,
-                    distinct: !!t.unionDistinct,
-                  });
-                } else dispatch({ type: "connect", id: t.id, source: null });
-              }}
-            />
-          )}
+        <CanvasEdgeMenu
+          menu={connections.edgeMenu}
+          onClose={connections.closeEdgeMenu}
+        />
         <main ref={canvas} className="canvas-shell">
           <ReactFlow
             // 下書きのためマウントを維持し、別シートはdisplay:noneで描画対象から外す。
@@ -280,100 +195,10 @@ function Canvas() {
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             deleteKeyCode={null}
-            onEdgeContextMenu={(event, edge) => {
-              event.preventDefault();
-              event.stopPropagation();
-              if (project && !pending)
-                setEdgeMenu({
-                  x: event.clientX,
-                  y: event.clientY,
-                  target: edge.target,
-                  source: edge.source,
-                  revision: project.revision,
-                });
-            }}
-            onMoveStart={() => setEdgeMenu(null)}
+            {...connections.flowProps}
             nodesConnectable
-            onConnectStart={(_, params) => {
-              connectionFromInput.current = params.handleType === "target";
-              const table = project?.tables.find((t) => t.id === params.nodeId);
-              setConnectionColor(
-                colorValue(
-                  connectionFromInput.current
-                    ? table?.inputColor
-                    : table?.outputColor,
-                ),
-              );
-            }}
-            onConnectEnd={() => setConnectionColor(undefined)}
-            connectionLineStyle={{
-              stroke: connectionColor ?? "#396b5b",
-              strokeWidth: 2.5,
-            }}
             connectionRadius={28}
             reconnectRadius={16}
-            onReconnect={(edge, connection) =>
-              dispatch({
-                type: "connect",
-                id: edge.target,
-                source: connection.source,
-              })
-            }
-            edges={visibleTables.flatMap((t) => {
-              const inputs =
-                t.kind === "union"
-                  ? (t.unionInputs ?? [])
-                  : t.source
-                    ? [{ source: t.source, color: t.edgeColor }]
-                    : [];
-              return inputs
-                .filter((input) => visibleIds.has(input.source))
-                .map((input) => ({
-                  id: `edge-${t.id}-${input.source}`,
-                  source: input.source,
-                  target: t.id,
-                  sourceHandle: "out",
-                  targetHandle:
-                    t.kind === "union" ? unionInputHandle(input.source) : "in",
-                  type: "smoothstep",
-                  reconnectable:
-                    t.kind === "union" ? (false as const) : ("source" as const),
-                  style: {
-                    stroke:
-                      colorValue(input.color) ??
-                      (t.stale ? "#bd9147" : "#386e61"),
-                    strokeDasharray: t.stale ? "6 4" : undefined,
-                    strokeWidth: 2.5,
-                  },
-                }));
-            })}
-            isValidConnection={(connection) =>
-              !!project &&
-              project.tables.some((t) => t.id === connection.source) &&
-              project.tables.some(
-                (t) =>
-                  t.id === connection.target &&
-                  t.kind !== "input" &&
-                  t.kind !== "csv" &&
-                  t.kind !== "http" &&
-                  t.kind !== "text" &&
-                  t.kind !== "note" &&
-                  (t.kind !== "union" || connection.targetHandle === "in"),
-              ) &&
-              !createsCycle(
-                project.tables,
-                connection.target,
-                connection.source,
-              )
-            }
-            onConnect={(connection) =>
-              dispatch({
-                type: "connectFromPort",
-                id: connection.target,
-                source: connection.source,
-                fromInput: connectionFromInput.current,
-              })
-            }
             zoomOnDoubleClick={false}
             minZoom={0.4}
             maxZoom={2}

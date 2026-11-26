@@ -7,22 +7,24 @@ import {
 import { matchingRows } from "./quickSearch";
 import { Icon } from "../../components/Icon";
 import { SummaryFooter } from "./SummaryFooter";
-import { pasteInputError } from "../../validation/input";
 import { useRowReorder } from "./useRowReorder";
 import { useHeaderSelection } from "./useHeaderSelection";
 import { useTableWheel } from "./useTableWheel";
 import { useColumnReorder } from "./useColumnReorder";
 import { ColumnResizeHandle, DEFAULT_COLUMN_WIDTH } from "./ColumnResizeHandle";
 import { useDeletionAnimation } from "./useDeletionAnimation";
-import { TableContextMenu } from "./TableContextMenu";
+import { TableGridMenu, type TableGridMenuState } from "./TableGridMenu";
 import { ColumnHeader } from "./ColumnHeader";
 import { Fragment, useMemo, useRef, useState } from "react";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 import { Cell } from "./Cell";
-import { formatTsv, parseTsv } from "./clipboard";
-const ROW_HEIGHT = 36;
-type Point = { row: number; col: number };
+import { useTableClipboard } from "./useTableClipboard";
+import {
+  useGridViewport,
+  ROW_HEIGHT,
+  type CellSelection,
+} from "./useGridViewport";
 export function TableGrid({
   table,
   readOnly = false,
@@ -103,16 +105,9 @@ export function TableGrid({
     headers.selection?.kind === "row" ? headers.selection.indices : [],
     (indices, to, source) => headers.moving(indices, to, source, "row"),
   );
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    index: number;
-    indices: number[];
-    kind: "row" | "column";
-    preview?: boolean;
-    columns: string[];
-    rows: string[][];
-  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<TableGridMenuState | null>(
+    null,
+  );
   const [columnPreview, setColumnPreview] = useState<{
     col: number;
     width: number;
@@ -122,14 +117,10 @@ export function TableGrid({
       ? columnPreview.width
       : (table.columnWidths[col] ?? DEFAULT_COLUMN_WIDTH),
   );
-  const [top, setTop] = useState(0);
-  const [focusedCell, setFocusedCell] = useState<Point | null>(null);
-  const focusedRow = focusedCell?.row ?? null;
-  const [selection, setSelection] = useState<{ start: Point; end: Point }>({
+  const [selection, setSelection] = useState<CellSelection>({
     start: { row: 0, col: 0 },
     end: { row: 0, col: 0 },
   });
-  const [pasteError, setPasteError] = useState("");
   const startIndex = Math.max(0, visibleRows.indexOf(selection.start.row));
   const endIndex = Math.max(0, visibleRows.indexOf(selection.end.row));
   const selectedRows = visibleRows.slice(
@@ -148,30 +139,38 @@ export function TableGrid({
       Math.max(selection.start.col, selection.end.col),
       Math.max(0, table.columns.length - 1),
     );
-  const first = Math.max(
-    0,
-    Math.min(visibleRows.length - 1, Math.floor(top / ROW_HEIGHT) - 5),
-  );
-  const last = Math.min(
-    visibleRows.length,
-    first + Math.ceil(table.height / ROW_HEIGHT) + 12,
-  );
-  // 画面外へスクロールしても、IME 変換中のセルをアンマウントしない。
-  const renderedRows = Array.from(
-    new Set([
-      ...Array.from({ length: last - first }, (_, i) => first + i),
-      ...(!transformed &&
-      rowReorder.draggedRow !== null &&
-      rowReorder.draggedRow < table.rows.length
-        ? [rowReorder.draggedRow]
-        : []),
-      ...(focusedRow !== null && visibleSet.has(focusedRow)
-        ? [visibleRows.indexOf(focusedRow)]
-        : []),
-    ]),
-  ).sort((a, b) => a - b);
-  function changeQuery(value: string) {
-    (search?.onChange ?? setLocalQuery)(value);
+  const {
+    renderedRows,
+    focusedCell,
+    focusedRow,
+    setFocusedCell,
+    setTop,
+    navigate,
+  } = useGridViewport({
+    table,
+    viewport,
+    visibleRows,
+    transformed,
+    draggedRow: rowReorder.draggedRow,
+    setSelection,
+  });
+  const { pasteError, setPasteError, onPaste, onCopy } = useTableClipboard({
+    table,
+    readOnly,
+    transformed,
+    visibleRows,
+    selectedRows,
+    minRow,
+    maxRow,
+    minCol,
+    maxCol,
+    headerSelection: headers.selection,
+  });
+  function resetVisibleSelection(
+    nextQuery: string,
+    nextFilters: ColumnFilters,
+    nextSort: DisplaySort | null | undefined,
+  ) {
     headers.clear();
     setContextMenu(null);
     setPasteError("");
@@ -179,8 +178,8 @@ export function TableGrid({
     const first =
       sortDisplayRows(
         table.rows,
-        matchingRows(table.rows, value, filters),
-        sort,
+        matchingRows(table.rows, nextQuery, nextFilters),
+        nextSort,
       )[0] ?? 0;
     setSelection({
       start: { row: first, col: 0 },
@@ -188,6 +187,10 @@ export function TableGrid({
     });
     if (viewport.current) viewport.current.scrollTop = 0;
     setTop(0);
+  }
+  function changeQuery(value: string) {
+    (search?.onChange ?? setLocalQuery)(value);
+    resetVisibleSelection(value, filters, sort);
   }
   function changeFilters(next: ColumnFilters) {
     (columnFilters?.onChange ?? setLocalFilters)({
@@ -195,22 +198,7 @@ export function TableGrid({
       values: next,
       sort,
     });
-    headers.clear();
-    setContextMenu(null);
-    setPasteError("");
-    setFocusedCell(null);
-    const first =
-      sortDisplayRows(
-        table.rows,
-        matchingRows(table.rows, query, next),
-        sort,
-      )[0] ?? 0;
-    setSelection({
-      start: { row: first, col: 0 },
-      end: { row: first, col: 0 },
-    });
-    if (viewport.current) viewport.current.scrollTop = 0;
-    setTop(0);
+    resetVisibleSelection(query, next, sort);
   }
   function changeSort(next: DisplaySort | null) {
     (columnFilters?.onChange ?? setLocalFilters)({
@@ -218,22 +206,7 @@ export function TableGrid({
       values: filters,
       sort: next,
     });
-    headers.clear();
-    setContextMenu(null);
-    setPasteError("");
-    setFocusedCell(null);
-    const first =
-      sortDisplayRows(
-        table.rows,
-        matchingRows(table.rows, query, filters),
-        next,
-      )[0] ?? 0;
-    setSelection({
-      start: { row: first, col: 0 },
-      end: { row: first, col: 0 },
-    });
-    if (viewport.current) viewport.current.scrollTop = 0;
-    setTop(0);
+    resetVisibleSelection(query, filters, next);
   }
   function spacer(count: number) {
     return count > 0 ? (
@@ -244,55 +217,6 @@ export function TableGrid({
         />
       </tr>
     ) : null;
-  }
-  function navigate(
-    row: number,
-    col: number,
-    direction: "next" | "previous" | "down" | "up",
-  ) {
-    let r = visibleRows.indexOf(row),
-      c = col;
-    if (direction === "down") r++;
-    if (direction === "up") r--;
-    if (direction === "next") {
-      c++;
-      if (c >= table.columns.length) {
-        c = 0;
-        r++;
-      }
-    }
-    if (direction === "previous") {
-      c--;
-      if (c < 0) {
-        c = table.columns.length - 1;
-        r--;
-      }
-    }
-    if (r < 0 || r >= visibleRows.length) {
-      (document.activeElement as HTMLElement)?.blur();
-      return;
-    }
-    const sourceRow = visibleRows[r];
-    setSelection({
-      start: { row: sourceRow, col: c },
-      end: { row: sourceRow, col: c },
-    });
-    const el = viewport.current;
-    if (
-      el &&
-      (r * ROW_HEIGHT < el.scrollTop ||
-        (r + 2) * ROW_HEIGHT > el.scrollTop + el.clientHeight)
-    ) {
-      el.scrollTop = Math.max(0, r * ROW_HEIGHT - ROW_HEIGHT);
-      setTop(el.scrollTop);
-    }
-    requestAnimationFrame(() =>
-      el
-        ?.querySelector<HTMLTextAreaElement>(
-          `[data-row="${sourceRow}"] [data-col="${c}"] textarea`,
-        )
-        ?.focus(),
-    );
   }
   return (
     <>
@@ -330,130 +254,12 @@ export function TableGrid({
         </div>
       )}
       {contextMenu && (!readOnly || table.kind === "display") && (
-        <TableContextMenu
-          {...contextMenu}
-          hideOnly={readOnly}
-          hiddenColumns={table.projection?.columns
-            .filter((c) => !c.visible)
-            .map((c) => {
-              const config = table.projection!;
-              const name = c.name.trim() || config.schema[c.column];
-              const duplicate = config.columns.some(
-                (other) =>
-                  other.visible &&
-                  (other.name.trim() || config.schema[other.column]) === name,
-              );
-              return {
-                column: c.column,
-                name,
-                disabled: table.stale || !!table.error || duplicate,
-                reason: duplicate
-                  ? "同名の出力列があります。出力列の設定で名前を変更してください。"
-                  : table.stale || table.error
-                    ? "結果を更新してから再表示してください。"
-                    : undefined,
-              };
-            })}
-          onShow={(column) => {
-            const config = table.projection;
-            if (!config) return;
-            dispatch({
-              type: "setProjection",
-              id: table.id,
-              config: {
-                ...config,
-                columns: config.columns.map((c) =>
-                  c.column === column ? { ...c, visible: true } : c,
-                ),
-              },
-            });
-          }}
-          count={contextMenu.indices.length}
-          insertDisabled={
-            contextMenu.kind === "row"
-              ? contextMenu.rows.length + contextMenu.indices.length > 5000
-              : contextMenu.columns.length + contextMenu.indices.length > 50
-          }
-          onInsert={(after) => {
-            const at = after
-              ? Math.max(...contextMenu.indices) + 1
-              : Math.min(...contextMenu.indices);
-            const count = contextMenu.indices.length;
-            const settled = headers.inserting(contextMenu.kind, at, count, {
-              ...table,
-              columns: contextMenu.columns,
-              rows: contextMenu.rows,
-            });
-            dispatch(
-              {
-                type:
-                  contextMenu.kind === "row" ? "insertRows" : "insertColumns",
-                id: table.id,
-                at,
-                count,
-                expectedColumns: contextMenu.columns,
-                expectedRows: contextMenu.rows,
-              },
-              settled,
-            );
-          }}
-          targetLabel={
-            contextMenu.indices.length > 1
-              ? `選択した${contextMenu.indices.length}${contextMenu.kind === "row" ? "行" : "列"}`
-              : contextMenu.kind === "row"
-                ? `行${contextMenu.index + 1} `
-                : `「${contextMenu.columns[contextMenu.index]}」列`
-          }
-          disabled={
-            (readOnly && (table.stale || !!table.error)) ||
-            (contextMenu.kind === "row"
-              ? contextMenu.rows.length
-              : contextMenu.columns.length) <= contextMenu.indices.length
-          }
-          onPreview={(preview) =>
-            setContextMenu((menu) => (menu ? { ...menu, preview } : null))
-          }
-          onClose={() => setContextMenu(null)}
-          onDelete={() =>
-            dispatch(
-              readOnly
-                ? {
-                    type: "hideOutputColumn",
-                    id: table.id,
-                    col: contextMenu.index,
-                    expectedColumns: contextMenu.columns,
-                  }
-                : contextMenu.indices.length > 1
-                  ? contextMenu.kind === "row"
-                    ? {
-                        type: "removeRows",
-                        id: table.id,
-                        indices: contextMenu.indices,
-                        expectedRows: contextMenu.rows,
-                      }
-                    : {
-                        type: "removeColumns",
-                        id: table.id,
-                        indices: contextMenu.indices,
-                        expectedRows: contextMenu.rows,
-                        expectedColumns: contextMenu.columns,
-                      }
-                  : contextMenu.kind === "row"
-                    ? {
-                        type: "removeRow",
-                        id: table.id,
-                        row: contextMenu.index,
-                        expectedRows: contextMenu.rows,
-                      }
-                    : {
-                        type: "removeColumn",
-                        id: table.id,
-                        col: contextMenu.index,
-                        expectedRows: contextMenu.rows,
-                        expectedColumns: contextMenu.columns,
-                      },
-            )
-          }
+        <TableGridMenu
+          table={table}
+          readOnly={readOnly}
+          menu={contextMenu}
+          onChange={setContextMenu}
+          onInserting={headers.inserting}
         />
       )}
       {pasteError && (
@@ -479,83 +285,8 @@ export function TableGrid({
         onKeyDown={(e) => {
           if (e.key === "Escape") headers.clear();
         }}
-        onPaste={(e) => {
-          if (readOnly || (e.target as HTMLElement).closest("thead, tfoot"))
-            return;
-          const text = e.clipboardData.getData("text/plain");
-          if (!/[\t\r\n]/.test(text)) return;
-          e.preventDefault();
-          e.stopPropagation();
-          try {
-            const values = parseTsv(text);
-            if (transformed && values.length > 1) {
-              setPasteError(
-                "表示絞り込み・並べ替え中の複数行への貼り付けは、並べ替えと絞り込みを解除してから行ってください。",
-              );
-              return;
-            }
-            const message = pasteInputError(minRow, minCol, values);
-            if (message) {
-              setPasteError(message);
-              return;
-            }
-            // 貼り付け前のセル編集を確定させてから、一括操作を送る。
-            (document.activeElement as HTMLElement)?.blur();
-            dispatch({
-              type: "paste",
-              id: table.id,
-              row: minRow,
-              col: minCol,
-              values,
-              expectedValues: values.map((cells, r) =>
-                cells.map(
-                  (_, c) => table.rows[minRow + r]?.[minCol + c] ?? null,
-                ),
-              ),
-            });
-            setPasteError("");
-          } catch (error) {
-            setPasteError(
-              error instanceof Error
-                ? error.message
-                : "貼り付けに失敗しました。",
-            );
-          }
-        }}
-        onCopy={(e) => {
-          if (
-            readOnly ||
-            (e.target as HTMLElement).closest(
-              "thead textarea, thead input, tfoot",
-            )
-          )
-            return;
-          if (headers.selection) {
-            e.preventDefault();
-            const { kind, indices } = headers.selection;
-            e.clipboardData.setData(
-              "text/plain",
-              formatTsv(
-                kind === "row"
-                  ? visibleRows
-                      .filter((i) => indices.includes(i))
-                      .map((i) => table.rows[i])
-                  : visibleRows.map((r) =>
-                      indices.map((i) => table.rows[r][i]),
-                    ),
-              ),
-            );
-            return;
-          }
-          if (minRow === maxRow && minCol === maxCol) return;
-          e.preventDefault();
-          e.clipboardData.setData(
-            "text/plain",
-            formatTsv(
-              selectedRows.map((r) => table.rows[r].slice(minCol, maxCol + 1)),
-            ),
-          );
-        }}
+        onPaste={onPaste}
+        onCopy={onCopy}
       >
         <table
           className="data-grid"

@@ -1,5 +1,6 @@
 //! 添字で行列を指定する間は、表示時の原本を照合して別タブの変更を保護する。
 use crate::domain::{Kind, Table};
+use crate::storage::{MAX_CELL_BYTES, MAX_COLS, MAX_ROWS};
 
 fn input_index(tables: &[Table], id: &str) -> Result<usize, String> {
     let i = tables
@@ -409,6 +410,75 @@ pub fn insert(
     tables[i].columns.splice(at..at, names);
     for row in &mut tables[i].rows {
         row.splice(at..at, vec![String::new(); count]);
+    }
+    Ok(())
+}
+
+/// 原本の比較とサイズ検証を済ませてから、表を拡張して貼り付ける。
+pub fn paste(
+    tables: &mut [Table],
+    id: &str,
+    row: usize,
+    col: usize,
+    values: Vec<Vec<String>>,
+    expected_values: Option<Vec<Vec<Option<String>>>>,
+) -> Result<(), String> {
+    let width = values.iter().map(Vec::len).max().unwrap_or(0);
+    if values.is_empty() || width == 0 {
+        return Err("貼り付けるデータがありません。".into());
+    }
+    let end_row = row
+        .checked_add(values.len())
+        .ok_or("行数が大きすぎます。")?;
+    let end_col = col.checked_add(width).ok_or("列数が大きすぎます。")?;
+    if end_row > MAX_ROWS || end_col > MAX_COLS {
+        return Err("試作の上限は5000行・50列です。".into());
+    }
+    if values.iter().flatten().any(|v| v.len() > MAX_CELL_BYTES) {
+        return Err("セルの内容が長すぎます。".into());
+    }
+    let table = tables
+        .iter_mut()
+        .find(|table| table.id == id)
+        .ok_or("対象の表が見つかりません。")?;
+    if table.kind != Kind::Input {
+        return Err("加工結果は読み取り専用です。".into());
+    }
+    if let Some(expected) = expected_values {
+        if expected.len() != values.len()
+            || expected
+                .iter()
+                .zip(&values)
+                .any(|(a, b)| a.len() != b.len())
+        {
+            return Err("比較対象の範囲が不正です。".into());
+        }
+        for (r, cells) in expected.iter().enumerate() {
+            for (c, value) in cells.iter().enumerate() {
+                if table.rows.get(row + r).and_then(|row| row.get(col + c)) != value.as_ref() {
+                    return Err(
+                        "同じセルが別の操作で変更されました。入力は保持されています。".into(),
+                    );
+                }
+            }
+        }
+    }
+    while table.columns.len() < end_col {
+        table
+            .columns
+            .push(format!("列 {}", table.columns.len() + 1));
+    }
+    for r in &mut table.rows {
+        r.resize(table.columns.len(), String::new());
+    }
+    table.rows.resize(
+        end_row.max(table.rows.len()),
+        vec![String::new(); table.columns.len()],
+    );
+    for (r, cells) in values.into_iter().enumerate() {
+        for (c, value) in cells.into_iter().enumerate() {
+            table.rows[row + r][col + c] = value;
+        }
     }
     Ok(())
 }

@@ -25,11 +25,19 @@ Tauri の WebView への組み込みは未実施。ブラウザでの確認結�
 | `src/features/table/` | セル入力、範囲選択、行の部分描画、TSV 変換 |
 | `src/api/` | Rust への要求と応答の検証 |
 | `backend/src/domain.rs` | 試作の表と操作の型 |
-| `backend/src/application.rs` | 検証、一括編集、配置、Undo / Redo |
+| `backend/src/application.rs` | 操作の確定、再計算の呼び出し、Undo / Redo、保存・復元の入口 |
+| `backend/src/application/commands.rs` | 編集操作の検証・振り分け（確定前の表コピーに適用） |
+| `backend/src/application/node_creation.rs` | ノードID・配置と種別ごとの初期値 |
+| `backend/src/table_edit.rs` | 行列の編集、貼り付け、編集前の原本照合 |
 | `backend/src/main.rs` | ローカル HTTP アダプタ |
 | `scripts/dev.mjs` | 開発用プロセスの起動・停止 |
 
 これは Tauri 採用時の配置例とは異なる試作用構成。中核に UI ライブラリへの依存は持たせていない。
+
+画面の処理を読むときは、全体の組み立てを `src/app/App.tsx`、接続線の表示・接続操作を `useCanvasConnections.ts`、接続線のメニュー操作を `CanvasEdgeMenu.tsx` から追う。
+表は `TableGrid.tsx` が表示を組み立て、`useGridViewport.ts` が部分描画・編集中セルの保持・セル移動、`useTableClipboard.ts` がコピーと貼り付け、`TableGridMenu.tsx` が行列メニューからの共通操作への変換を担当する。各ファイルは `src/features/canvas/` または `src/features/table/` に置く。
+
+Rustでは `Project::apply` が編集用コピーの作成、操作、検証、再計算、履歴への記録、確定を順に行う。`application/` の子モジュールはこの境界の内側に置き、GUIとMCPの操作経路を共有する。
 
 ## 操作
 
