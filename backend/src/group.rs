@@ -1,6 +1,7 @@
 //! 文字列の複合キーでグループ化し、初出順で集計結果を返す。
 use crate::domain::Table;
 use crate::group_stats::{Metric, Statistic};
+use crate::number_text::parse_finite_number;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -179,7 +180,7 @@ pub fn evaluate(
         *count += 1;
         for (i, output) in outputs.iter().enumerate() {
             if let (Some(kind), Some(c)) = (output.function.metric(), output.column)
-                && let Some(value) = row[c].trim().parse::<f64>().ok().filter(|v| v.is_finite())
+                && let Some(value) = parse_finite_number(&row[c])
             {
                 sums[i].add(value, kind)?;
             }

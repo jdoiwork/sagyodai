@@ -1,3 +1,4 @@
+import { swapItems } from "../../collections/reorder";
 import { useEffect, useRef, useState } from "react";
 import type { Projection, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -60,9 +61,7 @@ export function OutputColumns({
     const to = index + delta;
     if (to < 0 || to >= config.columns.length) return;
     reorder.move(index, to);
-    const columns = [...config.columns];
-    [columns[index], columns[to]] = [columns[to], columns[index]];
-    change({ ...config, columns });
+    change({ ...config, columns: swapItems(config.columns, index, to) });
   }
   return (
     <>

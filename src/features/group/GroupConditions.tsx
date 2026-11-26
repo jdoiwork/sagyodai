@@ -1,3 +1,4 @@
+import { swapItems } from "../../collections/reorder";
 import { useEffect, useRef, useState } from "react";
 import type { GroupConfig, GroupOutput, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -52,9 +53,7 @@ export function GroupConditions({
     const destination = index + delta;
     if (destination < 0 || destination >= outputs.length) return;
     reorder.move(index, destination);
-    const next = [...outputs];
-    [next[index], next[destination]] = [next[destination], next[index]];
-    changeOutputs(next);
+    changeOutputs(swapItems(outputs, index, destination));
   }
   return (
     <>

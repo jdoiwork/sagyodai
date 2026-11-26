@@ -1,3 +1,4 @@
+import { getDropDestination } from "../../collections/reorder";
 import { useRef, useState, type DragEvent, type RefObject } from "react";
 import type { Command, TableData } from "../../api/project";
 
@@ -29,18 +30,12 @@ export function useRowReorder(
   function destination(e: DragEvent, row: number) {
     const rect = e.currentTarget.getBoundingClientRect();
     const after = e.clientY >= rect.top + rect.height / 2;
-    const boundary = row + (after ? 1 : 0);
-    const indices = source.current!.indices;
-    const to = boundary - indices.filter((n) => n < boundary).length;
-    const order = source
-      .current!.table.rows.map((_, i) => i)
-      .filter((i) => !indices.includes(i));
-    order.splice(to, 0, ...indices);
-    return {
-      to,
-      unchanged: order.every((old, i) => old === i),
-      side: after ? ("after" as const) : ("before" as const),
-    };
+    return getDropDestination(
+      source.current!.table.rows.length,
+      source.current!.indices,
+      row,
+      after,
+    );
   }
   return {
     marker,

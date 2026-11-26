@@ -24,7 +24,11 @@ Tauri の WebView への組み込みは未実施。ブラウザでの確認結�
 | `src/features/canvas/` | 表ノードの表示・サイズ変更 |
 | `src/features/table/` | セル入力、範囲選択、行の部分描画、TSV 変換 |
 | `src/api/` | Rust への要求と応答の検証 |
-| `backend/src/domain.rs` | 試作の表と操作の型 |
+| `src/collections/reorder.ts` | 項目の交換、ドラッグの挿入先、移動後の添字順 |
+| `src/features/canvas/nodeCapabilities.ts` | ノード種別に応じた入力接続の可否 |
+| `backend/src/domain.rs` | 表と操作の型、ノードの入力可否・演算子の分類 |
+| `backend/src/number_text.rs` | 文字列列の比較・集計で使う有限数の読み取り |
+| `backend/src/sort.rs` | ソート設定と文字列セルの比較（数値・テキストモード） |
 | `backend/src/application.rs` | 操作の確定、再計算の呼び出し、Undo / Redo、保存・復元の入口 |
 | `backend/src/application/commands.rs` | 編集操作の検証・振り分け（確定前の表コピーに適用） |
 | `backend/src/application/node_creation.rs` | ノードID・配置と種別ごとの初期値 |

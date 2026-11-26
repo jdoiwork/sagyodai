@@ -1,6 +1,7 @@
 //! 型付き出力の加工。文字列だけの既存加工は従来の実装を使用する。
 use crate::column_types::{Column, Data, DataType, EmptyValue, TypeConfig, Value};
 use crate::domain::{Kind, Operator, Table};
+use crate::number_text::parse_finite_number;
 use std::cmp::Ordering;
 
 fn cmp(a: &Value, b: &Value) -> Ordering {
@@ -172,15 +173,7 @@ fn filter(node: &Table, mut data: Data) -> Result<Data, String> {
         .columns
         .get(f.column)
         .ok_or("対象列が入力にありません。")?;
-    let numeric = matches!(
-        f.operator,
-        Operator::Greater
-            | Operator::Less
-            | Operator::AtLeast
-            | Operator::AtMost
-            | Operator::NumberEquals
-            | Operator::NumberNotEquals
-    );
+    let numeric = f.operator.is_numeric_comparison();
     if numeric && col.config.data_type == DataType::Boolean {
         return Err("真偽値列は数値比較できません。".into());
     }
@@ -188,11 +181,11 @@ fn filter(node: &Table, mut data: Data) -> Result<Data, String> {
         return Err("部分一致は文字列列に指定してください。".into());
     }
     if numeric && col.config.data_type == DataType::String {
-        let parse = |s: &str| s.trim().parse::<f64>().ok().filter(|v| v.is_finite());
-        let threshold = parse(&f.value).ok_or("比較値に有限の数値を入力してください。")?;
+        let threshold =
+            parse_finite_number(&f.value).ok_or("比較値に有限の数値を入力してください。")?;
         data.rows.retain(|r| {
             r[f.column] != Value::Null
-                && parse(&r[f.column].text()).is_some_and(|v| match f.operator {
+                && parse_finite_number(&r[f.column].text()).is_some_and(|v| match f.operator {
                     Operator::NumberEquals => v == threshold,
                     Operator::NumberNotEquals => v != threshold,
                     Operator::Greater => v > threshold,
@@ -247,37 +240,12 @@ fn sort(node: &Table, mut data: Data) -> Result<Data, String> {
             let (a, b) = (&a[key.column], &b[key.column]);
             let order = if *a == Value::Null || *b == Value::Null {
                 cmp(a, b)
+            } else if data.columns[key.column].config.data_type == DataType::String {
+                key.compare_text_cells(&a.text(), &b.text())
+            } else if key.direction == crate::sort::Direction::Desc {
+                cmp(a, b).reverse()
             } else {
-                let (order, reversible) =
-                    if data.columns[key.column].config.data_type == DataType::String {
-                        let left = a.text();
-                        let right = b.text();
-                        if key.mode == crate::sort::Mode::Number {
-                            let parse =
-                                |s: &str| s.trim().parse::<f64>().ok().filter(|n| n.is_finite());
-                            match (parse(&left), parse(&right)) {
-                                (Some(a), Some(b)) => {
-                                    (a.partial_cmp(&b).unwrap_or(Ordering::Equal), true)
-                                }
-                                (Some(_), None) => (Ordering::Less, false),
-                                (None, Some(_)) => (Ordering::Greater, false),
-                                _ => (Ordering::Equal, false),
-                            }
-                        } else {
-                            match (left.is_empty(), right.is_empty()) {
-                                (false, true) => (Ordering::Less, false),
-                                (true, false) => (Ordering::Greater, false),
-                                _ => (left.cmp(&right), true),
-                            }
-                        }
-                    } else {
-                        (cmp(a, b), true)
-                    };
-                if reversible && key.direction == crate::sort::Direction::Desc {
-                    order.reverse()
-                } else {
-                    order
-                }
+                cmp(a, b)
             };
             if order != Ordering::Equal {
                 return order;

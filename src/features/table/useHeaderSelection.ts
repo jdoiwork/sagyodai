@@ -1,3 +1,4 @@
+import { getOrderAfterMovingItems } from "../../collections/reorder";
 import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import type { Snapshot, TableData } from "../../api/project";
 
@@ -46,10 +47,11 @@ export function useHeaderSelection(table: TableData, rowOrder?: number[]) {
     kind: Axis = "column",
   ) {
     const token = ++generation.current;
-    const order = (kind === "row" ? source.rows : source.columns)
-      .map((_, i) => i)
-      .filter((i) => !indices.includes(i));
-    order.splice(to, 0, ...indices);
+    const order = getOrderAfterMovingItems(
+      kind === "row" ? source.rows.length : source.columns.length,
+      indices,
+      to,
+    );
     const next = {
       confirmed: false,
       sourceSignature: JSON.stringify([source.columns, source.rows]),

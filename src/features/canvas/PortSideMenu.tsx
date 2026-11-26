@@ -1,3 +1,4 @@
+import { acceptsInput } from "./nodeCapabilities";
 import type { TableData, PortSide } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
 const sides: [PortSide, string][] = [
@@ -20,11 +21,7 @@ export function PortSideMenu({
         ← アクションに戻る
       </button>
       {[true, false]
-        .filter(
-          (input) =>
-            !input ||
-            !["input", "csv", "text", "http", "note"].includes(table.kind),
-        )
+        .filter((input) => !input || acceptsInput(table.kind))
         .map((input) => (
           <div key={String(input)}>
             <div className="node-action-caption">

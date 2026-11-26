@@ -1,3 +1,4 @@
+import { getDropDestination } from "../../collections/reorder";
 import {
   useRef,
   useState,
@@ -34,18 +35,12 @@ export function useColumnReorder(
   function destination(e: DragEvent, col: number) {
     const rect = e.currentTarget.getBoundingClientRect();
     const after = e.clientX >= rect.left + rect.width / 2;
-    const boundary = col + (after ? 1 : 0);
-    const indices = source.current!.indices;
-    const to = boundary - indices.filter((n) => n < boundary).length;
-    const order = table.columns
-      .map((_, i) => i)
-      .filter((i) => !indices.includes(i));
-    order.splice(to, 0, ...indices);
-    return {
-      to,
-      unchanged: order.every((old, i) => old === i),
-      side: after ? ("after" as const) : ("before" as const),
-    };
+    return getDropDestination(
+      table.columns.length,
+      source.current!.indices,
+      col,
+      after,
+    );
   }
   return {
     marker,

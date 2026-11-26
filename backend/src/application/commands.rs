@@ -107,10 +107,7 @@ impl Project {
             Command::SetPortSide { id, input, side } => {
                 let table = table_mut(tables, &id)?;
                 if input {
-                    if matches!(
-                        table.kind,
-                        Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
-                    ) {
+                    if !table.kind.accepts_input() {
                         return Err("このノードに入力端子はありません。".into());
                     }
                     table.input_side = Some(side);
@@ -243,10 +240,7 @@ impl Project {
             }
             Command::Connect { id, source } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(
-                    t.kind,
-                    Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
-                ) {
+                if !t.kind.accepts_input() {
                     return Err("入力ソースには接続できません。".into());
                 }
                 if t.kind == Kind::Union {
@@ -307,10 +301,7 @@ impl Project {
             }
             Command::Configure { id, filter, manual } => {
                 let t = table_mut(tables, &id)?;
-                if matches!(
-                    t.kind,
-                    Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
-                ) {
+                if !t.kind.accepts_input() {
                     return Err("入力ソースには加工設定を指定できません。".into());
                 }
                 if t.filter != filter {

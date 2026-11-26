@@ -1,3 +1,4 @@
+import { acceptsInput } from "./nodeCapabilities";
 import { sheetOf, sourceLabel } from "../sheets/model";
 import { unionInputHandle } from "../union/ports";
 import { useEffect, useState, type MouseEvent } from "react";
@@ -20,13 +21,7 @@ export function NodePorts({ table }: { table: TableData }) {
   };
   function placement(input: boolean, index = 0) {
     const side = input ? inputSide : outputSide;
-    const same =
-      inputSide === outputSide &&
-      table.kind !== "input" &&
-      table.kind !== "csv" &&
-      table.kind !== "http" &&
-      table.kind !== "text" &&
-      table.kind !== "note";
+    const same = inputSide === outputSide && acceptsInput(table.kind);
     const count =
       table.kind === "union" ? (table.unionInputs?.length ?? 0) + 1 : 1;
     const offset =
@@ -150,38 +145,34 @@ export function NodePorts({ table }: { table: TableData }) {
             </Handle>
           );
         })}
-      {table.kind !== "input" &&
-        table.kind !== "csv" &&
-        table.kind !== "http" &&
-        table.kind !== "text" &&
-        table.kind !== "note" && (
-          <Handle
-            type="target"
-            position={positions[inputSide]}
-            id="in"
-            className="table-port table-port-input"
-            style={{
-              ...placement(true, table.unionInputs?.length ?? 0),
-              background: colorValue(table.inputColor),
-            }}
-            onContextMenu={(e) => openMenu(e, "input")}
-            aria-label={`${table.title} ${table.kind === "union" ? "入力追加端子" : "入力端子"}`}
-            title={
-              table.kind === "union"
-                ? "入力：複数の出力端子から接続できます（接続順に追加）"
-                : "入力：出力端子からドラッグして接続（入力から逆向きにも接続できます）"
+      {acceptsInput(table.kind) && (
+        <Handle
+          type="target"
+          position={positions[inputSide]}
+          id="in"
+          className="table-port table-port-input"
+          style={{
+            ...placement(true, table.unionInputs?.length ?? 0),
+            background: colorValue(table.inputColor),
+          }}
+          onContextMenu={(e) => openMenu(e, "input")}
+          aria-label={`${table.title} ${table.kind === "union" ? "入力追加端子" : "入力端子"}`}
+          title={
+            table.kind === "union"
+              ? "入力：複数の出力端子から接続できます（接続順に追加）"
+              : "入力：出力端子からドラッグして接続（入力から逆向きにも接続できます）"
+          }
+        >
+          <span
+            className={
+              externalSource ? "port-label union-source-label" : "port-label"
             }
+            title={externalSource ?? undefined}
           >
-            <span
-              className={
-                externalSource ? "port-label union-source-label" : "port-label"
-              }
-              title={externalSource ?? undefined}
-            >
-              {table.kind === "union" ? "＋ 入力" : (externalSource ?? "入力")}
-            </span>
-          </Handle>
-        )}
+            {table.kind === "union" ? "＋ 入力" : (externalSource ?? "入力")}
+          </span>
+        </Handle>
+      )}
       {
         <Handle
           type="source"

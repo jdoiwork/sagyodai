@@ -14,6 +14,7 @@ mod http_api;
 mod http_source;
 mod mcp;
 mod note;
+mod number_text;
 mod projection;
 mod replacement;
 mod script;

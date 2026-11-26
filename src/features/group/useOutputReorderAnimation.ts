@@ -1,3 +1,4 @@
+import { swapItems } from "../../collections/reorder";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 // UI内だけのIDを列と一緒に移動し、入力欄とフォーカスを作り直さない。
@@ -27,7 +28,7 @@ export function useOutputReorderAnimation(count: number) {
     });
     animations.current.forEach((animation) => animation.cancel());
     animations.current = [];
-    [ids.current[from], ids.current[to]] = [ids.current[to], ids.current[from]];
+    ids.current = swapItems(ids.current, from, to);
   }
 
   useLayoutEffect(() => {

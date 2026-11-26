@@ -142,6 +142,15 @@ pub enum Kind {
     Sort,
     Aggregate,
 }
+impl Kind {
+    pub fn accepts_input(self) -> bool {
+        !matches!(
+            self,
+            Self::Input | Self::Csv | Self::Text | Self::Http | Self::Note
+        )
+    }
+}
+
 #[derive(schemars::JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Operator {
@@ -158,6 +167,20 @@ pub enum Operator {
     AtLeast,
     AtMost,
 }
+impl Operator {
+    pub fn is_numeric_comparison(self) -> bool {
+        matches!(
+            self,
+            Self::Greater
+                | Self::Less
+                | Self::AtLeast
+                | Self::AtMost
+                | Self::NumberEquals
+                | Self::NumberNotEquals
+        )
+    }
+}
+
 #[derive(schemars::JsonSchema, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Filter {

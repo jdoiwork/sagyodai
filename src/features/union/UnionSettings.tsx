@@ -1,3 +1,4 @@
+import { swapItems } from "../../collections/reorder";
 import { sourceLabel } from "../sheets/model";
 import type { TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -17,9 +18,7 @@ export function UnionSettings({ table }: { table: TableData }) {
     });
   }
   function move(index: number, delta: number) {
-    const next = [...sources];
-    [next[index], next[index + delta]] = [next[index + delta], next[index]];
-    update(next);
+    update(swapItems(sources, index, index + delta));
   }
   const candidates =
     project?.tables.filter(

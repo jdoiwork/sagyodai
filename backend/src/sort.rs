@@ -1,5 +1,6 @@
 //! 列の優先順に安定ソートする。入力原本は変更しない。
 use crate::domain::Table;
+use crate::number_text::parse_finite_number;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +22,30 @@ pub enum Mode {
     Number,
     Text,
 }
+impl SortKey {
+    /// 空欄・数値として読めない値は、降順でも末尾に保つ。
+    pub fn compare_text_cells(&self, left: &str, right: &str) -> Ordering {
+        let (order, reversible) = match self.mode {
+            Mode::Number => match (parse_finite_number(left), parse_finite_number(right)) {
+                (Some(a), Some(b)) => (a.partial_cmp(&b).unwrap_or(Ordering::Equal), true),
+                (Some(_), None) => (Ordering::Less, false),
+                (None, Some(_)) => (Ordering::Greater, false),
+                _ => (Ordering::Equal, false),
+            },
+            Mode::Text => match (left.is_empty(), right.is_empty()) {
+                (false, true) => (Ordering::Less, false),
+                (true, false) => (Ordering::Greater, false),
+                _ => (left.cmp(right), true),
+            },
+        };
+        if reversible && self.direction == Direction::Desc {
+            order.reverse()
+        } else {
+            order
+        }
+    }
+}
+
 pub fn validate(keys: &[SortKey]) -> Result<(), String> {
     let mut columns = std::collections::HashSet::new();
     if keys.len() > crate::storage::MAX_COLS
@@ -41,27 +66,7 @@ pub fn rows(source: &Table, keys: &[SortKey]) -> Result<Vec<Vec<String>>, String
         for key in keys {
             let left = &a[key.column];
             let right = &b[key.column];
-            let (order, valid) = match key.mode {
-                Mode::Number => {
-                    let parse = |s: &str| s.trim().parse::<f64>().ok().filter(|n| n.is_finite());
-                    match (parse(left), parse(right)) {
-                        (Some(a), Some(b)) => (a.partial_cmp(&b).unwrap_or(Ordering::Equal), true),
-                        (Some(_), None) => (Ordering::Less, false),
-                        (None, Some(_)) => (Ordering::Greater, false),
-                        _ => (Ordering::Equal, false),
-                    }
-                }
-                Mode::Text => match (left.is_empty(), right.is_empty()) {
-                    (false, true) => (Ordering::Less, false),
-                    (true, false) => (Ordering::Greater, false),
-                    _ => (left.cmp(right), true),
-                },
-            };
-            let order = if valid && key.direction == Direction::Desc {
-                order.reverse()
-            } else {
-                order
-            };
+            let order = key.compare_text_cells(left, right);
             if order != Ordering::Equal {
                 return order;
             }

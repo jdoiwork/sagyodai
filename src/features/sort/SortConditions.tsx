@@ -1,3 +1,4 @@
+import { swapItems } from "../../collections/reorder";
 import { useEffect, useRef, useState } from "react";
 import type { SortKey, TableData } from "../../api/project";
 import { useProject } from "../../app/ProjectContext";
@@ -27,9 +28,7 @@ export function SortConditions({
     setKeys(next);
   }
   function move(i: number, delta: number) {
-    const next = [...keys];
-    [next[i], next[i + delta]] = [next[i + delta], next[i]];
-    update(next);
+    update(swapItems(keys, i, i + delta));
   }
   const available =
     source?.columns.findIndex((_, c) => !keys.some((k) => k.column === c)) ??

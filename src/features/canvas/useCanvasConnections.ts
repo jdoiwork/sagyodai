@@ -1,3 +1,4 @@
+import { acceptsInput } from "./nodeCapabilities";
 import { useCallback, useRef, useState } from "react";
 import type { ReactFlowProps } from "@xyflow/react";
 import type { Command, Snapshot, TableData } from "../../api/project";
@@ -94,8 +95,7 @@ export function useCanvasConnections(
         (table) => table.id === connection.target,
       );
       if (!source || !target) return false;
-      if (["input", "csv", "http", "text", "note"].includes(target.kind))
-        return false;
+      if (!acceptsInput(target.kind)) return false;
       // 結合ノードの既存端子には重ねて接続せず、追加用の入力端子だけを使う。
       if (target.kind === "union" && connection.targetHandle !== "in")
         return false;

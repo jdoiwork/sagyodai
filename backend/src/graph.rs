@@ -1,5 +1,6 @@
 //! 表を入出力とする小規模な非循環グラフ。評価は操作と同じトランザクションで完了する。
 use crate::domain::{Filter, Kind, Operator, Table};
+use crate::number_text::parse_finite_number;
 use std::collections::HashSet;
 
 pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
@@ -36,11 +37,7 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
             return Err("ソート設定とノードの種類が一致しません。".into());
         }
 
-        if matches!(
-            t.kind,
-            Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
-        ) && (t.source.is_some() || t.filter.is_some() || t.manual)
-        {
+        if !t.kind.accepts_input() && (t.source.is_some() || t.filter.is_some() || t.manual) {
             return Err("入力ソースには入力接続や加工設定を指定できません。".into());
         }
         if (t.kind == Kind::Filter) != t.filter.is_some() {
@@ -93,9 +90,6 @@ pub fn order(tables: &[Table]) -> Result<Vec<usize>, String> {
     Ok(result)
 }
 
-fn number(value: &str) -> Option<f64> {
-    value.trim().parse::<f64>().ok().filter(|n| n.is_finite())
-}
 fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, String> {
     if filter.operator == Operator::SearchAll {
         let needle = filter.value.trim().to_lowercase();
@@ -112,17 +106,9 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
     if filter.column >= source.columns.len() {
         return Err("指定した列が入力にありません。".into());
     }
-    let numeric = matches!(
-        filter.operator,
-        Operator::Greater
-            | Operator::Less
-            | Operator::AtLeast
-            | Operator::AtMost
-            | Operator::NumberEquals
-            | Operator::NumberNotEquals
-    );
+    let numeric = filter.operator.is_numeric_comparison();
     let threshold = if numeric {
-        Some(number(&filter.value).ok_or("比較値に有限の数値を入力してください。")?)
+        Some(parse_finite_number(&filter.value).ok_or("比較値に有限の数値を入力してください。")?)
     } else {
         None
     };
@@ -139,15 +125,17 @@ fn filter_rows(source: &Table, filter: &Filter) -> Result<Vec<Vec<String>>, Stri
                 Operator::Equals => value == &filter.value,
                 Operator::NotEquals => value != &filter.value,
                 Operator::Contains => value.contains(&filter.value),
-                op => number(value).zip(threshold).is_some_and(|(a, b)| match op {
-                    Operator::NumberEquals => a == b,
-                    Operator::NumberNotEquals => a != b,
-                    Operator::Greater => a > b,
-                    Operator::Less => a < b,
-                    Operator::AtLeast => a >= b,
-                    Operator::AtMost => a <= b,
-                    _ => false,
-                }),
+                op => parse_finite_number(value)
+                    .zip(threshold)
+                    .is_some_and(|(a, b)| match op {
+                        Operator::NumberEquals => a == b,
+                        Operator::NumberNotEquals => a != b,
+                        Operator::Greater => a > b,
+                        Operator::Less => a < b,
+                        Operator::AtLeast => a >= b,
+                        Operator::AtMost => a <= b,
+                        _ => false,
+                    }),
             }
         })
         .cloned()
@@ -165,10 +153,7 @@ pub fn evaluate(tables: &mut [Table], previous: &[Table], run: Option<&str>) -> 
         ) {
             crate::column_types::refresh_source(&mut tables[i]);
         }
-        if matches!(
-            tables[i].kind,
-            Kind::Input | Kind::Csv | Kind::Text | Kind::Http | Kind::Note
-        ) {
+        if !tables[i].kind.accepts_input() {
             continue;
         }
         let old = previous.iter().find(|n| n.id == tables[i].id);

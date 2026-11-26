@@ -1,5 +1,6 @@
 //! 表示中の行（結果表ではキャッシュ）だけを集計し、データ行には混ぜない。
 use crate::domain::Table;
+use crate::number_text::parse_finite_number;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -61,8 +62,7 @@ pub fn totals(table: &Table) -> Vec<Option<String>> {
                 .rows
                 .iter()
                 .filter_map(|row| row.get(col))
-                .filter_map(|cell| cell.trim().parse::<f64>().ok())
-                .filter(|value| value.is_finite())
+                .filter_map(|cell| parse_finite_number(cell))
                 .sum::<f64>();
             Some(if sum == 0.0 {
                 "0".into()
